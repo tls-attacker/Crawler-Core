@@ -8,7 +8,7 @@
  */
 package de.rub.nds.crawler.data;
 
-import de.rub.nds.crawler.constant.Status;
+import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.crawler.scans.Scan;
@@ -22,7 +22,7 @@ public class ScanJob implements Serializable {
 
     private ScanTarget scanTarget;
 
-    private Status status;
+    private JobStatus status;
 
     // Data also present in bulk scan, we copy it here for the worker
     private String bulkScanId;
@@ -44,7 +44,7 @@ public class ScanJob implements Serializable {
             boolean isMonitored,
             String dbName,
             String collectionName,
-            Status status) {
+            JobStatus status) {
         this.scanTarget = scanTarget;
         this.scanConfig = scanConfig;
         this.bulkScanId = bulkScanId;
@@ -93,11 +93,11 @@ public class ScanJob implements Serializable {
         return collectionName;
     }
 
-    public Status getStatus() {
+    public JobStatus getStatus() {
         return status;
     }
 
-    public void setStatus(Status status) {
+    public void setStatus(JobStatus status) {
         this.status = status;
     }
 

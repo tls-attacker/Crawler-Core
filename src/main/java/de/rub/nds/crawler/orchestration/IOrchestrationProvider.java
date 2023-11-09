@@ -8,6 +8,7 @@
  */
 package de.rub.nds.crawler.orchestration;
 
+import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.ScanJob;
 
 /**
@@ -36,14 +37,17 @@ public interface IOrchestrationProvider {
     /**
      * Register a done notification consumer. It is called when a scan job is done.
      *
+     * @param bulkScan The bulk scan for which the consumer accepts notifications.
      * @param doneNotificationConsumer The done notification consumer to be registered.
      */
-    void registerDoneNotificationConsumer(DoneNotificationConsumer doneNotificationConsumer);
+    void registerDoneNotificationConsumer(
+            BulkScan bulkScan, DoneNotificationConsumer doneNotificationConsumer);
 
     /**
      * Send an acknowledgment that a scan job received by a scan consumer is finished.
      *
-     * @param scanJob The scan job that is finished.
+     * @param scanJob The scan job that is finished. Its status should reflect the status of the
+     *     results.
      */
     void notifyOfDoneScanJob(ScanJob scanJob);
 

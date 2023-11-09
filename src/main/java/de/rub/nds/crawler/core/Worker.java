@@ -92,7 +92,7 @@ public class Worker {
                         LOGGER.info(
                                 "Trying to shutdown scan of '{}' because timeout reached",
                                 scan.getScanJob().getScanTarget());
-                        scan.cancel(true);
+                        scan.cancel();
                         future.cancel(true);
                     }
                 });

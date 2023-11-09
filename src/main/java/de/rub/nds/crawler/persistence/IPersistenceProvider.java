@@ -9,6 +9,7 @@
 package de.rub.nds.crawler.persistence;
 
 import de.rub.nds.crawler.data.BulkScan;
+import de.rub.nds.crawler.data.ScanJob;
 import de.rub.nds.crawler.data.ScanResult;
 
 /**
@@ -21,10 +22,9 @@ public interface IPersistenceProvider {
      * Insert a scan result into the database.
      *
      * @param scanResult The scan result to insert.
-     * @param dbName The name of the database.
-     * @param collectionName The name of the collection.
+     * @param job The job that was used to create the scan result.
      */
-    void insertScanResult(ScanResult scanResult, String dbName, String collectionName);
+    void insertScanResult(ScanResult scanResult, ScanJob job);
 
     /**
      * Insert a bulk scan into the database. This is used to store metadata about the bulk scan.

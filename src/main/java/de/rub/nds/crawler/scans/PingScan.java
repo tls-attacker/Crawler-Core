@@ -9,7 +9,6 @@
 package de.rub.nds.crawler.scans;
 
 import de.rub.nds.crawler.data.ScanJob;
-import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.io.IOException;
@@ -25,7 +24,7 @@ import org.bson.Document;
 public class PingScan extends Scan {
 
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final int timeOutMs = 5000;
+    private static final int TIME_OUT_MS = 5000;
 
     public PingScan(
             ScanJob scanJob,
@@ -46,7 +45,7 @@ public class PingScan extends Scan {
         }
 
         try (Socket soc = new Socket()) {
-            soc.connect(new InetSocketAddress(address, port), PingScan.timeOutMs);
+            soc.connect(new InetSocketAddress(address, port), TIME_OUT_MS);
             return true;
         } catch (IOException ex) {
             return false;
@@ -54,12 +53,12 @@ public class PingScan extends Scan {
     }
 
     @Override
-    public ScanResult executeScan() {
+    public Document executeScan() {
         LOGGER.trace("scan()");
 
         Document result = new Document();
         result.put("timestamp", Instant.now());
-        result.put("timeout", timeOutMs);
+        result.put("timeout", TIME_OUT_MS);
 
         if (isReachable(scanJob.getScanTarget().getIp(), scanJob.getScanTarget().getPort())) {
             result.put("reachablePorts", new ArrayList<>(scanJob.getScanTarget().getPort()));
@@ -69,11 +68,11 @@ public class PingScan extends Scan {
             result.put("unreachablePorts", new ArrayList<>(scanJob.getScanTarget().getPort()));
         }
 
-        return new ScanResult(scanJob.getBulkScanId(), scanJob.getScanTarget(), result);
+        return result;
     }
 
     @Override
-    protected void onJobDone(boolean timeout) {
+    protected void onCleanup(boolean cancelled) {
         // no resources to release
     }
 }

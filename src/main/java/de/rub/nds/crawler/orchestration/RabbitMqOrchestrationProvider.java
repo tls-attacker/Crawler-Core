@@ -13,12 +13,15 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 import de.rub.nds.crawler.config.delegate.RabbitMqDelegate;
+import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.ScanJob;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.logging.log4j.LogManager;
@@ -33,11 +36,12 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
     private static final Logger LOGGER = LogManager.getLogger();
 
     private static final String SCAN_JOB_QUEUE = "scan-job-queue";
-    private static final String DONE_NOTIFY_QUEUE = "done-notify-queue";
 
     private Connection connection;
 
     private Channel channel;
+
+    private Set<String> declaredQueues = new HashSet<>();
 
     public RabbitMqOrchestrationProvider(RabbitMqDelegate rabbitMqDelegate) {
         ConnectionFactory factory = new ConnectionFactory();
@@ -68,11 +72,23 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
             this.connection = factory.newConnection();
             this.channel = connection.createChannel();
             this.channel.queueDeclare(SCAN_JOB_QUEUE, false, false, false, null);
-            this.channel.queueDeclare(DONE_NOTIFY_QUEUE, false, false, false, null);
         } catch (IOException | TimeoutException e) {
             LOGGER.error("Could not connect to RabbitMQ: ", e);
-            throw new RuntimeException();
+            throw new RuntimeException(e);
         }
+    }
+
+    private String getDoneNotifyQueue(String bulkScanId) {
+        String queueName = "done-notify-queue_" + bulkScanId;
+        if (!declaredQueues.contains(queueName)) {
+            try {
+                this.channel.queueDeclare(queueName, false, false, true, null);
+                declaredQueues.add(bulkScanId);
+            } catch (IOException e) {
+                LOGGER.error("Could not declare done-notify-queue: ", e);
+            }
+        }
+        return queueName;
     }
 
     @Override
@@ -110,14 +126,18 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
 
     @Override
     public void registerDoneNotificationConsumer(
-            DoneNotificationConsumer doneNotificationConsumer) {
+            BulkScan bulkScan, DoneNotificationConsumer doneNotificationConsumer) {
         DeliverCallback deliverCallback =
                 (consumerTag, delivery) ->
                         doneNotificationConsumer.consumeDoneNotification(
                                 consumerTag, SerializationUtils.deserialize(delivery.getBody()));
         try {
             channel.basicQos(1);
-            channel.basicConsume(DONE_NOTIFY_QUEUE, true, deliverCallback, consumerTag -> {});
+            channel.basicConsume(
+                    getDoneNotifyQueue(bulkScan.get_id()),
+                    true,
+                    deliverCallback,
+                    consumerTag -> {});
         } catch (IOException e) {
             LOGGER.error("Failed to register DoneNotification consumer: ", e);
         }
@@ -129,7 +149,10 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         if (scanJob.isMonitored()) {
             try {
                 this.channel.basicPublish(
-                        "", DONE_NOTIFY_QUEUE, null, SerializationUtils.serialize(scanJob));
+                        "",
+                        getDoneNotifyQueue(scanJob.getBulkScanId()),
+                        null,
+                        SerializationUtils.serialize(scanJob));
             } catch (IOException e) {
                 LOGGER.error("Failed to send notification for done ScanJob: ", e);
             }

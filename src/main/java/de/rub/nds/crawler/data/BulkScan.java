@@ -8,10 +8,13 @@
  */
 package de.rub.nds.crawler.data;
 
+import de.rub.nds.crawler.constant.JobStatus;
 import java.io.Serializable;
-import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.Date;
+import java.util.EnumMap;
+import java.util.Map;
 import javax.persistence.Id;
 
 public class BulkScan implements Serializable {
@@ -36,9 +39,9 @@ public class BulkScan implements Serializable {
 
     private int scanJobsPublished;
 
-    private int scanTimeouts;
+    private int successfulScans;
 
-    private int resultsWritten;
+    private Map<JobStatus, Integer> jobStatusCounters = new EnumMap<>(JobStatus.class);
 
     private String notifyUrl;
 
@@ -112,12 +115,8 @@ public class BulkScan implements Serializable {
         return this.scanJobsPublished;
     }
 
-    public int getScanTimeouts() {
-        return this.scanTimeouts;
-    }
-
-    public int getResultsWritten() {
-        return this.resultsWritten;
+    public int getSuccessfulScans() {
+        return this.successfulScans;
     }
 
     public String getNotifyUrl() {
@@ -173,12 +172,8 @@ public class BulkScan implements Serializable {
         this.scanJobsPublished = scanJobsPublished;
     }
 
-    public void setScanTimeouts(int scanTimeouts) {
-        this.scanTimeouts = scanTimeouts;
-    }
-
-    public void setResultsWritten(int resultsWritten) {
-        this.resultsWritten = resultsWritten;
+    public void setSuccessfulScans(int successfulScans) {
+        this.successfulScans = successfulScans;
     }
 
     public void setNotifyUrl(String notifyUrl) {
@@ -191,5 +186,13 @@ public class BulkScan implements Serializable {
 
     public void setCrawlerVersion(String crawlerVersion) {
         this.crawlerVersion = crawlerVersion;
+    }
+
+    public Map<JobStatus, Integer> getJobStatusCounters() {
+        return jobStatusCounters;
+    }
+
+    public void setJobStatusCounters(Map<JobStatus, Integer> jobStatusCounters) {
+        this.jobStatusCounters = jobStatusCounters;
     }
 }

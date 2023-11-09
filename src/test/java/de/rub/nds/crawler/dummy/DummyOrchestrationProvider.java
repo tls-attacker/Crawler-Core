@@ -8,6 +8,7 @@
  */
 package de.rub.nds.crawler.dummy;
 
+import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.ScanJob;
 import de.rub.nds.crawler.orchestration.DoneNotificationConsumer;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
@@ -66,7 +67,7 @@ public class DummyOrchestrationProvider implements IOrchestrationProvider {
 
     @Override
     public void registerDoneNotificationConsumer(
-            DoneNotificationConsumer doneNotificationConsumer) {
+            BulkScan bulkScan, DoneNotificationConsumer doneNotificationConsumer) {
         doneNotificationConsumers.add(doneNotificationConsumer);
     }
 

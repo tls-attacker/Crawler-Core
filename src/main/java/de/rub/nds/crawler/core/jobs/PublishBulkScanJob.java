@@ -9,7 +9,7 @@
 package de.rub.nds.crawler.core.jobs;
 
 import de.rub.nds.crawler.config.ControllerCommandConfig;
-import de.rub.nds.crawler.constant.Status;
+import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.core.ProgressMonitor;
 import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.ScanJob;
@@ -80,7 +80,7 @@ public class PublishBulkScanJob implements Job {
                                                             bulkScan.isMonitored(),
                                                             bulkScan.getName(),
                                                             bulkScan.getCollectionName(),
-                                                            Status.Ready));
+                                                            JobStatus.TO_BE_EXECUTED));
                                         }
                                         return target;
                                     })

@@ -9,8 +9,9 @@
 package de.rub.nds.crawler.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.data.BulkScan;
-import de.rub.nds.crawler.data.BulkScanJobDetails;
+import de.rub.nds.crawler.data.BulkScanJobCounters;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.io.IOException;
@@ -20,7 +21,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.Scheduler;
@@ -35,7 +35,7 @@ public class ProgressMonitor {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private final Map<String, BulkScanJobDetails> scanJobDetailsById;
+    private final Map<String, BulkScanJobCounters> scanJobDetailsById;
 
     private final IOrchestrationProvider orchestrationProvider;
 
@@ -61,41 +61,28 @@ public class ProgressMonitor {
      *
      * @param bulkScan that should be monitored
      */
-    public void startMonitoringBulkScanProgress(BulkScan bulkScan) {
+    public void startMonitoringBulkScanProgress(final BulkScan bulkScan) {
+        final BulkScanJobCounters counters = new BulkScanJobCounters(bulkScan);
+        scanJobDetailsById.put(bulkScan.get_id(), counters);
+
         if (!listenerRegistered) {
             orchestrationProvider.registerDoneNotificationConsumer(
+                    bulkScan,
                     (consumerTag, scanJob) -> {
-                        String bulkScanId = scanJob.getBulkScanId();
                         try {
-                            if (scanJobDetailsById.containsKey(bulkScanId)) {
-                                AtomicInteger counter =
-                                        getScanJobDetails(bulkScanId).getDoneScanJobs();
-                                switch (scanJob.getStatus()) {
-                                    case Timeout:
-                                        getScanJobDetails(bulkScanId)
-                                                .getScanTimeouts()
-                                                .incrementAndGet();
-                                        break;
-                                    case DoneResultWritten:
-                                        getScanJobDetails(bulkScanId)
-                                                .getResultsWritten()
-                                                .incrementAndGet();
-                                        break;
-                                }
-                                if (counter.incrementAndGet()
-                                        == (bulkScan.getScanJobsPublished() != 0
-                                                ? bulkScan.getScanJobsPublished()
-                                                : bulkScan.getTargetsGiven())) {
-                                    this.stopMonitoringAndFinalizeBulkScan(scanJob.getBulkScanId());
-                                } else {
-                                    LOGGER.info(
-                                            "BulkScan '{}': {} of {} scan jobs done",
-                                            bulkScanId,
-                                            counter.get(),
-                                            (bulkScan.getScanJobsPublished() != 0
-                                                    ? bulkScan.getScanJobsPublished()
-                                                    : bulkScan.getTargetsGiven()));
-                                }
+                            int totalDone = counters.increaseJobStatusCount(scanJob.getStatus());
+                            int expectedTotal =
+                                    bulkScan.getScanJobsPublished() != 0
+                                            ? bulkScan.getScanJobsPublished()
+                                            : bulkScan.getTargetsGiven();
+                            if (totalDone == expectedTotal) {
+                                this.stopMonitoringAndFinalizeBulkScan(scanJob.getBulkScanId());
+                            } else {
+                                LOGGER.info(
+                                        "BulkScan '{}': {} of {} scan jobs done",
+                                        bulkScan.get_id(),
+                                        totalDone,
+                                        expectedTotal);
                             }
                         } catch (Exception e) {
                             LOGGER.error("Exception in done notification consumer:", e);
@@ -103,8 +90,6 @@ public class ProgressMonitor {
                     });
             listenerRegistered = true;
         }
-        BulkScanJobDetails bulkScanJobDetails = new BulkScanJobDetails(bulkScan);
-        this.scanJobDetailsById.put(bulkScan.get_id(), bulkScanJobDetails);
     }
 
     /**
@@ -115,12 +100,12 @@ public class ProgressMonitor {
      */
     public void stopMonitoringAndFinalizeBulkScan(String bulkScanId) {
         LOGGER.info("BulkScan '{}' is finished", bulkScanId);
-        BulkScanJobDetails bulkScanJobDetails = scanJobDetailsById.get(bulkScanId);
-        BulkScan scan = bulkScanJobDetails.getBulkScan();
+        BulkScanJobCounters bulkScanJobCounters = scanJobDetailsById.get(bulkScanId);
+        BulkScan scan = bulkScanJobCounters.getBulkScan();
         scan.setFinished(true);
         scan.setEndTime(System.currentTimeMillis());
-        scan.setResultsWritten(bulkScanJobDetails.getResultsWritten().get());
-        scan.setScanTimeouts(bulkScanJobDetails.getScanTimeouts().get());
+        scan.setSuccessfulScans(bulkScanJobCounters.getJobStatusCount(JobStatus.SUCCESS));
+        scan.setJobStatusCounters(bulkScanJobCounters.getJobStatusCountersCopy());
         persistenceProvider.updateBulkScan(scan);
         LOGGER.info("Persisted updated BulkScan with id: {}", scan.get_id());
 
@@ -173,9 +158,5 @@ public class ProgressMonitor {
         return HttpClient.newHttpClient()
                 .send(request, HttpResponse.BodyHandlers.ofString())
                 .body();
-    }
-
-    private BulkScanJobDetails getScanJobDetails(String id) {
-        return this.scanJobDetailsById.get(id);
     }
 }

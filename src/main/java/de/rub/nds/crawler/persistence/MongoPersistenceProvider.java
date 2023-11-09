@@ -23,7 +23,9 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.lang.NonNull;
 import de.rub.nds.crawler.config.delegate.MongoDbDelegate;
+import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.data.BulkScan;
+import de.rub.nds.crawler.data.ScanJob;
 import de.rub.nds.crawler.data.ScanResult;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -44,8 +46,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private static final Logger LOGGER = LogManager.getLogger();
 
     private static boolean isInitialized = false;
-    private static Set<JsonSerializer<?>> serializers = new HashSet<>();
-    private static Set<Module> modules = new HashSet<>();
+    private static final Set<JsonSerializer<?>> serializers = new HashSet<>();
+    private static final Set<Module> modules = new HashSet<>();
 
     public static void registerSerializer(JsonSerializer<?> serializer) {
         if (isInitialized) {
@@ -114,10 +116,11 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         this.collectionByDbAndCollectionName = new HashMap<>();
 
         if (!serializers.isEmpty()) {
-            SimpleModule module = new SimpleModule();
+            SimpleModule serializerModule = new SimpleModule();
             for (JsonSerializer<?> serializer : serializers) {
-                module.addSerializer(serializer);
+                serializerModule.addSerializer(serializer);
             }
+            mapper.registerModule(serializerModule);
         }
         for (Module module : modules) {
             mapper.registerModule(module);
@@ -139,7 +142,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
             this.mongoClient.startSession();
         } catch (Exception e) {
             LOGGER.error("Could not connect to MongoDB: ", e);
-            throw new RuntimeException();
+            throw new RuntimeException(e);
         }
 
         LOGGER.info("MongoDB persistence provider initialized, connected to {}.", connectionString);
@@ -207,18 +210,33 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
      * @param scanResult The new scan task.
      */
     @Override
-    public void insertScanResult(ScanResult scanResult, String dbName, String collectionName) {
+    public void insertScanResult(ScanResult scanResult, ScanJob scanJob) {
+        if (scanResult.getResultStatus() != scanJob.getStatus()) {
+            LOGGER.warn(
+                    "ScanResult status ({}) does not match ScanJob status ({})",
+                    scanResult.getResultStatus(),
+                    scanJob.getStatus());
+            throw new IllegalArgumentException("ScanResult status does not match ScanJob status");
+        }
         try {
-            if (scanResult != null && scanResult.getResult() != null) {
-                LOGGER.info(
-                        "Writing result for {} into collection: {}",
-                        scanResult.getScanTarget().getHostname(),
-                        collectionName);
-                this.getCollection(dbName, collectionName).insertOne(scanResult);
-            }
+            LOGGER.info(
+                    "Writing result ({}) for {} into collection: {}",
+                    scanResult.getResultStatus(),
+                    scanResult.getScanTarget().getHostname(),
+                    scanJob.getCollectionName());
+            this.getCollection(scanJob.getDbName(), scanJob.getCollectionName())
+                    .insertOne(scanResult);
         } catch (Exception e) {
             // catch JsonMappingException etc.
             LOGGER.error("Exception while writing Result to MongoDB: ", e);
+            if (scanResult.getResultStatus() != JobStatus.SERIALIZATION_ERROR) {
+                scanJob.setStatus(JobStatus.SERIALIZATION_ERROR);
+                insertScanResult(ScanResult.fromException(scanJob, e), scanJob);
+            } else {
+                LOGGER.error(
+                        "Did not write serialization exception to MongoDB (to avoid infinite recursion)");
+                scanJob.setStatus(JobStatus.INTERNAL_ERROR);
+            }
         }
     }
 }

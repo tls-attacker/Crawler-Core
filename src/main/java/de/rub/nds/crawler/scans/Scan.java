@@ -8,7 +8,7 @@
  */
 package de.rub.nds.crawler.scans;
 
-import de.rub.nds.crawler.constant.Status;
+import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.data.ScanJob;
 import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
@@ -16,6 +16,7 @@ import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bson.Document;
 
 /** Interface to be implemented by scans. */
 public abstract class Scan implements Runnable {
@@ -27,8 +28,9 @@ public abstract class Scan implements Runnable {
 
     private final IPersistenceProvider persistenceProvider;
     protected final AtomicBoolean cancelled = new AtomicBoolean(false);
+    protected final AtomicBoolean cleantUp = new AtomicBoolean(false);
 
-    public Scan(
+    protected Scan(
             ScanJob scanJob,
             IOrchestrationProvider orchestrationProvider,
             IPersistenceProvider persistenceProvider) {
@@ -39,39 +41,78 @@ public abstract class Scan implements Runnable {
 
     @Override
     public final void run() {
+        ScanResult scanResult = null;
         try {
-            ScanResult result = executeScan();
-            if (result != null) {
-                persistenceProvider.insertScanResult(
-                        result, scanJob.getDbName(), scanJob.getCollectionName());
-                scanJob.setStatus(Status.DoneResultWritten);
+            Document resultDocument = executeScan();
+
+            JobStatus jobStatus;
+            if (resultDocument == null) {
+                jobStatus = JobStatus.EMPTY;
             } else {
-                scanJob.setStatus(Status.DoneNoResult);
+                jobStatus = cancelled.get() ? JobStatus.CANCELLED : JobStatus.SUCCESS;
             }
+            scanJob.setStatus(jobStatus);
+            scanResult = new ScanResult(scanJob, resultDocument);
         } catch (Exception e) {
             LOGGER.error(
                     "Scanning of {} had to be aborted because of an exception: ",
                     scanJob.getScanTarget(),
                     e);
-            // TODO propagate error to DB or somewhere...
+
+            scanResult = ScanResult.fromException(scanJob, e);
         } finally {
-            this.cancel(false);
-        }
-    }
-
-    protected abstract ScanResult executeScan();
-
-    public final void cancel(boolean timeout) {
-        if (!cancelled.getAndSet(true)) {
-            if (timeout) {
-                scanJob.setStatus(Status.Timeout);
+            try {
+                persistResult(scanResult);
+            } catch (Exception e) {
+                LOGGER.error("Could not persist result for {}", scanJob.getScanTarget(), e);
+                scanJob.setStatus(JobStatus.ERROR);
             }
-            orchestrationProvider.notifyOfDoneScanJob(scanJob);
-            onJobDone(timeout);
+            this.cleanup();
         }
     }
 
-    protected abstract void onJobDone(boolean timeout);
+    private void persistResult(ScanResult scanResult) {
+        if (scanResult != null) {
+            LOGGER.info(
+                    "Writing {} result for {}",
+                    scanResult.getResultStatus(),
+                    scanJob.getScanTarget());
+            scanJob.setStatus(scanResult.getResultStatus());
+            persistenceProvider.insertScanResult(scanResult, scanJob);
+        } else {
+            LOGGER.error("ScanResult was null, this should not happen.");
+            scanJob.setStatus(JobStatus.INTERNAL_ERROR);
+        }
+    }
+
+    protected abstract Document executeScan();
+
+    /** Cancels the scan. This is idempotent. */
+    public final void cancel() {
+        if (!cancelled.getAndSet(true)) {
+            scanJob.setStatus(JobStatus.CANCELLED);
+            cleanup();
+        }
+    }
+
+    /**
+     * Cleans up the scan. Calls {@link #onCleanup(boolean)} if not already called. This is
+     * idempotent.
+     */
+    public final void cleanup() {
+        if (!cleantUp.getAndSet(true)) {
+            orchestrationProvider.notifyOfDoneScanJob(scanJob);
+            onCleanup(cancelled.get());
+        }
+    }
+
+    /**
+     * Hook to free further resources. Do not call directly, use {@link #cleanup()} instead. If the
+     * scan is still running (i.e. cancelled is true), this has to cause the scan to exit.
+     *
+     * @param cancelled Whether the scan was cancelled or finished normally.
+     */
+    protected abstract void onCleanup(boolean cancelled);
 
     public ScanJob getScanJob() {
         return this.scanJob;
