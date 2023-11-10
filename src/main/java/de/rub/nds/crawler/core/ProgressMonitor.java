@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.BulkScanJobCounters;
+import de.rub.nds.crawler.data.ScanJobDescription;
+import de.rub.nds.crawler.orchestration.DoneNotificationConsumer;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.io.IOException;
@@ -55,40 +57,102 @@ public class ProgressMonitor {
         this.scheduler = scheduler;
     }
 
+    private class BulkscanMonitor implements DoneNotificationConsumer {
+        private final BulkScan bulkScan;
+        private final BulkScanJobCounters counters;
+        private final String bulkScanId;
+        private double movingAverageDuration = -1;
+        private long lastTime = System.currentTimeMillis();
+
+        public BulkscanMonitor(BulkScan bulkScan, BulkScanJobCounters counters) {
+            this.bulkScan = bulkScan;
+            this.counters = counters;
+            this.bulkScanId = bulkScan.get_id();
+        }
+
+        private String formatTime(double millis) {
+            if (millis < 1000) {
+                return String.format("%4.0f ms", millis);
+            }
+            double seconds = millis / 1000;
+            if (seconds < 100) {
+                return String.format("%5.2f s", seconds);
+            }
+
+            double minutes = seconds / 60;
+            seconds = seconds % 60;
+            if (minutes < 100) {
+                return String.format("%2.0f m %2.0f s", minutes, seconds);
+            }
+            double hours = minutes / 60;
+            minutes = minutes % 60;
+            if (hours < 48) {
+                return String.format("%2.0f h %2.0f m", hours, minutes);
+            }
+            double days = hours / 24;
+            return String.format("%.1f d", days);
+        }
+
+        @Override
+        public void consumeDoneNotification(String consumerTag, ScanJobDescription scanJob) {
+            try {
+                int totalDone = counters.increaseJobStatusCount(scanJob.getStatus());
+                int expectedTotal =
+                        bulkScan.getScanJobsPublished() != 0
+                                ? bulkScan.getScanJobsPublished()
+                                : bulkScan.getTargetsGiven();
+                long now = System.currentTimeMillis();
+                // global average
+                double globalAverageDuration = (now - bulkScan.getStartTime()) / (double) totalDone;
+                // exponential moving average
+                // start with a large alpha to not over-emphasize the first results
+                double alpha = totalDone > 20 ? 0.1 : 2 / (double) (totalDone + 1);
+                long duration = now - lastTime;
+                lastTime = now;
+                movingAverageDuration = alpha * duration + (1 - alpha) * movingAverageDuration;
+
+                double eta = (expectedTotal - totalDone) * movingAverageDuration;
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "BulkScan '{}' - {} of {} scan jobs done | Global Average {}/report | Moving Average {}/report | ETA: {}",
+                            bulkScanId,
+                            totalDone,
+                            expectedTotal,
+                            formatTime(globalAverageDuration),
+                            formatTime(movingAverageDuration),
+                            formatTime(eta));
+                    LOGGER.info(
+                            "BulkScan '{}' - Successful: {} | Empty: {} | Timeout: {} | Error: {} | Serialization Error: {} | Internal Error: {}",
+                            bulkScanId,
+                            counters.getJobStatusCount(JobStatus.SUCCESS),
+                            counters.getJobStatusCount(JobStatus.EMPTY),
+                            counters.getJobStatusCount(JobStatus.CANCELLED),
+                            counters.getJobStatusCount(JobStatus.ERROR),
+                            counters.getJobStatusCount(JobStatus.SERIALIZATION_ERROR),
+                            counters.getJobStatusCount(JobStatus.INTERNAL_ERROR));
+                }
+                if (totalDone == expectedTotal) {
+                    stopMonitoringAndFinalizeBulkScan(scanJob.getBulkScanInfo().getBulkScanId());
+                }
+            } catch (Exception e) {
+                LOGGER.error("Exception in done notification consumer:", e);
+            }
+        }
+    }
+
     /**
      * Adds a listener for the done notification queue that updates the counters for the bulk scans
      * and checks if a bulk scan is finished.
      *
      * @param bulkScan that should be monitored
      */
-    public void startMonitoringBulkScanProgress(final BulkScan bulkScan) {
+    public void startMonitoringBulkScanProgress(BulkScan bulkScan) {
         final BulkScanJobCounters counters = new BulkScanJobCounters(bulkScan);
         scanJobDetailsById.put(bulkScan.get_id(), counters);
 
         if (!listenerRegistered) {
             orchestrationProvider.registerDoneNotificationConsumer(
-                    bulkScan,
-                    (consumerTag, scanJob) -> {
-                        try {
-                            int totalDone = counters.increaseJobStatusCount(scanJob.getStatus());
-                            int expectedTotal =
-                                    bulkScan.getScanJobsPublished() != 0
-                                            ? bulkScan.getScanJobsPublished()
-                                            : bulkScan.getTargetsGiven();
-                            if (totalDone == expectedTotal) {
-                                this.stopMonitoringAndFinalizeBulkScan(
-                                        scanJob.getBulkScanInfo().getBulkScanId());
-                            } else {
-                                LOGGER.info(
-                                        "BulkScan '{}': {} of {} scan jobs done",
-                                        bulkScan.get_id(),
-                                        totalDone,
-                                        expectedTotal);
-                            }
-                        } catch (Exception e) {
-                            LOGGER.error("Exception in done notification consumer:", e);
-                        }
-                    });
+                    bulkScan, new BulkscanMonitor(bulkScan, counters));
             listenerRegistered = true;
         }
     }
