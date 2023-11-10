@@ -9,13 +9,16 @@
 package de.rub.nds.crawler.core;
 
 import de.rub.nds.crawler.config.WorkerCommandConfig;
-import de.rub.nds.crawler.data.ScanJob;
+import de.rub.nds.crawler.constant.JobStatus;
+import de.rub.nds.crawler.data.ScanJobDescription;
+import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
-import de.rub.nds.crawler.scans.Scan;
+import de.rub.nds.scanner.core.execution.NamedThreadFactory;
 import java.util.concurrent.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bson.Document;
 
 /**
  * Worker that subscribe to scan job queue, initializes thread pool and submits received scan jobs
@@ -27,12 +30,11 @@ public class Worker {
     private final IOrchestrationProvider orchestrationProvider;
     private final IPersistenceProvider persistenceProvider;
 
-    private final int maxThreadCount;
-    private final int parallelProbeThreads;
+    private final int parallelScanThreads;
+    private final int parallelConnectionThreads;
     private final int scanTimeout;
 
-    private final ThreadPoolExecutor executor;
-    private final ThreadPoolExecutor timeoutExecutor;
+    private final ThreadPoolExecutor workerExecutor;
 
     /**
      * TLS-Crawler constructor.
@@ -47,54 +49,102 @@ public class Worker {
             IPersistenceProvider persistenceProvider) {
         this.orchestrationProvider = orchestrationProvider;
         this.persistenceProvider = persistenceProvider;
-        this.maxThreadCount = commandConfig.getNumberOfThreads();
-        this.parallelProbeThreads = commandConfig.getParallelProbeThreads();
+        this.parallelScanThreads = commandConfig.getParallelScanThreads();
+        this.parallelConnectionThreads = commandConfig.getParallelConnectionThreads();
         this.scanTimeout = commandConfig.getScanTimeout();
 
-        executor =
+        workerExecutor =
                 new ThreadPoolExecutor(
-                        maxThreadCount,
-                        maxThreadCount,
+                        parallelScanThreads,
+                        parallelScanThreads,
                         5,
                         TimeUnit.MINUTES,
-                        new LinkedBlockingDeque<>());
-        timeoutExecutor =
-                new ThreadPoolExecutor(
-                        maxThreadCount,
-                        maxThreadCount,
-                        5,
-                        TimeUnit.MINUTES,
-                        new LinkedBlockingDeque<>());
+                        new LinkedBlockingDeque<>(),
+                        new NamedThreadFactory("crawler-worker: ScannerExecutor"));
     }
 
     public void start() {
         this.orchestrationProvider.registerScanJobConsumer(
-                this::handleScanJob, this.maxThreadCount);
+                this::handleScanJob, this.parallelScanThreads);
     }
 
-    private void handleScanJob(ScanJob scanJob, long deliveryTag) {
-        scanJob.setDeliveryTag(deliveryTag);
-        submitWithTimeout(
-                scanJob.createRunnable(
-                        orchestrationProvider, persistenceProvider, parallelProbeThreads));
+    private ScanResult waitForScanResult(
+            Future<Document> resultFuture, ScanJobDescription scanJobDescription)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        Document resultDocument;
+        JobStatus jobStatus;
+        try {
+            resultDocument = resultFuture.get(scanTimeout, TimeUnit.MILLISECONDS);
+            jobStatus = resultDocument != null ? JobStatus.SUCCESS : JobStatus.EMPTY;
+        } catch (TimeoutException e) {
+            LOGGER.info(
+                    "Trying to shutdown scan of '{}' because timeout reached",
+                    scanJobDescription.getScanTarget());
+            resultFuture.cancel(true);
+            // after interrupting, the scan should return as soon as possible
+            resultDocument = resultFuture.get(10, TimeUnit.SECONDS);
+            jobStatus = JobStatus.CANCELLED;
+        }
+        scanJobDescription.setStatus(jobStatus);
+        return new ScanResult(scanJobDescription, resultDocument);
     }
 
-    private void submitWithTimeout(Scan scan) {
-        timeoutExecutor.submit(
+    private void handleScanJob(ScanJobDescription scanJobDescription) {
+        LOGGER.info("Received scan job for {}", scanJobDescription.getScanTarget());
+        Future<Document> resultFuture =
+                BulkScanWorkerManager.handleStatic(
+                        scanJobDescription, parallelConnectionThreads, parallelScanThreads);
+        workerExecutor.submit(
                 () -> {
-                    Future<?> future = null;
+                    ScanResult scanResult = null;
+                    boolean persist = true;
                     try {
-                        future = executor.submit(scan);
-                        future.get(this.scanTimeout, TimeUnit.MILLISECONDS);
-                    } catch (InterruptedException | ExecutionException e) {
-                        LOGGER.error("Could not submit a scan to the worker thread with error ", e);
+                        scanResult = waitForScanResult(resultFuture, scanJobDescription);
+                    } catch (InterruptedException e) {
+                        LOGGER.error("Worker was interrupted - not persisting anything", e);
+                        scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
+                        persist = false;
+                        Thread.currentThread().interrupt();
+                    } catch (ExecutionException e) {
+                        LOGGER.error(
+                                "Scanning of {} failed because of an exception: ",
+                                scanJobDescription.getScanTarget(),
+                                e);
+                        scanJobDescription.setStatus(JobStatus.ERROR);
+                        scanResult = ScanResult.fromException(scanJobDescription, e);
                     } catch (TimeoutException e) {
                         LOGGER.info(
-                                "Trying to shutdown scan of '{}' because timeout reached",
-                                scan.getScanJob().getScanTarget());
-                        scan.cancel();
-                        future.cancel(true);
+                                "Scan of '{}' did not finish in time and did not cancel gracefully",
+                                scanJobDescription.getScanTarget());
+                        scanJobDescription.setStatus(JobStatus.CANCELLED);
+                        resultFuture.cancel(true);
+                        scanResult = ScanResult.fromException(scanJobDescription, e);
+                    } finally {
+                        if (persist) {
+                            persistResult(scanJobDescription, scanResult);
+                        }
                     }
                 });
+    }
+
+    private void persistResult(ScanJobDescription scanJobDescription, ScanResult scanResult) {
+        try {
+            if (scanResult != null) {
+                LOGGER.info(
+                        "Writing {} result for {}",
+                        scanResult.getResultStatus(),
+                        scanJobDescription.getScanTarget());
+                scanJobDescription.setStatus(scanResult.getResultStatus());
+                persistenceProvider.insertScanResult(scanResult, scanJobDescription);
+            } else {
+                LOGGER.error("ScanResult was null, this should not happen.");
+                scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Could not persist result for {}", scanJobDescription.getScanTarget());
+            scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
+        } finally {
+            orchestrationProvider.notifyOfDoneScanJob(scanJobDescription);
+        }
     }
 }

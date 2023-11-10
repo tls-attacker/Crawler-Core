@@ -9,57 +9,38 @@
 package de.rub.nds.crawler.data;
 
 import de.rub.nds.crawler.constant.JobStatus;
-import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
-import de.rub.nds.crawler.persistence.IPersistenceProvider;
-import de.rub.nds.crawler.scans.Scan;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Optional;
 
-public class ScanJob implements Serializable {
+public class ScanJobDescription implements Serializable {
 
+    private final ScanTarget scanTarget;
+
+    // Metadata
     private transient Optional<Long> deliveryTag = Optional.empty();
-
-    private ScanTarget scanTarget;
 
     private JobStatus status;
 
-    // Data also present in bulk scan, we copy it here for the worker
-    private String bulkScanId;
-
-    private ScanConfig scanConfig;
-
-    private boolean isMonitored;
+    private final BulkScanInfo bulkScanInfo;
 
     // data to write back results
 
-    private String dbName;
+    private final String dbName;
 
-    private String collectionName;
+    private final String collectionName;
 
-    public ScanJob(
+    public ScanJobDescription(
             ScanTarget scanTarget,
-            ScanConfig scanConfig,
-            String bulkScanId,
-            boolean isMonitored,
+            BulkScanInfo bulkScanInfo,
             String dbName,
             String collectionName,
             JobStatus status) {
         this.scanTarget = scanTarget;
-        this.scanConfig = scanConfig;
-        this.bulkScanId = bulkScanId;
-        this.isMonitored = isMonitored;
+        this.bulkScanInfo = bulkScanInfo;
         this.dbName = dbName;
         this.collectionName = collectionName;
         this.status = status;
-    }
-
-    public Scan createRunnable(
-            IOrchestrationProvider orchestrationProvider,
-            IPersistenceProvider persistenceProvider,
-            int parallelProbeThreads) {
-        return scanConfig.createRunnable(
-                this, orchestrationProvider, persistenceProvider, parallelProbeThreads);
     }
 
     private void readObject(java.io.ObjectInputStream in)
@@ -71,18 +52,6 @@ public class ScanJob implements Serializable {
 
     public ScanTarget getScanTarget() {
         return scanTarget;
-    }
-
-    public ScanConfig getScanConfig() {
-        return scanConfig;
-    }
-
-    public String getBulkScanId() {
-        return bulkScanId;
-    }
-
-    public boolean isMonitored() {
-        return isMonitored;
     }
 
     public String getDbName() {
@@ -110,5 +79,9 @@ public class ScanJob implements Serializable {
             throw new IllegalStateException("Delivery tag already set");
         }
         this.deliveryTag = Optional.of(deliveryTag);
+    }
+
+    public BulkScanInfo getBulkScanInfo() {
+        return bulkScanInfo;
     }
 }

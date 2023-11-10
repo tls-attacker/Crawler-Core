@@ -8,10 +8,10 @@
  */
 package de.rub.nds.crawler.orchestration;
 
-import de.rub.nds.crawler.data.ScanJob;
+import de.rub.nds.crawler.data.ScanJobDescription;
 
 @FunctionalInterface
 public interface ScanJobConsumer {
 
-    void consumeScanJob(ScanJob scanJob, long deliveryTag);
+    void consumeScanJob(ScanJobDescription scanJobDescription);
 }

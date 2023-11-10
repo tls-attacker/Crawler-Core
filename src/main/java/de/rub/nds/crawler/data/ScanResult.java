@@ -35,20 +35,25 @@ public class ScanResult implements Serializable {
         this.result = result;
     }
 
-    public ScanResult(ScanJob scanJob, Document result) {
-        this(scanJob.getBulkScanId(), scanJob.getScanTarget(), scanJob.getStatus(), result);
-        if (scanJob.getStatus() == JobStatus.TO_BE_EXECUTED) {
-            throw new IllegalArgumentException("ScanJob must not be in TO_BE_EXECUTED state");
+    public ScanResult(ScanJobDescription scanJobDescription, Document result) {
+        this(
+                scanJobDescription.getBulkScanInfo().getBulkScanId(),
+                scanJobDescription.getScanTarget(),
+                scanJobDescription.getStatus(),
+                result);
+        if (scanJobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {
+            throw new IllegalArgumentException(
+                    "ScanJobDescription must not be in TO_BE_EXECUTED state");
         }
     }
 
-    public static ScanResult fromException(ScanJob scanJob, Exception e) {
-        if (!scanJob.getStatus().isError()) {
-            throw new IllegalArgumentException("ScanJob must be in an error state");
+    public static ScanResult fromException(ScanJobDescription scanJobDescription, Exception e) {
+        if (!scanJobDescription.getStatus().isError()) {
+            throw new IllegalArgumentException("ScanJobDescription must be in an error state");
         }
         Document errorDocument = new Document();
         errorDocument.put("exception", e);
-        return new ScanResult(scanJob, errorDocument);
+        return new ScanResult(scanJobDescription, errorDocument);
     }
 
     @JsonProperty("_id")

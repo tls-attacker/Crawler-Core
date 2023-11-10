@@ -76,7 +76,8 @@ public class ProgressMonitor {
                                             ? bulkScan.getScanJobsPublished()
                                             : bulkScan.getTargetsGiven();
                             if (totalDone == expectedTotal) {
-                                this.stopMonitoringAndFinalizeBulkScan(scanJob.getBulkScanId());
+                                this.stopMonitoringAndFinalizeBulkScan(
+                                        scanJob.getBulkScanInfo().getBulkScanId());
                             } else {
                                 LOGGER.info(
                                         "BulkScan '{}': {} of {} scan jobs done",
@@ -122,9 +123,15 @@ public class ProgressMonitor {
                         scan.get_id(),
                         scan.getNotifyUrl(),
                         response);
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException e) {
                 LOGGER.error(
                         "Could not send notification for bulkScan '{}' because: ", bulkScanId, e);
+            } catch (InterruptedException e) {
+                LOGGER.error(
+                        "Could not send notification for bulkScan '{}' because we were interrupted: ",
+                        bulkScanId,
+                        e);
+                Thread.currentThread().interrupt();
             }
         }
         try {

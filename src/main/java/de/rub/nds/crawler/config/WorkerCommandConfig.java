@@ -21,13 +21,14 @@ public class WorkerCommandConfig {
 
     @Parameter(
             names = "-numberOfThreads",
-            description = "Number of worker threads the crawler slave should use")
-    private int numberOfThreads = Runtime.getRuntime().availableProcessors();
+            description = "Number of scan threads. Each thread starts a scanner instance.")
+    private int parallelScanThreads = Runtime.getRuntime().availableProcessors();
 
     @Parameter(
             names = "-parallelProbeThreads",
-            description = "Number of worker threads the crawler slave should use.")
-    private int parallelProbeThreads = 20;
+            description =
+                    "Number of threads used for parallel connections. These are shared between the worker threads per bulk scan.")
+    private int parallelConnectionThreads = 20;
 
     @Parameter(
             names = "-scanTimeout",
@@ -50,12 +51,12 @@ public class WorkerCommandConfig {
         return mongoDbDelegate;
     }
 
-    public int getNumberOfThreads() {
-        return numberOfThreads;
+    public int getParallelScanThreads() {
+        return parallelScanThreads;
     }
 
-    public int getParallelProbeThreads() {
-        return parallelProbeThreads;
+    public int getParallelConnectionThreads() {
+        return parallelConnectionThreads;
     }
 
     public int getScanTimeout() {

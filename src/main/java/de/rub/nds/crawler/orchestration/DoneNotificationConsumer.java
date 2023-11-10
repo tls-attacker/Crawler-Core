@@ -8,10 +8,10 @@
  */
 package de.rub.nds.crawler.orchestration;
 
-import de.rub.nds.crawler.data.ScanJob;
+import de.rub.nds.crawler.data.ScanJobDescription;
 
 @FunctionalInterface
 public interface DoneNotificationConsumer {
 
-    void consumeDoneNotification(String consumerTag, ScanJob scanJob);
+    void consumeDoneNotification(String consumerTag, ScanJobDescription scanJobDescription);
 }

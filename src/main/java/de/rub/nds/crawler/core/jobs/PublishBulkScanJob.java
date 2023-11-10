@@ -12,7 +12,8 @@ import de.rub.nds.crawler.config.ControllerCommandConfig;
 import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.core.ProgressMonitor;
 import de.rub.nds.crawler.data.BulkScan;
-import de.rub.nds.crawler.data.ScanJob;
+import de.rub.nds.crawler.data.BulkScanInfo;
+import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.denylist.IDenylistProvider;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
@@ -73,11 +74,9 @@ public class PublishBulkScanJob implements Job {
                                                         denylistProvider);
                                         if (target != null) {
                                             orchestrationProvider.submitScanJob(
-                                                    new ScanJob(
+                                                    new ScanJobDescription(
                                                             target,
-                                                            bulkScan.getScanConfig(),
-                                                            bulkScan.get_id(),
-                                                            bulkScan.isMonitored(),
+                                                            new BulkScanInfo(bulkScan),
                                                             bulkScan.getName(),
                                                             bulkScan.getCollectionName(),
                                                             JobStatus.TO_BE_EXECUTED));

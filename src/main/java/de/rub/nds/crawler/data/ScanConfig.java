@@ -8,9 +8,7 @@
  */
 package de.rub.nds.crawler.data;
 
-import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
-import de.rub.nds.crawler.persistence.IPersistenceProvider;
-import de.rub.nds.crawler.scans.Scan;
+import de.rub.nds.crawler.core.BulkScanWorker;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import java.io.Serializable;
 
@@ -55,9 +53,6 @@ public abstract class ScanConfig implements Serializable {
         this.timeout = timeout;
     }
 
-    public abstract Scan createRunnable(
-            ScanJob scanJob,
-            IOrchestrationProvider orchestrationProvider,
-            IPersistenceProvider persistenceProvider,
-            int parallelProbeThreads);
+    public abstract BulkScanWorker<? extends ScanConfig> createWorker(
+            String bulkScanID, int parallelConnectionThreads, int parallelScanThreads);
 }

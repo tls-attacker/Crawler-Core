@@ -9,11 +9,8 @@
 package de.rub.nds.crawler.dummy;
 
 import de.rub.nds.crawler.config.ControllerCommandConfig;
+import de.rub.nds.crawler.core.BulkScanWorker;
 import de.rub.nds.crawler.data.ScanConfig;
-import de.rub.nds.crawler.data.ScanJob;
-import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
-import de.rub.nds.crawler.persistence.IPersistenceProvider;
-import de.rub.nds.crawler.scans.Scan;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 
 public class DummyControllerCommandConfig extends ControllerCommandConfig {
@@ -22,11 +19,8 @@ public class DummyControllerCommandConfig extends ControllerCommandConfig {
     public ScanConfig getScanConfig() {
         return new ScanConfig(ScannerDetail.NORMAL, 1, 1) {
             @Override
-            public Scan createRunnable(
-                    ScanJob scanJob,
-                    IOrchestrationProvider orchestrationProvider,
-                    IPersistenceProvider persistenceProvider,
-                    int parallelProbeThreads) {
+            public BulkScanWorker<? extends ScanConfig> createWorker(
+                    String bulkScanID, int parallelConnectionThreads, int parallelScanThreads) {
                 return null;
             }
         };

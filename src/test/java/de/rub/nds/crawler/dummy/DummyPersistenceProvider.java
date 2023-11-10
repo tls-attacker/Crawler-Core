@@ -9,7 +9,7 @@
 package de.rub.nds.crawler.dummy;
 
 import de.rub.nds.crawler.data.BulkScan;
-import de.rub.nds.crawler.data.ScanJob;
+import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ public class DummyPersistenceProvider implements IPersistenceProvider {
     public final List<BulkScan> bulkScans = new ArrayList<>();
 
     @Override
-    public void insertScanResult(ScanResult scanResult, ScanJob job) {
+    public void insertScanResult(ScanResult scanResult, ScanJobDescription job) {
         results.add(scanResult);
     }
 

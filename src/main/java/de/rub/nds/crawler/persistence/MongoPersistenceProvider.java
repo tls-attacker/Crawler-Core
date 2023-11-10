@@ -25,7 +25,7 @@ import com.mongodb.lang.NonNull;
 import de.rub.nds.crawler.config.delegate.MongoDbDelegate;
 import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.data.BulkScan;
-import de.rub.nds.crawler.data.ScanJob;
+import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanResult;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -210,32 +210,35 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
      * @param scanResult The new scan task.
      */
     @Override
-    public void insertScanResult(ScanResult scanResult, ScanJob scanJob) {
-        if (scanResult.getResultStatus() != scanJob.getStatus()) {
+    public void insertScanResult(ScanResult scanResult, ScanJobDescription scanJobDescription) {
+        if (scanResult.getResultStatus() != scanJobDescription.getStatus()) {
             LOGGER.warn(
-                    "ScanResult status ({}) does not match ScanJob status ({})",
+                    "ScanResult status ({}) does not match ScanJobDescription status ({})",
                     scanResult.getResultStatus(),
-                    scanJob.getStatus());
-            throw new IllegalArgumentException("ScanResult status does not match ScanJob status");
+                    scanJobDescription.getStatus());
+            throw new IllegalArgumentException(
+                    "ScanResult status does not match ScanJobDescription status");
         }
         try {
             LOGGER.info(
                     "Writing result ({}) for {} into collection: {}",
                     scanResult.getResultStatus(),
                     scanResult.getScanTarget().getHostname(),
-                    scanJob.getCollectionName());
-            this.getCollection(scanJob.getDbName(), scanJob.getCollectionName())
+                    scanJobDescription.getCollectionName());
+            this.getCollection(
+                            scanJobDescription.getDbName(), scanJobDescription.getCollectionName())
                     .insertOne(scanResult);
         } catch (Exception e) {
             // catch JsonMappingException etc.
             LOGGER.error("Exception while writing Result to MongoDB: ", e);
             if (scanResult.getResultStatus() != JobStatus.SERIALIZATION_ERROR) {
-                scanJob.setStatus(JobStatus.SERIALIZATION_ERROR);
-                insertScanResult(ScanResult.fromException(scanJob, e), scanJob);
+                scanJobDescription.setStatus(JobStatus.SERIALIZATION_ERROR);
+                insertScanResult(
+                        ScanResult.fromException(scanJobDescription, e), scanJobDescription);
             } else {
                 LOGGER.error(
                         "Did not write serialization exception to MongoDB (to avoid infinite recursion)");
-                scanJob.setStatus(JobStatus.INTERNAL_ERROR);
+                scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
             }
         }
     }
