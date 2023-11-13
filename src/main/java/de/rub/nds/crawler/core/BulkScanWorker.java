@@ -9,8 +9,8 @@
 package de.rub.nds.crawler.core;
 
 import de.rub.nds.crawler.data.ScanConfig;
-import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanTarget;
+import de.rub.nds.crawler.util.CanceallableThreadPoolExecutor;
 import de.rub.nds.scanner.core.execution.NamedThreadFactory;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,7 +32,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         this.scanConfig = scanConfig;
 
         timeoutExecutor =
-                new ThreadPoolExecutor(
+                new CanceallableThreadPoolExecutor(
                         parallelScanThreads,
                         parallelScanThreads,
                         5,
@@ -41,14 +41,14 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                         new NamedThreadFactory("crawler: scan executor"));
     }
 
-    public Future<Document> handle(ScanJobDescription scanJobDescription) {
+    public Future<Document> handle(ScanTarget scanTarget) {
         // if we initialized ourself, we also clean up ourself
         shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
         activeJobs.incrementAndGet();
         lastJobTime = System.currentTimeMillis();
         return timeoutExecutor.submit(
                 () -> {
-                    Document result = scan(scanJobDescription.getScanTarget());
+                    Document result = scan(scanTarget);
                     if (activeJobs.decrementAndGet() == 0 && shouldCleanupSelf.get()) {
                         cleanup();
                     }
