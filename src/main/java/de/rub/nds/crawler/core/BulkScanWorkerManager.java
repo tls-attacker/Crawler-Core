@@ -45,13 +45,13 @@ public class BulkScanWorkerManager {
         return instance.handle(scanJobDescription, parallelConnectionThreads, parallelScanThreads);
     }
 
-    private final Map<String, BulkScanWorker> bulkScanWorkers = new HashMap<>();
+    private final Map<String, BulkScanWorker<?>> bulkScanWorkers = new HashMap<>();
 
     private long lastCleanup = 0;
 
     private BulkScanWorkerManager() {}
 
-    public BulkScanWorker getBulkScanWorker(
+    public BulkScanWorker<?> getBulkScanWorker(
             String bulkScanId,
             ScanConfig scanConfig,
             int parallelConnectionThreads,
@@ -59,7 +59,7 @@ public class BulkScanWorkerManager {
         return bulkScanWorkers.computeIfAbsent(
                 bulkScanId,
                 id -> {
-                    BulkScanWorker ret =
+                    BulkScanWorker<?> ret =
                             scanConfig.createWorker(
                                     bulkScanId, parallelConnectionThreads, parallelScanThreads);
                     ret.init();
@@ -80,9 +80,9 @@ public class BulkScanWorkerManager {
             lastCleanup = System.currentTimeMillis();
         }
 
-        Iterator<Map.Entry<String, BulkScanWorker>> iter = bulkScanWorkers.entrySet().iterator();
+        Iterator<Map.Entry<String, BulkScanWorker<?>>> iter = bulkScanWorkers.entrySet().iterator();
         while (iter.hasNext()) {
-            Map.Entry<String, BulkScanWorker> entry = iter.next();
+            Map.Entry<String, BulkScanWorker<?>> entry = iter.next();
             if (entry.getKey().equals(ignoredBulkScanId)) {
                 continue;
             }
@@ -99,12 +99,12 @@ public class BulkScanWorkerManager {
             int parallelScanThreads) {
         BulkScanInfo bulkScanInfo = scanJobDescription.getBulkScanInfo();
         cleanupOldWorkers(bulkScanInfo.getBulkScanId());
-        BulkScanWorker worker =
+        BulkScanWorker<?> worker =
                 getBulkScanWorker(
                         bulkScanInfo.getBulkScanId(),
                         bulkScanInfo.getScanConfig(),
                         parallelConnectionThreads,
                         parallelScanThreads);
-        return worker.handle(scanJobDescription);
+        return worker.handle(scanJobDescription.getScanTarget());
     }
 }

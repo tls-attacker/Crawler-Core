@@ -119,6 +119,13 @@ public class Worker {
                         scanJobDescription.setStatus(JobStatus.CANCELLED);
                         resultFuture.cancel(true);
                         scanResult = ScanResult.fromException(scanJobDescription, e);
+                    } catch (Exception e) {
+                        LOGGER.error(
+                                "Scanning of {} failed because of an unexpected exception: ",
+                                scanJobDescription.getScanTarget(),
+                                e);
+                        scanJobDescription.setStatus(JobStatus.CRAWLER_ERROR);
+                        scanResult = ScanResult.fromException(scanJobDescription, e);
                     } finally {
                         if (persist) {
                             persistResult(scanJobDescription, scanResult);

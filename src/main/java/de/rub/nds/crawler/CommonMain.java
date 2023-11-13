@@ -15,8 +15,11 @@ import de.rub.nds.crawler.core.Controller;
 import de.rub.nds.crawler.core.Worker;
 import de.rub.nds.crawler.orchestration.RabbitMqOrchestrationProvider;
 import de.rub.nds.crawler.persistence.MongoPersistenceProvider;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CommonMain {
+    private static final Logger LOGGER = LogManager.getLogger();
 
     public static void main(
             String[] args,
@@ -28,8 +31,15 @@ public class CommonMain {
         jc.addCommand("controller", controllerCommandConfig);
         jc.addCommand("worker", workerCommandConfig);
 
-        jc.parse(args);
+        try {
+            jc.parse(args);
+        } catch (Exception e) {
+            LOGGER.error("Failed to parse command line arguments", e);
+            jc.usage();
+            return;
+        }
         if (jc.getParsedCommand() == null) {
+            LOGGER.error("No command given");
             jc.usage();
             return;
         }

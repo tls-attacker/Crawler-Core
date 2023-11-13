@@ -23,6 +23,11 @@ public enum JobStatus {
     CANCELLED(true),
     /** An internal error occurred. Nothing was written to DB */
     INTERNAL_ERROR(true),
+    /**
+     * An internal error in the crawler occurred. This most likely indicates a bug in the crawler.
+     * This was written to DB
+     */
+    CRAWLER_ERROR(true),
     ;
 
     private final boolean isError;
