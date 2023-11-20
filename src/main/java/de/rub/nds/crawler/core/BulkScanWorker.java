@@ -15,15 +15,17 @@ import de.rub.nds.scanner.core.execution.NamedThreadFactory;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bson.Document;
 
 public abstract class BulkScanWorker<T extends ScanConfig> {
+    private static final Logger LOGGER = LogManager.getLogger();
     private final AtomicInteger activeJobs = new AtomicInteger(0);
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final AtomicBoolean shouldCleanupSelf = new AtomicBoolean(false);
     protected final String bulkScanId;
     protected final T scanConfig;
-    protected long lastJobTime = 0;
 
     private final ThreadPoolExecutor timeoutExecutor;
 
@@ -45,7 +47,6 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         // if we initialized ourself, we also clean up ourself
         shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
         activeJobs.incrementAndGet();
-        lastJobTime = System.currentTimeMillis();
         return timeoutExecutor.submit(
                 () -> {
                     Document result = scan(scanTarget);
@@ -77,6 +78,12 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         // but only synchronize if already initialized
         if (initialized.get()) {
             synchronized (initialized) {
+                if (activeJobs.get() > 0) {
+                    shouldCleanupSelf.set(true);
+                    LOGGER.warn(
+                            "Was told to cleanup while still running; Enqueuing cleanup for later");
+                    return false;
+                }
                 if (initialized.getAndSet(false)) {
                     cleanupInternal();
                     shouldCleanupSelf.set(false);
@@ -85,10 +92,6 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
             }
         }
         return false;
-    }
-
-    public long getMillisSinceLastJobSubmitted() {
-        return System.currentTimeMillis() - lastJobTime;
     }
 
     protected abstract void initInternal();

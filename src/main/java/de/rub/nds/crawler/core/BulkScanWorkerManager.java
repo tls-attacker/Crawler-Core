@@ -8,26 +8,22 @@
  */
 package de.rub.nds.crawler.core;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.RemovalListener;
 import de.rub.nds.crawler.data.BulkScanInfo;
 import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.exception.UncheckedException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bson.Document;
 
 public class BulkScanWorkerManager {
-    /**
-     * Timeout for a worker to be considered old and be cleaned up. Set to 5 Minutes. Cleanup is
-     * only done upon issuing a new job.
-     */
-    private static final long WORKER_MAX_AGE_MS = 1000 * 60 * 5L;
-    /**
-     * Time between each cleanup run. This is effectively added to the {@link #WORKER_MAX_AGE_MS}.
-     */
-    private static final long CLEANUP_COOLDOWN = 1000 * 60L;
-
+    private static final Logger LOGGER = LogManager.getLogger();
     private static BulkScanWorkerManager instance;
 
     public static BulkScanWorkerManager getInstance() {
@@ -45,51 +41,41 @@ public class BulkScanWorkerManager {
         return instance.handle(scanJobDescription, parallelConnectionThreads, parallelScanThreads);
     }
 
-    private final Map<String, BulkScanWorker<?>> bulkScanWorkers = new HashMap<>();
+    private final Cache<String, BulkScanWorker<?>> bulkScanWorkers;
 
-    private long lastCleanup = 0;
-
-    private BulkScanWorkerManager() {}
+    private BulkScanWorkerManager() {
+        bulkScanWorkers =
+                CacheBuilder.newBuilder()
+                        .expireAfterAccess(30, TimeUnit.MINUTES)
+                        .removalListener(
+                                (RemovalListener<String, BulkScanWorker<?>>)
+                                        notification -> {
+                                            BulkScanWorker<?> worker = notification.getValue();
+                                            if (worker != null) {
+                                                worker.cleanup();
+                                            }
+                                        })
+                        .build();
+    }
 
     public BulkScanWorker<?> getBulkScanWorker(
             String bulkScanId,
             ScanConfig scanConfig,
             int parallelConnectionThreads,
             int parallelScanThreads) {
-        return bulkScanWorkers.computeIfAbsent(
-                bulkScanId,
-                id -> {
-                    BulkScanWorker<?> ret =
-                            scanConfig.createWorker(
-                                    bulkScanId, parallelConnectionThreads, parallelScanThreads);
-                    ret.init();
-                    return ret;
-                });
-    }
-
-    private void cleanupOldWorkers(String ignoredBulkScanId) {
-        // only perform cleanup every once in a while
-        if (System.currentTimeMillis() - lastCleanup < CLEANUP_COOLDOWN) {
-            return;
-        }
-        // only one thread should do the cleanup
-        synchronized (this) {
-            if (System.currentTimeMillis() - lastCleanup < CLEANUP_COOLDOWN) {
-                return;
-            }
-            lastCleanup = System.currentTimeMillis();
-        }
-
-        Iterator<Map.Entry<String, BulkScanWorker<?>>> iter = bulkScanWorkers.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<String, BulkScanWorker<?>> entry = iter.next();
-            if (entry.getKey().equals(ignoredBulkScanId)) {
-                continue;
-            }
-            if (entry.getValue().getMillisSinceLastJobSubmitted() > WORKER_MAX_AGE_MS) {
-                iter.remove();
-                entry.getValue().cleanup();
-            }
+        try {
+            return bulkScanWorkers.get(
+                    bulkScanId,
+                    () -> {
+                        BulkScanWorker<?> ret =
+                                scanConfig.createWorker(
+                                        bulkScanId, parallelConnectionThreads, parallelScanThreads);
+                        ret.init();
+                        return ret;
+                    });
+        } catch (ExecutionException e) {
+            LOGGER.error("Could not create bulk scan worker", e);
+            throw new UncheckedException(e);
         }
     }
 
@@ -98,7 +84,6 @@ public class BulkScanWorkerManager {
             int parallelConnectionThreads,
             int parallelScanThreads) {
         BulkScanInfo bulkScanInfo = scanJobDescription.getBulkScanInfo();
-        cleanupOldWorkers(bulkScanInfo.getBulkScanId());
         BulkScanWorker<?> worker =
                 getBulkScanWorker(
                         bulkScanInfo.getBulkScanId(),
