@@ -15,13 +15,13 @@ import de.rub.nds.crawler.dummy.DummyPersistenceProvider;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class ControllerTest {
+class ControllerTest {
 
     @Test
-    public void submitting() throws IOException, InterruptedException {
+    void submitting() throws IOException, InterruptedException {
         var persistenceProvider = new DummyPersistenceProvider();
         var orchestrationProvider = new DummyOrchestrationProvider();
         ControllerCommandConfig config = new DummyControllerCommandConfig();
@@ -40,7 +40,7 @@ public class ControllerTest {
 
         Thread.sleep(1000);
 
-        Assert.assertEquals(2, orchestrationProvider.jobQueue.size());
-        Assert.assertEquals(0, orchestrationProvider.unackedJobs.size());
+        Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
+        Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
     }
 }
