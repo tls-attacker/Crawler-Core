@@ -15,12 +15,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Indexes;
 import com.mongodb.lang.NonNull;
 import de.rub.nds.crawler.config.delegate.MongoDbDelegate;
 import de.rub.nds.crawler.constant.JobStatus;
@@ -31,10 +35,10 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bson.UuidRepresentation;
@@ -42,8 +46,9 @@ import org.mongojack.JacksonMongoCollection;
 
 /** A persistence provider implementation using MongoDB as the persistence layer. */
 public class MongoPersistenceProvider implements IPersistenceProvider {
-
     private static final Logger LOGGER = LogManager.getLogger();
+
+    private static final String BULK_SCAN_COLLECTION_NAME = "bulkScans";
 
     private static boolean isInitialized = false;
     private static final Set<JsonSerializer<?>> serializers = new HashSet<>();
@@ -77,17 +82,12 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
 
     private final MongoClient mongoClient;
     private final ObjectMapper mapper;
-    private final Map<String, JacksonMongoCollection<ScanResult>> collectionByDbAndCollectionName;
+    private final LoadingCache<String, MongoDatabase> databaseCache;
+    private final LoadingCache<Pair<String, String>, JacksonMongoCollection<ScanResult>>
+            resultCollectionCache;
     private JacksonMongoCollection<BulkScan> bulkScanCollection;
 
-    /**
-     * Initialize connection to mongodb and setup MongoJack PojoToBson mapper.
-     *
-     * @param mongoDbDelegate Mongodb command line configuration parameters
-     */
-    public MongoPersistenceProvider(MongoDbDelegate mongoDbDelegate) {
-        isInitialized = true;
-
+    private static MongoClient createMongoClient(MongoDbDelegate mongoDbDelegate) {
         ConnectionString connectionString =
                 new ConnectionString(
                         "mongodb://"
@@ -111,9 +111,17 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                         mongoDbDelegate.getMongoDbAuthSource(),
                         pw.toCharArray());
 
-        this.mapper = new ObjectMapper();
-        LOGGER.trace("Constructor()");
-        this.collectionByDbAndCollectionName = new HashMap<>();
+        MongoClientSettings mongoClientSettings =
+                MongoClientSettings.builder()
+                        .credential(credentials)
+                        .applyConnectionString(connectionString)
+                        .build();
+        LOGGER.info("MongoDB persistence provider prepared to connect to {}", connectionString);
+        return MongoClients.create(mongoClientSettings);
+    }
+
+    private static ObjectMapper createMapper() {
+        ObjectMapper mapper = new ObjectMapper();
 
         if (!serializers.isEmpty()) {
             SimpleModule serializerModule = new SimpleModule();
@@ -131,61 +139,74 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         mapper.configOverride(BigDecimal.class)
                 .setFormat(JsonFormat.Value.forShape(JsonFormat.Shape.STRING));
 
-        MongoClientSettings mongoClientSettings =
-                MongoClientSettings.builder()
-                        .credential(credentials)
-                        .applyConnectionString(connectionString)
-                        .build();
-        this.mongoClient = MongoClients.create(mongoClientSettings);
+        return mapper;
+    }
+
+    /**
+     * Initialize connection to mongodb and setup MongoJack PojoToBson mapper.
+     *
+     * @param mongoDbDelegate Mongodb command line configuration parameters
+     */
+    public MongoPersistenceProvider(MongoDbDelegate mongoDbDelegate) {
+        isInitialized = true;
+
+        mapper = createMapper();
+        mongoClient = createMongoClient(mongoDbDelegate);
 
         try {
-            this.mongoClient.startSession();
+            mongoClient.startSession();
+            LOGGER.info("MongoDB persistence provider initialized and connected.");
         } catch (Exception e) {
             LOGGER.error("Could not connect to MongoDB: ", e);
             throw new RuntimeException(e);
         }
 
-        LOGGER.info("MongoDB persistence provider initialized, connected to {}.", connectionString);
+        databaseCache =
+                CacheBuilder.newBuilder()
+                        .expireAfterAccess(10, TimeUnit.MINUTES)
+                        .build(CacheLoader.from(this::initDatabase));
+        resultCollectionCache =
+                CacheBuilder.newBuilder()
+                        .expireAfterAccess(10, TimeUnit.MINUTES)
+                        .build(
+                                CacheLoader.from(
+                                        key ->
+                                                this.initResultCollection(
+                                                        key.getLeft(), key.getRight())));
     }
 
-    /**
-     * On first call creates a collection with the specified name for the specified database and
-     * saves it in a hashmap. On repeating calls with same parameters returns the saved collection.
-     *
-     * @param dbName Name of the database to use.
-     * @param collectionName Name of the collection to create/return
-     */
-    private JacksonMongoCollection<ScanResult> getCollection(String dbName, String collectionName) {
-        if (collectionByDbAndCollectionName.containsKey(dbName + collectionName)) {
-            return collectionByDbAndCollectionName.get(dbName + collectionName);
-        } else {
-            MongoDatabase database = this.mongoClient.getDatabase(dbName);
-            LOGGER.info("Init database: {}.", dbName);
-            LOGGER.info("Init collection: {}.", collectionName);
+    private MongoDatabase initDatabase(String dbName) {
+        LOGGER.info("Initializing database: {}.", dbName);
+        return mongoClient.getDatabase(dbName);
+    }
 
-            JacksonMongoCollection<ScanResult> collection =
-                    JacksonMongoCollection.builder()
-                            .withObjectMapper(mapper)
-                            .build(
-                                    database,
-                                    collectionName,
-                                    ScanResult.class,
-                                    UuidRepresentation.STANDARD);
-            collectionByDbAndCollectionName.put(dbName + collectionName, collection);
-
-            return collection;
-        }
+    private JacksonMongoCollection<ScanResult> initResultCollection(
+            String dbName, String collectionName) {
+        LOGGER.info("Initializing collection: {}.{}.", dbName, collectionName);
+        var collection =
+                JacksonMongoCollection.builder()
+                        .withObjectMapper(mapper)
+                        .build(
+                                databaseCache.getUnchecked(dbName),
+                                collectionName,
+                                ScanResult.class,
+                                UuidRepresentation.STANDARD);
+        // createIndex is idempotent, hence we do not need to check if an index exists
+        collection.createIndex(Indexes.ascending("scanTarget.ip"));
+        collection.createIndex(Indexes.ascending("scanTarget.hostname"));
+        collection.createIndex(Indexes.ascending("scanTarget.trancoRank"));
+        collection.createIndex(Indexes.ascending("scanTarget.resultStatus"));
+        return collection;
     }
 
     private JacksonMongoCollection<BulkScan> getBulkScanCollection(String dbName) {
         if (this.bulkScanCollection == null) {
-            MongoDatabase database = this.mongoClient.getDatabase(dbName);
             this.bulkScanCollection =
                     JacksonMongoCollection.builder()
                             .withObjectMapper(mapper)
                             .build(
-                                    database,
-                                    "bulkScans",
+                                    databaseCache.getUnchecked(dbName),
+                                    BULK_SCAN_COLLECTION_NAME,
                                     BulkScan.class,
                                     UuidRepresentation.STANDARD);
         }
@@ -203,16 +224,20 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         this.insertBulkScan(bulkScan);
     }
 
-    /**
-     * Inserts the task into a collection named after the scan and a database named after the
-     * workspace of the scan.
-     *
-     * @param scanResult The new scan task.
-     */
+    private void writeResultToDatabase(
+            String dbName, String collectionName, ScanResult scanResult) {
+        LOGGER.info(
+                "Writing result ({}) for {} into collection: {}",
+                scanResult.getResultStatus(),
+                scanResult.getScanTarget().getHostname(),
+                collectionName);
+        resultCollectionCache.getUnchecked(Pair.of(dbName, collectionName)).insertOne(scanResult);
+    }
+
     @Override
     public void insertScanResult(ScanResult scanResult, ScanJobDescription scanJobDescription) {
         if (scanResult.getResultStatus() != scanJobDescription.getStatus()) {
-            LOGGER.warn(
+            LOGGER.error(
                     "ScanResult status ({}) does not match ScanJobDescription status ({})",
                     scanResult.getResultStatus(),
                     scanJobDescription.getStatus());
@@ -220,14 +245,10 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                     "ScanResult status does not match ScanJobDescription status");
         }
         try {
-            LOGGER.info(
-                    "Writing result ({}) for {} into collection: {}",
-                    scanResult.getResultStatus(),
-                    scanResult.getScanTarget().getHostname(),
-                    scanJobDescription.getCollectionName());
-            this.getCollection(
-                            scanJobDescription.getDbName(), scanJobDescription.getCollectionName())
-                    .insertOne(scanResult);
+            writeResultToDatabase(
+                    scanJobDescription.getDbName(),
+                    scanJobDescription.getCollectionName(),
+                    scanResult);
         } catch (Exception e) {
             // catch JsonMappingException etc.
             LOGGER.error("Exception while writing Result to MongoDB: ", e);
