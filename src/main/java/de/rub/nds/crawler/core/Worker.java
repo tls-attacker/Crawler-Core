@@ -34,6 +34,7 @@ public class Worker {
     private final int parallelConnectionThreads;
     private final int scanTimeout;
 
+    /** Runs a lambda which waits for the scanning result and persists it. */
     private final ThreadPoolExecutor workerExecutor;
 
     /**
@@ -60,7 +61,7 @@ public class Worker {
                         5,
                         TimeUnit.MINUTES,
                         new LinkedBlockingDeque<>(),
-                        new NamedThreadFactory("crawler-worker: ScannerExecutor"));
+                        new NamedThreadFactory("crawler-worker: result handler"));
     }
 
     public void start() {

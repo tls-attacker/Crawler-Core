@@ -27,6 +27,10 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     protected final String bulkScanId;
     protected final T scanConfig;
 
+    /**
+     * Calls the inner scan function and may handle cleanup. This is needed to wrap the scanner into
+     * a future object such that we can handle timeouts properly.
+     */
     private final ThreadPoolExecutor timeoutExecutor;
 
     protected BulkScanWorker(String bulkScanId, T scanConfig, int parallelScanThreads) {
@@ -40,7 +44,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                         5,
                         TimeUnit.MINUTES,
                         new LinkedBlockingDeque<>(),
-                        new NamedThreadFactory("crawler: scan executor"));
+                        new NamedThreadFactory("crawler-worker: scan executor"));
     }
 
     public Future<Document> handle(ScanTarget scanTarget) {
