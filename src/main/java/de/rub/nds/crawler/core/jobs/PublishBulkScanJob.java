@@ -11,16 +11,14 @@ package de.rub.nds.crawler.core.jobs;
 import de.rub.nds.crawler.config.ControllerCommandConfig;
 import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.core.ProgressMonitor;
-import de.rub.nds.crawler.data.BulkScan;
-import de.rub.nds.crawler.data.BulkScanInfo;
-import de.rub.nds.crawler.data.ScanJobDescription;
-import de.rub.nds.crawler.data.ScanTarget;
+import de.rub.nds.crawler.data.*;
 import de.rub.nds.crawler.denylist.IDenylistProvider;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.crawler.targetlist.ITargetListProvider;
 import java.util.List;
-import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.Job;
@@ -63,30 +61,24 @@ public class PublishBulkScanJob implements Job {
             // create and submit scan jobs for valid hosts
             LOGGER.info(
                     "Filtering out denylisted hosts and hosts where the domain can not be resolved.");
-            long submittedJobs =
+            var submitter =
+                    new JobSubmitter(
+                            orchestrationProvider,
+                            persistenceProvider,
+                            denylistProvider,
+                            bulkScan,
+                            controllerConfig.getPort());
+            var parsedJobStatuses =
                     targetStringList.parallelStream()
-                            .map(
-                                    targetString -> {
-                                        ScanTarget target =
-                                                ScanTarget.fromTargetString(
-                                                        targetString,
-                                                        controllerConfig.getPort(),
-                                                        denylistProvider);
-                                        if (target != null) {
-                                            orchestrationProvider.submitScanJob(
-                                                    new ScanJobDescription(
-                                                            target,
-                                                            new BulkScanInfo(bulkScan),
-                                                            bulkScan.getName(),
-                                                            bulkScan.getCollectionName(),
-                                                            JobStatus.TO_BE_EXECUTED));
-                                        }
-                                        return target;
-                                    })
-                            .filter(Objects::nonNull)
-                            .count();
+                            .map(submitter)
+                            .collect(
+                                    Collectors.groupingBy(
+                                            Function.identity(), Collectors.counting()));
 
-            bulkScan.setScanJobsPublished((int) submittedJobs);
+            long submittedJobs = parsedJobStatuses.get(JobStatus.TO_BE_EXECUTED);
+            bulkScan.setScanJobsPublished(submittedJobs);
+            bulkScan.setScanJobsResolutionErrors(parsedJobStatuses.get(JobStatus.UNRESOLVABLE));
+            bulkScan.setScanJobsDenylisted(parsedJobStatuses.get(JobStatus.DENYLISTED));
             persistenceProvider.updateBulkScan(bulkScan);
 
             if (controllerConfig.isMonitored() && submittedJobs == 0) {
@@ -98,6 +90,42 @@ public class PublishBulkScanJob implements Job {
             JobExecutionException e2 = new JobExecutionException(e);
             e2.setUnscheduleAllTriggers(true);
             throw e2;
+        }
+    }
+
+    private static class JobSubmitter implements Function<String, JobStatus> {
+        private final IOrchestrationProvider orchestrationProvider;
+        private final IPersistenceProvider persistenceProvider;
+        private final IDenylistProvider denylistProvider;
+        private final BulkScan bulkScan;
+        private final int defaultPort;
+
+        public JobSubmitter(
+                IOrchestrationProvider orchestrationProvider,
+                IPersistenceProvider persistenceProvider,
+                IDenylistProvider denylistProvider,
+                BulkScan bulkScan,
+                int defaultPort) {
+            this.orchestrationProvider = orchestrationProvider;
+            this.persistenceProvider = persistenceProvider;
+            this.denylistProvider = denylistProvider;
+            this.bulkScan = bulkScan;
+            this.defaultPort = defaultPort;
+        }
+
+        @Override
+        public JobStatus apply(String targetString) {
+            var targetInfo =
+                    ScanTarget.fromTargetString(targetString, defaultPort, denylistProvider);
+            ScanJobDescription jobDescription =
+                    new ScanJobDescription(targetInfo.getLeft(), bulkScan, targetInfo.getRight());
+            if (jobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {
+                orchestrationProvider.submitScanJob(jobDescription);
+            } else {
+                persistenceProvider.insertScanResult(
+                        new ScanResult(jobDescription, null), jobDescription);
+            }
+            return jobDescription.getStatus();
         }
     }
 }

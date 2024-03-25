@@ -43,6 +43,15 @@ public class ScanJobDescription implements Serializable {
         this.status = status;
     }
 
+    public ScanJobDescription(ScanTarget scanTarget, BulkScan bulkScan, JobStatus status) {
+        this(
+                scanTarget,
+                new BulkScanInfo(bulkScan),
+                bulkScan.getName(),
+                bulkScan.getCollectionName(),
+                status);
+    }
+
     private void readObject(java.io.ObjectInputStream in)
             throws IOException, ClassNotFoundException {
         // handle deserialization, cf. https://stackoverflow.com/a/3960558

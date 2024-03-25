@@ -37,7 +37,9 @@ public class BulkScan implements Serializable {
 
     private int targetsGiven;
 
-    private int scanJobsPublished;
+    private long scanJobsPublished;
+    private long scanJobsResolutionErrors;
+    private long scanJobsDenylisted;
 
     private int successfulScans;
 
@@ -111,7 +113,7 @@ public class BulkScan implements Serializable {
         return this.targetsGiven;
     }
 
-    public int getScanJobsPublished() {
+    public long getScanJobsPublished() {
         return this.scanJobsPublished;
     }
 
@@ -168,7 +170,7 @@ public class BulkScan implements Serializable {
         this.targetsGiven = targetsGiven;
     }
 
-    public void setScanJobsPublished(int scanJobsPublished) {
+    public void setScanJobsPublished(long scanJobsPublished) {
         this.scanJobsPublished = scanJobsPublished;
     }
 
@@ -194,5 +196,21 @@ public class BulkScan implements Serializable {
 
     public void setJobStatusCounters(Map<JobStatus, Integer> jobStatusCounters) {
         this.jobStatusCounters = jobStatusCounters;
+    }
+
+    public long getScanJobsResolutionErrors() {
+        return scanJobsResolutionErrors;
+    }
+
+    public void setScanJobsResolutionErrors(long scanJobsResolutionErrors) {
+        this.scanJobsResolutionErrors = scanJobsResolutionErrors;
+    }
+
+    public long getScanJobsDenylisted() {
+        return scanJobsDenylisted;
+    }
+
+    public void setScanJobsDenylisted(long scanJobsDenylisted) {
+        this.scanJobsDenylisted = scanJobsDenylisted;
     }
 }

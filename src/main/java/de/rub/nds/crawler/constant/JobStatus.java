@@ -11,6 +11,10 @@ package de.rub.nds.crawler.constant;
 public enum JobStatus {
     /** Job is waiting to be executed. */
     TO_BE_EXECUTED(false),
+    /** The domain was not resolvable. An empty result was written to DB. */
+    UNRESOLVABLE(true),
+    /** The domain was denylisted. An empty result was written to DB. */
+    DENYLISTED(true),
     /** Job was successfully executed. Result was written to db. */
     SUCCESS(false),
     /** Job was successfully executed. No result was returned. An empty result was written to DB. */

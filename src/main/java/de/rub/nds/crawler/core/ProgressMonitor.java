@@ -96,8 +96,8 @@ public class ProgressMonitor {
         @Override
         public void consumeDoneNotification(String consumerTag, ScanJobDescription scanJob) {
             try {
-                int totalDone = counters.increaseJobStatusCount(scanJob.getStatus());
-                int expectedTotal =
+                long totalDone = counters.increaseJobStatusCount(scanJob.getStatus());
+                long expectedTotal =
                         bulkScan.getScanJobsPublished() != 0
                                 ? bulkScan.getScanJobsPublished()
                                 : bulkScan.getTargetsGiven();
