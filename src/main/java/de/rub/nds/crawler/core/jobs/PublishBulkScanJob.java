@@ -75,10 +75,12 @@ public class PublishBulkScanJob implements Job {
                                     Collectors.groupingBy(
                                             Function.identity(), Collectors.counting()));
 
-            long submittedJobs = parsedJobStatuses.get(JobStatus.TO_BE_EXECUTED);
+            long submittedJobs = parsedJobStatuses.getOrDefault(JobStatus.TO_BE_EXECUTED, 0L);
             bulkScan.setScanJobsPublished(submittedJobs);
-            bulkScan.setScanJobsResolutionErrors(parsedJobStatuses.get(JobStatus.UNRESOLVABLE));
-            bulkScan.setScanJobsDenylisted(parsedJobStatuses.get(JobStatus.DENYLISTED));
+            bulkScan.setScanJobsResolutionErrors(
+                    parsedJobStatuses.getOrDefault(JobStatus.UNRESOLVABLE, 0L));
+            bulkScan.setScanJobsDenylisted(
+                    parsedJobStatuses.getOrDefault(JobStatus.DENYLISTED, 0L));
             persistenceProvider.updateBulkScan(bulkScan);
 
             if (controllerConfig.isMonitored() && submittedJobs == 0) {
