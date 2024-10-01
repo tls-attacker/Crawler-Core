@@ -32,7 +32,9 @@ public class TargetFileProvider implements ITargetListProvider {
         LOGGER.info("Reading hostName list");
         List<String> targetList;
         try (Stream<String> lines = Files.lines(Paths.get(filename))) {
-            targetList = lines.collect(Collectors.toList());
+            // remove comments and empty lines
+            targetList = lines.filter(line -> !(line.startsWith("#") || line.isEmpty()))
+                    .collect(Collectors.toList());
         } catch (IOException ex) {
             throw new RuntimeException("Could not load " + filename, ex);
         }

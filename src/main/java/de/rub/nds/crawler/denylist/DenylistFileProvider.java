@@ -58,11 +58,20 @@ public class DenylistFileProvider implements IDenylistProvider {
         }
     }
 
+    private boolean isInSubnet(String ip, SubnetUtils.SubnetInfo subnetInfo) {
+        try {
+            return subnetInfo.isInRange(ip);
+        } catch (IllegalArgumentException e) {
+            // most likely we tried to check an IPv6 address against an IPv4 subnet
+            return false;
+        }
+    }
+
     @Override
     public synchronized boolean isDenylisted(ScanTarget target) {
         return domainDenylistSet.contains(target.getHostname())
                 || ipDenylistSet.contains(target.getIp())
                 || cidrDenylist.stream()
-                        .anyMatch(subnetInfo -> subnetInfo.isInRange(target.getIp()));
+                        .anyMatch(subnetInfo -> isInSubnet(target.getIp(), subnetInfo));
     }
 }

@@ -13,6 +13,8 @@ public enum JobStatus {
     TO_BE_EXECUTED(false),
     /** The domain was not resolvable. An empty result was written to DB. */
     UNRESOLVABLE(true),
+    /** An uncaught exception occurred while resolving the host. */
+    RESOLUTION_ERROR(true),
     /** The domain was denylisted. An empty result was written to DB. */
     DENYLISTED(true),
     /** Job was successfully executed. Result was written to db. */
