@@ -45,8 +45,6 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
 
     static {
         // set TTLs such that queues are deleted if no consumer is registered
-        // https://www.rabbitmq.com/ttl.html#queue-ttl
-        SCAN_JOB_QUEUE_PROPERTIES.put("x-expires", 1000 * 60 * 60);
         DONE_NOTIFY_QUEUE_PROPERTIES.put("x-expires", 1000 * 60 * 5);
     }
 
