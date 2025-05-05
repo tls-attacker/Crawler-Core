@@ -78,16 +78,22 @@ public class PublishBulkScanJob implements Job {
             long submittedJobs = parsedJobStatuses.getOrDefault(JobStatus.TO_BE_EXECUTED, 0L);
             long unresolvedJobs = parsedJobStatuses.getOrDefault(JobStatus.UNRESOLVABLE, 0L);
             long denylistedJobs = parsedJobStatuses.getOrDefault(JobStatus.DENYLISTED, 0L);
-            long resolutionErrorJobs = parsedJobStatuses.getOrDefault(JobStatus.RESOLUTION_ERROR, 0L);
+            long resolutionErrorJobs =
+                    parsedJobStatuses.getOrDefault(JobStatus.RESOLUTION_ERROR, 0L);
             bulkScan.setScanJobsPublished(submittedJobs);
-            bulkScan.setScanJobsResolutionErrors(unresolvedJobs+resolutionErrorJobs);
+            bulkScan.setScanJobsResolutionErrors(unresolvedJobs + resolutionErrorJobs);
             bulkScan.setScanJobsDenylisted(denylistedJobs);
             persistenceProvider.updateBulkScan(bulkScan);
 
             if (controllerConfig.isMonitored() && submittedJobs == 0) {
                 progressMonitor.stopMonitoringAndFinalizeBulkScan(bulkScan.get_id());
             }
-            LOGGER.info("Submitted {} scan jobs to RabbitMq (Not submitted: {} Unresolvable, {} Denylisted, {} unhandled Error)", submittedJobs,unresolvedJobs, denylistedJobs, resolutionErrorJobs);
+            LOGGER.info(
+                    "Submitted {} scan jobs to RabbitMq (Not submitted: {} Unresolvable, {} Denylisted, {} unhandled Error)",
+                    submittedJobs,
+                    unresolvedJobs,
+                    denylistedJobs,
+                    resolutionErrorJobs);
         } catch (Exception e) {
             LOGGER.error("Exception while publishing BulkScan: ", e);
             JobExecutionException e2 = new JobExecutionException(e);
@@ -124,17 +130,21 @@ public class PublishBulkScanJob implements Job {
                 var targetInfo =
                         ScanTarget.fromTargetString(targetString, defaultPort, denylistProvider);
                 jobDescription =
-                        new ScanJobDescription(targetInfo.getLeft(), bulkScan, targetInfo.getRight());
-            }catch (Exception e){
-                jobDescription = new ScanJobDescription(new ScanTarget(), bulkScan, JobStatus.RESOLUTION_ERROR);
+                        new ScanJobDescription(
+                                targetInfo.getLeft(), bulkScan, targetInfo.getRight());
+            } catch (Exception e) {
+                jobDescription =
+                        new ScanJobDescription(
+                                new ScanTarget(), bulkScan, JobStatus.RESOLUTION_ERROR);
                 errorResult = ScanResult.fromException(jobDescription, e);
-                LOGGER.error("Error while creating ScanJobDescription for target '{}'", targetString, e);
+                LOGGER.error(
+                        "Error while creating ScanJobDescription for target '{}'", targetString, e);
             }
 
             if (jobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {
                 orchestrationProvider.submitScanJob(jobDescription);
             } else {
-                if(errorResult == null){
+                if (errorResult == null) {
                     errorResult = new ScanResult(jobDescription, null);
                 }
                 persistenceProvider.insertScanResult(errorResult, jobDescription);

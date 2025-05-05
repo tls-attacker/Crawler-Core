@@ -33,8 +33,9 @@ public class TargetFileProvider implements ITargetListProvider {
         List<String> targetList;
         try (Stream<String> lines = Files.lines(Paths.get(filename))) {
             // remove comments and empty lines
-            targetList = lines.filter(line -> !(line.startsWith("#") || line.isEmpty()))
-                    .collect(Collectors.toList());
+            targetList =
+                    lines.filter(line -> !(line.startsWith("#") || line.isEmpty()))
+                            .collect(Collectors.toList());
         } catch (IOException ex) {
             throw new RuntimeException("Could not load " + filename, ex);
         }
