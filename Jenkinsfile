@@ -54,10 +54,11 @@ pipeline {
                 }
             }
             options {
-                timeout(activity: true, time: 120, unit: 'SECONDS')
+                timeout(activity: true, time: 240, unit: 'SECONDS')
             }
             steps {
                 withMaven(jdk: env.JDK_TOOL_NAME, maven: env.MAVEN_TOOL_NAME) {
+                    // `package` goal is required here to load modules in reactor and avoid dependency resolve conflicts
                     sh 'mvn -DskipTests=true package pmd:pmd pmd:cpd spotbugs:spotbugs'
                 }
             }
@@ -76,7 +77,7 @@ pipeline {
                 }
             }
             options {
-                timeout(activity: true, time: 120, unit: 'SECONDS')
+                timeout(activity: true, time: 180, unit: 'SECONDS')
             }
             steps {
                 withMaven(jdk: env.JDK_TOOL_NAME, maven: env.MAVEN_TOOL_NAME) {
@@ -85,7 +86,7 @@ pipeline {
             }
             post {
                 always {
-                    junit testResults: '**/target/surefire-reports/TEST-*.xml', allowEmptyResults: true
+                    junit testResults: '**/target/surefire-reports/TEST-*.xml'
                 }
             }
         }
@@ -117,7 +118,7 @@ pipeline {
                 }
             }
         }
-        stage('Deploy Jar to Internal Nexus Repository') {
+        stage('Deploy to Internal Nexus Repository') {
             when {
                 anyOf {
                     branch 'main'
