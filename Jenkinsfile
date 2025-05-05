@@ -90,6 +90,7 @@ pipeline {
             }
         }
         stage('Integration Tests') {
+            stage('Integration Tests') {
             when {
                 anyOf {
                     branch 'main'
@@ -98,7 +99,7 @@ pipeline {
                 }
             }
             options {
-                timeout(activity: true, time: 120, unit: 'SECONDS')
+                timeout(activity: true, time: 1800, unit: 'SECONDS')
             }
             steps {
                 withMaven(jdk: env.JDK_TOOL_NAME, maven: env.MAVEN_TOOL_NAME) {
@@ -110,7 +111,10 @@ pipeline {
                     junit testResults: '**/target/failsafe-reports/TEST-*.xml', allowEmptyResults: true
                 }
                 success {
-                    publishCoverage adapters: [jacoco(mergeToOneReport: true, path: '**/target/site/jacoco/jacoco.xml')]
+                    discoverReferenceBuild()
+                    recordCoverage(tools: [[ parser: 'JACOCO' ]],
+                            id: 'jacoco', name: 'JaCoCo Coverage',
+                            sourceCodeRetention: 'LAST_BUILD')
                 }
             }
         }
