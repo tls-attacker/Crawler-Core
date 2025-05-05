@@ -90,7 +90,6 @@ pipeline {
             }
         }
         stage('Integration Tests') {
-            stage('Integration Tests') {
             when {
                 anyOf {
                     branch 'main'
