@@ -62,4 +62,16 @@ public class WorkerCommandConfig {
     public int getScanTimeout() {
         return scanTimeout;
     }
+
+    public void setParallelScanThreads(int parallelScanThreads) {
+        this.parallelScanThreads = parallelScanThreads;
+    }
+
+    public void setParallelConnectionThreads(int parallelConnectionThreads) {
+        this.parallelConnectionThreads = parallelConnectionThreads;
+    }
+
+    public void setScanTimeout(int scanTimeout) {
+        this.scanTimeout = scanTimeout;
+    }
 }

@@ -65,4 +65,28 @@ public class MongoDbDelegate {
     public String getMongoDbAuthSource() {
         return mongoDbAuthSource;
     }
+
+    public void setMongoDbHost(String mongoDbHost) {
+        this.mongoDbHost = mongoDbHost;
+    }
+
+    public void setMongoDbPort(int mongoDbPort) {
+        this.mongoDbPort = mongoDbPort;
+    }
+
+    public void setMongoDbUser(String mongoDbUser) {
+        this.mongoDbUser = mongoDbUser;
+    }
+
+    public void setMongoDbPass(String mongoDbPass) {
+        this.mongoDbPass = mongoDbPass;
+    }
+
+    public void setMongoDbPassFile(String mongoDbPassFile) {
+        this.mongoDbPassFile = mongoDbPassFile;
+    }
+
+    public void setMongoDbAuthSource(String mongoDbAuthSource) {
+        this.mongoDbAuthSource = mongoDbAuthSource;
+    }
 }

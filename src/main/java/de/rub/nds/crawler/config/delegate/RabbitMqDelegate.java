@@ -53,4 +53,28 @@ public class RabbitMqDelegate {
     public boolean isRabbitMqTLS() {
         return rabbitMqTLS;
     }
+
+    public void setRabbitMqHost(String rabbitMqHost) {
+        this.rabbitMqHost = rabbitMqHost;
+    }
+
+    public void setRabbitMqPort(int rabbitMqPort) {
+        this.rabbitMqPort = rabbitMqPort;
+    }
+
+    public void setRabbitMqUser(String rabbitMqUser) {
+        this.rabbitMqUser = rabbitMqUser;
+    }
+
+    public void setRabbitMqPass(String rabbitMqPass) {
+        this.rabbitMqPass = rabbitMqPass;
+    }
+
+    public void setRabbitMqPassFile(String rabbitMqPassFile) {
+        this.rabbitMqPassFile = rabbitMqPassFile;
+    }
+
+    public void setRabbitMqTLS(boolean rabbitMqTLS) {
+        this.rabbitMqTLS = rabbitMqTLS;
+    }
 }

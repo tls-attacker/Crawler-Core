@@ -227,4 +227,48 @@ public abstract class ControllerCommandConfig {
     }
 
     public abstract Class<?> getScannerClassForVersion();
+
+    public void setScanDetail(ScannerDetail scanDetail) {
+        this.scanDetail = scanDetail;
+    }
+
+    public void setScannerTimeout(int scannerTimeout) {
+        this.scannerTimeout = scannerTimeout;
+    }
+
+    public void setReexecutions(int reexecutions) {
+        this.reexecutions = reexecutions;
+    }
+
+    public void setScanCronInterval(String scanCronInterval) {
+        this.scanCronInterval = scanCronInterval;
+    }
+
+    public void setScanName(String scanName) {
+        this.scanName = scanName;
+    }
+
+    public void setDenylistFile(String denylistFile) {
+        this.denylistFile = denylistFile;
+    }
+
+    public void setMonitored(boolean monitored) {
+        this.monitored = monitored;
+    }
+
+    public void setNotifyUrl(String notifyUrl) {
+        this.notifyUrl = notifyUrl;
+    }
+
+    public void setTranco(int tranco) {
+        this.tranco = tranco;
+    }
+
+    public void setCrux(CruxListNumber crux) {
+        this.crux = crux;
+    }
+
+    public void setTrancoEmail(int trancoEmail) {
+        this.trancoEmail = trancoEmail;
+    }
 }
