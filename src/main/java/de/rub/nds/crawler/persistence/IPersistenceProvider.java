@@ -11,6 +11,7 @@ package de.rub.nds.crawler.persistence;
 import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanResult;
+import java.util.List;
 
 /**
  * Persistence provider interface. Exposes methods to write out the different stages of a task to a
@@ -40,4 +41,26 @@ public interface IPersistenceProvider {
      * @param bulkScan The bulk scan to update.
      */
     void updateBulkScan(BulkScan bulkScan);
+
+    /**
+     * Retrieve scan results for a specific target hostname or IP.
+     *
+     * @param dbName The database name where the scan results are stored.
+     * @param collectionName The collection name where the scan results are stored.
+     * @param target The hostname or IP address to search for.
+     * @param limit The maximum number of results to retrieve. If null, all results are retrieved.
+     * @return A list of scan results matching the target.
+     */
+    List<ScanResult> getScanResultsByTarget(
+            String dbName, String collectionName, String target);
+
+    /**
+     * Retrieve a specific scan result by its ID.
+     *
+     * @param dbName The database name where the scan result is stored.
+     * @param collectionName The collection name where the scan result is stored.
+     * @param id The ID of the scan result to retrieve.
+     * @return The scan result, or null if not found.
+     */
+    ScanResult getScanResultById(String dbName, String collectionName, String id);
 }
