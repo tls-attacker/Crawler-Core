@@ -21,24 +21,51 @@ public class BulkScanInfo implements Serializable {
 
     private final boolean isMonitored;
 
+    /**
+     * Creates a new BulkScanInfo from a BulkScan.
+     *
+     * @param bulkScan The bulk scan to extract information from
+     */
     public BulkScanInfo(BulkScan bulkScan) {
         this.bulkScanId = bulkScan.get_id();
         this.scanConfig = bulkScan.getScanConfig();
         this.isMonitored = bulkScan.isMonitored();
     }
 
+    /**
+     * Gets the ID of the bulk scan.
+     *
+     * @return The bulk scan ID
+     */
     public String getBulkScanId() {
         return bulkScanId;
     }
 
+    /**
+     * Gets the scan configuration for this bulk scan.
+     *
+     * @return The scan configuration
+     */
     public ScanConfig getScanConfig() {
         return scanConfig;
     }
 
+    /**
+     * Gets the scan configuration cast to a specific type.
+     *
+     * @param <T> The type to cast the scan configuration to
+     * @param clazz The class of the type to cast to
+     * @return The scan configuration cast to the specified type
+     */
     public <T extends ScanConfig> T getScanConfig(Class<T> clazz) {
         return clazz.cast(scanConfig);
     }
 
+    /**
+     * Checks if this bulk scan is being monitored.
+     *
+     * @return True if the scan is monitored, false otherwise
+     */
     public boolean isMonitored() {
         return isMonitored;
     }

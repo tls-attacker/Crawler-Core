@@ -48,11 +48,9 @@ public interface IPersistenceProvider {
      * @param dbName The database name where the scan results are stored.
      * @param collectionName The collection name where the scan results are stored.
      * @param target The hostname or IP address to search for.
-     * @param limit The maximum number of results to retrieve. If null, all results are retrieved.
      * @return A list of scan results matching the target.
      */
-    List<ScanResult> getScanResultsByTarget(
-            String dbName, String collectionName, String target);
+    List<ScanResult> getScanResultsByTarget(String dbName, String collectionName, String target);
 
     /**
      * Retrieve a specific scan result by its ID.

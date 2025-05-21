@@ -22,6 +22,12 @@ import de.rub.nds.scanner.core.config.ScannerDetail;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.quartz.CronScheduleBuilder;
 
+/**
+ * Configuration class for controller instances. Contains settings for the controller's behavior,
+ * including scan parameters, target selection, and notification settings. This abstract class
+ * provides the base configuration, while specific scanner implementations must extend it to provide
+ * scanner-specific configuration.
+ */
 public abstract class ControllerCommandConfig {
 
     @ParametersDelegate private final RabbitMqDelegate rabbitMqDelegate;
@@ -112,7 +118,15 @@ public abstract class ControllerCommandConfig {
         }
     }
 
+    /** Validator that ensures parameter values are positive integers. */
     public static class PositiveInteger implements IParameterValidator {
+        /**
+         * Validates that the parameter value is a positive integer.
+         *
+         * @param name The parameter name
+         * @param value The parameter value
+         * @throws ParameterException If the value is not a positive integer
+         */
         public void validate(String name, String value) throws ParameterException {
             int n = Integer.parseInt(value);
             if (n < 0) {
@@ -122,7 +136,15 @@ public abstract class ControllerCommandConfig {
         }
     }
 
+    /** Validator that ensures parameter values are valid cron expressions. */
     public static class CronSyntax implements IParameterValidator {
+        /**
+         * Validates that the parameter value is a valid cron expression.
+         *
+         * @param name The parameter name
+         * @param value The parameter value
+         * @throws ParameterException If the value is not a valid cron expression
+         */
         public void validate(String name, String value) throws ParameterException {
             CronScheduleBuilder.cronSchedule(value);
         }
