@@ -55,7 +55,14 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private static boolean isInitialized = false;
     private static final Set<JsonSerializer<?>> serializers = new HashSet<>();
     private static final Set<Module> modules = new HashSet<>();
+    private static final Set<Class<?>> codecClasses = new HashSet<>();
 
+    /**
+     * Register a custom JSON serializer for MongoDB serialization.
+     *
+     * @param serializer The serializer to register
+     * @throws RuntimeException if called after provider initialization
+     */
     public static void registerSerializer(JsonSerializer<?> serializer) {
         if (isInitialized) {
             throw new RuntimeException("Cannot register serializer after initialization");
@@ -63,12 +70,24 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         serializers.add(serializer);
     }
 
+    /**
+     * Register multiple custom JSON serializers for MongoDB serialization.
+     *
+     * @param serializers The serializers to register
+     * @throws RuntimeException if called after provider initialization
+     */
     public static void registerSerializer(JsonSerializer<?>... serializers) {
         for (JsonSerializer<?> serializer : serializers) {
             registerSerializer(serializer);
         }
     }
 
+    /**
+     * Register a Jackson module for MongoDB serialization.
+     *
+     * @param module The module to register
+     * @throws RuntimeException if called after provider initialization
+     */
     public static void registerModule(Module module) {
         if (isInitialized) {
             throw new RuntimeException("Cannot register module after initialization");
@@ -76,10 +95,50 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         modules.add(module);
     }
 
+    /**
+     * Register multiple Jackson modules for MongoDB serialization.
+     *
+     * @param modules The modules to register
+     * @throws RuntimeException if called after provider initialization
+     */
     public static void registerModule(Module... modules) {
         for (Module module : modules) {
             registerModule(module);
         }
+    }
+
+    /**
+     * Register a class for custom codec handling.
+     *
+     * @param codecClass The class to register for custom codec handling
+     * @throws RuntimeException if called after provider initialization
+     */
+    public static void registerCodecClass(Class<?> codecClass) {
+        if (isInitialized) {
+            throw new RuntimeException("Cannot register codec class after initialization");
+        }
+        codecClasses.add(codecClass);
+    }
+
+    /**
+     * Register multiple classes for custom codec handling.
+     *
+     * @param codecClasses The classes to register for custom codec handling
+     * @throws RuntimeException if called after provider initialization
+     */
+    public static void registerCodecClass(Class<?>... codecClasses) {
+        for (Class<?> codecClass : codecClasses) {
+            registerCodecClass(codecClass);
+        }
+    }
+
+    /**
+     * Get all registered codec classes.
+     *
+     * @return An unmodifiable set of all registered codec classes
+     */
+    public static Set<Class<?>> getCodecClasses() {
+        return Set.copyOf(codecClasses);
     }
 
     private final MongoClient mongoClient;
@@ -113,11 +172,36 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                         mongoDbDelegate.getMongoDbAuthSource(),
                         pw.toCharArray());
 
-        MongoClientSettings mongoClientSettings =
+        MongoClientSettings.Builder settingsBuilder =
                 MongoClientSettings.builder()
                         .credential(credentials)
-                        .applyConnectionString(connectionString)
-                        .build();
+                        .applyConnectionString(connectionString);
+
+        // Register any custom codec classes if needed
+        if (!codecClasses.isEmpty()) {
+            for (Class<?> codecClass : codecClasses) {
+                LOGGER.info("Custom codec class registered: {}", codecClass.getName());
+            }
+
+            // This is a placeholder for actual codec implementation
+            // You would need to implement a custom CodecProvider or CodecRegistry
+            // based on your specific requirements for the registered classes
+
+            // Example approach using org.bson.codecs.pojo.PojoCodecProvider:
+            org.bson.codecs.configuration.CodecRegistry pojoCodecRegistry =
+                    org.bson.codecs.configuration.CodecRegistries.fromRegistries(
+                            MongoClientSettings.getDefaultCodecRegistry(),
+                            org.bson.codecs.configuration.CodecRegistries.fromProviders(
+                                    org.bson.codecs.pojo.PojoCodecProvider.builder()
+                                            .automatic(true)
+                                            .register(codecClasses.toArray(new Class<?>[0]))
+                                            .build()));
+
+            settingsBuilder.codecRegistry(pojoCodecRegistry);
+        }
+
+        MongoClientSettings mongoClientSettings = settingsBuilder.build();
+
         LOGGER.info("MongoDB persistence provider prepared to connect to {}", connectionString);
         return MongoClients.create(mongoClientSettings);
     }
