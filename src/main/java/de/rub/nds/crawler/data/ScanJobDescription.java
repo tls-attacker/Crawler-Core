@@ -12,8 +12,11 @@ import de.rub.nds.crawler.constant.JobStatus;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Optional;
+import java.util.UUID;
 
 public class ScanJobDescription implements Serializable {
+
+    private final UUID id = UUID.randomUUID();
 
     private final ScanTarget scanTarget;
 
@@ -50,6 +53,10 @@ public class ScanJobDescription implements Serializable {
                 bulkScan.getName(),
                 bulkScan.getCollectionName(),
                 status);
+    }
+
+    public UUID getId() {
+        return id;
     }
 
     private void readObject(java.io.ObjectInputStream in)
