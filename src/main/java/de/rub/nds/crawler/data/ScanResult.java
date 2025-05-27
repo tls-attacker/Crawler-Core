@@ -36,6 +36,16 @@ public class ScanResult implements Serializable {
     /** The actual scan results as a MongoDB document. */
     private final Document result;
 
+    @SuppressWarnings("unused")
+    public ScanResult() {
+        // Default constructor for serialization
+        this.id = null;
+        this.bulkScan = null;
+        this.scanTarget = null;
+        this.jobStatus = null;
+        this.result = null;
+    }
+
     /**
      * Private constructor for creating a scan result.
      *
