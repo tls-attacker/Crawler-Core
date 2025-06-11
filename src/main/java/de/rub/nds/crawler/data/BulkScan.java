@@ -164,6 +164,11 @@ public class BulkScan implements Serializable {
         return _id;
     }
 
+    /**
+     * Gets the human-readable name of the bulk scan.
+     *
+     * @return the scan name
+     */
     public String getName() {
         return this.name;
     }
@@ -180,10 +185,20 @@ public class BulkScan implements Serializable {
         return this.collectionName;
     }
 
+    /**
+     * Gets the scan configuration for this bulk scan.
+     *
+     * @return the scan configuration containing scan parameters
+     */
     public ScanConfig getScanConfig() {
         return this.scanConfig;
     }
 
+    /**
+     * Checks whether this bulk scan is being monitored for progress updates.
+     *
+     * @return true if monitoring is enabled, false otherwise
+     */
     public boolean isMonitored() {
         return this.monitored;
     }
@@ -200,91 +215,203 @@ public class BulkScan implements Serializable {
         return this.finished;
     }
 
+    /**
+     * Gets the start time of the bulk scan operation.
+     *
+     * @return the start time in epoch milliseconds
+     */
     public long getStartTime() {
         return this.startTime;
     }
 
+    /**
+     * Gets the end time of the bulk scan operation.
+     *
+     * @return the end time in epoch milliseconds, or 0 if not finished
+     */
     public long getEndTime() {
         return this.endTime;
     }
 
+    /**
+     * Gets the total number of targets provided for this bulk scan.
+     *
+     * @return the number of targets given
+     */
     public int getTargetsGiven() {
         return this.targetsGiven;
     }
 
+    /**
+     * Gets the number of scan jobs successfully published to worker queues.
+     *
+     * @return the number of published scan jobs
+     */
     public long getScanJobsPublished() {
         return this.scanJobsPublished;
     }
 
+    /**
+     * Gets the number of successfully completed scans.
+     *
+     * @return the number of successful scans
+     */
     public int getSuccessfulScans() {
         return this.successfulScans;
     }
 
+    /**
+     * Gets the notification URL for scan completion callbacks.
+     *
+     * @return the notification URL, or null if not configured
+     */
     public String getNotifyUrl() {
         return this.notifyUrl;
     }
 
+    /**
+     * Gets the version of the TLS scanner used for this scan.
+     *
+     * @return the scanner version string
+     */
     public String getScannerVersion() {
         return this.scannerVersion;
     }
 
+    /**
+     * Gets the version of the crawler framework used for this scan.
+     *
+     * @return the crawler version string
+     */
     public String getCrawlerVersion() {
         return this.crawlerVersion;
     }
 
-    // Setter naming important for correct serialization, do not change!
+    /**
+     * Sets the unique identifier for this bulk scan.
+     *
+     * <p><strong>Important:</strong> Setter naming is critical for MongoDB serialization. Do not
+     * change this method name without considering serialization compatibility.
+     *
+     * @param _id the MongoDB document ID
+     */
     public void set_id(String _id) {
         this._id = _id;
     }
 
+    /**
+     * Sets the human-readable name of the bulk scan.
+     *
+     * @param name the scan name
+     */
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * Sets the MongoDB collection name for scan results.
+     *
+     * @param collectionName the collection name
+     */
     public void setCollectionName(String collectionName) {
         this.collectionName = collectionName;
     }
 
+    /**
+     * Sets the scan configuration for this bulk scan.
+     *
+     * @param scanConfig the scan configuration
+     */
     public void setScanConfig(ScanConfig scanConfig) {
         this.scanConfig = scanConfig;
     }
 
+    /**
+     * Sets whether this bulk scan should be monitored for progress updates.
+     *
+     * @param monitored true to enable monitoring, false otherwise
+     */
     public void setMonitored(boolean monitored) {
         this.monitored = monitored;
     }
 
+    /**
+     * Sets whether the bulk scan operation has completed.
+     *
+     * @param finished true if the scan is finished, false otherwise
+     */
     public void setFinished(boolean finished) {
         this.finished = finished;
     }
 
+    /**
+     * Sets the start time of the bulk scan operation.
+     *
+     * @param startTime the start time in epoch milliseconds
+     */
     public void setStartTime(long startTime) {
         this.startTime = startTime;
     }
 
+    /**
+     * Sets the end time of the bulk scan operation.
+     *
+     * @param endTime the end time in epoch milliseconds
+     */
     public void setEndTime(long endTime) {
         this.endTime = endTime;
     }
 
+    /**
+     * Sets the total number of targets provided for this bulk scan.
+     *
+     * @param targetsGiven the number of targets given
+     */
     public void setTargetsGiven(int targetsGiven) {
         this.targetsGiven = targetsGiven;
     }
 
+    /**
+     * Sets the number of scan jobs successfully published to worker queues.
+     *
+     * @param scanJobsPublished the number of published scan jobs
+     */
     public void setScanJobsPublished(long scanJobsPublished) {
         this.scanJobsPublished = scanJobsPublished;
     }
 
+    /**
+     * Sets the number of successfully completed scans.
+     *
+     * @param successfulScans the number of successful scans
+     */
     public void setSuccessfulScans(int successfulScans) {
         this.successfulScans = successfulScans;
     }
 
+    /**
+     * Sets the notification URL for scan completion callbacks.
+     *
+     * @param notifyUrl the notification URL, or null to disable notifications
+     */
     public void setNotifyUrl(String notifyUrl) {
         this.notifyUrl = notifyUrl;
     }
 
+    /**
+     * Sets the version of the TLS scanner used for this scan.
+     *
+     * @param scannerVersion the scanner version string
+     */
     public void setScannerVersion(String scannerVersion) {
         this.scannerVersion = scannerVersion;
     }
 
+    /**
+     * Sets the version of the crawler framework used for this scan.
+     *
+     * @param crawlerVersion the crawler version string
+     */
     public void setCrawlerVersion(String crawlerVersion) {
         this.crawlerVersion = crawlerVersion;
     }
@@ -302,22 +429,48 @@ public class BulkScan implements Serializable {
         return jobStatusCounters;
     }
 
+    /**
+     * Sets the job status counters for tracking scan progress.
+     *
+     * @param jobStatusCounters a map of job statuses to their respective counts
+     * @see JobStatus
+     */
     public void setJobStatusCounters(Map<JobStatus, Integer> jobStatusCounters) {
         this.jobStatusCounters = jobStatusCounters;
     }
 
+    /**
+     * Gets the number of targets that failed hostname resolution.
+     *
+     * @return the number of targets with resolution errors
+     */
     public long getScanJobsResolutionErrors() {
         return scanJobsResolutionErrors;
     }
 
+    /**
+     * Sets the number of targets that failed hostname resolution.
+     *
+     * @param scanJobsResolutionErrors the number of targets with resolution errors
+     */
     public void setScanJobsResolutionErrors(long scanJobsResolutionErrors) {
         this.scanJobsResolutionErrors = scanJobsResolutionErrors;
     }
 
+    /**
+     * Gets the number of targets excluded due to denylist filtering.
+     *
+     * @return the number of denylisted targets
+     */
     public long getScanJobsDenylisted() {
         return scanJobsDenylisted;
     }
 
+    /**
+     * Sets the number of targets excluded due to denylist filtering.
+     *
+     * @param scanJobsDenylisted the number of denylisted targets
+     */
     public void setScanJobsDenylisted(long scanJobsDenylisted) {
         this.scanJobsDenylisted = scanJobsDenylisted;
     }
