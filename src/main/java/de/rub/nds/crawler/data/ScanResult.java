@@ -130,8 +130,10 @@ public class ScanResult implements Serializable {
      * description has an error status (ERROR, CANCELLED, INTERNAL_ERROR, etc.) before creating the
      * error result, ensuring consistency between status and result content.
      *
-     * <p><strong>Exception Handling:</strong> The exception is embedded in a BSON document under
-     * the "exception" key, allowing for structured storage and later analysis of scan failures.
+     * <p><strong>Exception Handling:</strong> The exception information is stored in a structured
+     * format with separate fields for type, message, cause, and timestamp, enabling detailed
+     * analysis and debugging of scan failures while avoiding serialization issues with raw
+     * exception objects.
      *
      * @param scanJobDescription the scan job in an error state
      * @param e the exception that caused the scan to fail
@@ -143,7 +145,75 @@ public class ScanResult implements Serializable {
             throw new IllegalArgumentException("ScanJobDescription must be in an error state");
         }
         Document errorDocument = new Document();
-        errorDocument.put("exception", e);
+
+        // Store structured exception information for better analysis and debugging
+        errorDocument.put("exceptionType", e.getClass().getSimpleName());
+        errorDocument.put("exceptionMessage", e.getMessage());
+        errorDocument.put("exceptionCause", e.getCause() != null ? e.getCause().toString() : null);
+        errorDocument.put("timestamp", System.currentTimeMillis());
+
+        // Include target information if available for context
+        ScanTarget target = scanJobDescription.getScanTarget();
+        if (target != null) {
+            errorDocument.put("targetHostname", target.getHostname());
+            errorDocument.put("targetIp", target.getIp());
+            errorDocument.put("targetPort", target.getPort());
+
+            // Include additional error context from the target if available
+            if (target.getErrorMessage() != null) {
+                errorDocument.put("targetErrorMessage", target.getErrorMessage());
+            }
+            if (target.getErrorType() != null) {
+                errorDocument.put("targetErrorType", target.getErrorType());
+            }
+        }
+
+        return new ScanResult(scanJobDescription, errorDocument);
+    }
+
+    /**
+     * Creates a scan result from an exception with additional error context.
+     *
+     * <p>This overloaded method extends the basic exception handling by allowing additional
+     * contextual information to be included in the error document. This is particularly useful for
+     * providing specific failure reasons, debugging hints, or operational details.
+     *
+     * @param scanJobDescription the scan job in an error state
+     * @param e the exception that caused the scan to fail
+     * @param errorContext additional error context as key-value pairs
+     * @return a new ScanResult containing the exception details and additional context
+     * @throws IllegalArgumentException if the scan job is not in an error state
+     */
+    public static ScanResult fromException(
+            ScanJobDescription scanJobDescription, Exception e, String errorContext) {
+        if (!scanJobDescription.getStatus().isError()) {
+            throw new IllegalArgumentException("ScanJobDescription must be in an error state");
+        }
+        Document errorDocument = new Document();
+
+        // Store structured exception information
+        errorDocument.put("exceptionType", e.getClass().getSimpleName());
+        errorDocument.put("exceptionMessage", e.getMessage());
+        errorDocument.put("exceptionCause", e.getCause() != null ? e.getCause().toString() : null);
+        errorDocument.put("timestamp", System.currentTimeMillis());
+        errorDocument.put("errorContext", errorContext);
+
+        // Include target information if available for context
+        ScanTarget target = scanJobDescription.getScanTarget();
+        if (target != null) {
+            errorDocument.put("targetHostname", target.getHostname());
+            errorDocument.put("targetIp", target.getIp());
+            errorDocument.put("targetPort", target.getPort());
+
+            // Include additional error context from the target if available
+            if (target.getErrorMessage() != null) {
+                errorDocument.put("targetErrorMessage", target.getErrorMessage());
+            }
+            if (target.getErrorType() != null) {
+                errorDocument.put("targetErrorType", target.getErrorType());
+            }
+        }
+
         return new ScanResult(scanJobDescription, errorDocument);
     }
 

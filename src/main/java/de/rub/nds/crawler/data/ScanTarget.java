@@ -152,6 +152,11 @@ public class ScanTarget implements Serializable {
 
             if (denylistProvider != null && denylistProvider.isDenylisted(target)) {
                 LOGGER.error("IP {} is denylisted and will not be scanned.", targetString);
+
+                // Store denylist rejection information
+                target.setErrorMessage("Target blocked by denylist: IP address " + targetString);
+                target.setErrorType("DenylistRejection");
+
                 results.add(Pair.of(target, JobStatus.DENYLISTED));
             } else {
                 results.add(Pair.of(target, JobStatus.TO_BE_EXECUTED));
@@ -178,6 +183,15 @@ public class ScanTarget implements Serializable {
                                 "IP {} for hostname {} is denylisted and will not be scanned.",
                                 address.getHostAddress(),
                                 targetString);
+
+                        // Store detailed denylist rejection information
+                        ipTarget.setErrorMessage(
+                                "Target blocked by denylist: IP "
+                                        + address.getHostAddress()
+                                        + " for hostname "
+                                        + targetString);
+                        ipTarget.setErrorType("DenylistRejection");
+
                         results.add(Pair.of(ipTarget, JobStatus.DENYLISTED));
                     } else {
                         results.add(Pair.of(ipTarget, JobStatus.TO_BE_EXECUTED));
@@ -186,6 +200,11 @@ public class ScanTarget implements Serializable {
             } catch (UnknownHostException e) {
                 LOGGER.error(
                         "Host {} is unknown or can not be reached with error {}.", targetString, e);
+
+                // Store detailed error information for debugging and analysis
+                target.setErrorMessage("DNS resolution failed: " + e.getMessage());
+                target.setErrorType("UnknownHostException");
+
                 results.add(Pair.of(target, JobStatus.UNRESOLVABLE));
             }
         }
@@ -204,6 +223,12 @@ public class ScanTarget implements Serializable {
 
     /** The Tranco ranking of the target (0 if not available or not specified). */
     private int trancoRank;
+
+    /** Error message for debugging when target processing fails (may be null). */
+    private String errorMessage;
+
+    /** Error type classification for debugging (may be null). */
+    private String errorType;
 
     /**
      * Creates an empty ScanTarget.
@@ -297,5 +322,47 @@ public class ScanTarget implements Serializable {
      */
     public void setTrancoRank(int trancoRank) {
         this.trancoRank = trancoRank;
+    }
+
+    /**
+     * Gets the error message associated with this target.
+     *
+     * <p>The error message provides detailed information about why target processing failed,
+     * including specific exception messages, DNS resolution failures, or parsing errors.
+     *
+     * @return the error message, or null if no error occurred
+     */
+    public String getErrorMessage() {
+        return this.errorMessage;
+    }
+
+    /**
+     * Sets the error message for this target.
+     *
+     * @param errorMessage the error message describing the failure
+     */
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
+    /**
+     * Gets the error type classification for this target.
+     *
+     * <p>The error type provides a high-level classification of the failure type, such as
+     * "UnknownHostException", "NumberFormatException", or "DenylistRejection".
+     *
+     * @return the error type, or null if no error occurred
+     */
+    public String getErrorType() {
+        return this.errorType;
+    }
+
+    /**
+     * Sets the error type classification for this target.
+     *
+     * @param errorType the error type classification
+     */
+    public void setErrorType(String errorType) {
+        this.errorType = errorType;
     }
 }

@@ -243,10 +243,31 @@ class ScanTargetTest {
                     target.getIp()
                             .matches(
                                     "^([0-9]{1,3}\\.){3}[0-9]{1,3}$|^([0-9a-fA-F]*:)+[0-9a-fA-F]*$"));
+            // Error fields should be null for successful resolution
+            assertNull(target.getErrorMessage());
+            assertNull(target.getErrorType());
         }
 
         // Log the number of IPs found for debugging
         System.out.println("google.com resolved to " + results.size() + " IP address(es)");
+    }
+
+    @Test
+    void testErrorInformationPreservation() {
+        // Test that error information fields are properly initialized and preserved
+        ScanTarget target = new ScanTarget();
+
+        // Initially error fields should be null
+        assertNull(target.getErrorMessage());
+        assertNull(target.getErrorType());
+
+        // Set error information
+        target.setErrorMessage("Test error message");
+        target.setErrorType("TestException");
+
+        // Verify error information is preserved
+        assertEquals("Test error message", target.getErrorMessage());
+        assertEquals("TestException", target.getErrorType());
     }
 
     // Note: Testing unresolvable hostnames is environment-dependent and not reliable

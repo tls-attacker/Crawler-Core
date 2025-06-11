@@ -332,7 +332,8 @@ public class PublishBulkScanJob implements Job {
                 ScanJobDescription jobDescription =
                         new ScanJobDescription(
                                 new ScanTarget(), bulkScan, JobStatus.RESOLUTION_ERROR);
-                ScanResult errorResult = ScanResult.fromException(jobDescription, e);
+                String errorContext = "Failed to parse target string: '" + targetString + "'";
+                ScanResult errorResult = ScanResult.fromException(jobDescription, e, errorContext);
                 LOGGER.error(
                         "Error while creating ScanJobDescription for target '{}'", targetString, e);
                 persistenceProvider.insertScanResult(errorResult, jobDescription);
