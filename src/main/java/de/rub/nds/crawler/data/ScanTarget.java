@@ -13,6 +13,8 @@ import de.rub.nds.crawler.denylist.IDenylistProvider;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.logging.log4j.LogManager;
@@ -67,23 +69,24 @@ public class ScanTarget implements Serializable {
      *   <li>Check against denylist if provider is available
      * </ol>
      *
-     * <p><strong>Known limitations:</strong>
-     *
-     * <ul>
-     *   <li>Only the first resolved IP address is used for multi-homed hosts
-     * </ul>
+     * <p><strong>Multi-homed host support:</strong> For hostnames that resolve to multiple IP
+     * addresses, this method will create separate ScanTarget instances for each resolved IP
+     * address. This enables comprehensive scanning of domains with both IPv4 and IPv6 addresses or
+     * multiple A/AAAA records.
      *
      * @param targetString the string to parse (supports various formats as documented in class
      *     description)
      * @param defaultPort the port to use when none is specified in the target string
      * @param denylistProvider optional provider for checking if targets are denylisted (may be
      *     null)
-     * @return a pair containing the created ScanTarget and its status (TO_BE_EXECUTED,
-     *     UNRESOLVABLE, or DENYLISTED)
+     * @return a list of pairs, each containing a ScanTarget and its status (TO_BE_EXECUTED,
+     *     UNRESOLVABLE, or DENYLISTED). For hostnames resolving to multiple IPs, multiple pairs are
+     *     returned. For IP addresses or single-resolution hostnames, a single-element list is
+     *     returned.
      * @throws NumberFormatException if port or rank parsing fails
      * @see JobStatus
      */
-    public static Pair<ScanTarget, JobStatus> fromTargetString(
+    public static List<Pair<ScanTarget, JobStatus>> fromTargetString(
             String targetString, int defaultPort, IDenylistProvider denylistProvider) {
         ScanTarget target = new ScanTarget();
 
@@ -141,30 +144,53 @@ public class ScanTarget implements Serializable {
             target.setPort(defaultPort);
         }
 
+        List<Pair<ScanTarget, JobStatus>> results = new ArrayList<>();
+
         if (InetAddressValidator.getInstance().isValid(targetString)) {
+            // Direct IP address - create single target
             target.setIp(targetString);
+
+            if (denylistProvider != null && denylistProvider.isDenylisted(target)) {
+                LOGGER.error("IP {} is denylisted and will not be scanned.", targetString);
+                results.add(Pair.of(target, JobStatus.DENYLISTED));
+            } else {
+                results.add(Pair.of(target, JobStatus.TO_BE_EXECUTED));
+            }
         } else {
+            // Hostname - resolve to potentially multiple IPs
             target.setHostname(targetString);
             try {
-                // TODO this only allows one IP per hostname; it may be interesting to scan all IPs
-                // for a domain, or at least one v4 and one v6
-                target.setIp(InetAddress.getByName(targetString).getHostAddress());
+                InetAddress[] addresses = InetAddress.getAllByName(targetString);
+                LOGGER.debug(
+                        "Resolved hostname {} to {} IP address(es)",
+                        targetString,
+                        addresses.length);
+
+                for (InetAddress address : addresses) {
+                    ScanTarget ipTarget = new ScanTarget();
+                    ipTarget.setHostname(targetString);
+                    ipTarget.setIp(address.getHostAddress());
+                    ipTarget.setPort(target.getPort());
+                    ipTarget.setTrancoRank(target.getTrancoRank());
+
+                    if (denylistProvider != null && denylistProvider.isDenylisted(ipTarget)) {
+                        LOGGER.error(
+                                "IP {} for hostname {} is denylisted and will not be scanned.",
+                                address.getHostAddress(),
+                                targetString);
+                        results.add(Pair.of(ipTarget, JobStatus.DENYLISTED));
+                    } else {
+                        results.add(Pair.of(ipTarget, JobStatus.TO_BE_EXECUTED));
+                    }
+                }
             } catch (UnknownHostException e) {
                 LOGGER.error(
                         "Host {} is unknown or can not be reached with error {}.", targetString, e);
-                // TODO in the current design we discard the exception info; maybe we want to keep
-                // this in the future
-                return Pair.of(target, JobStatus.UNRESOLVABLE);
+                results.add(Pair.of(target, JobStatus.UNRESOLVABLE));
             }
         }
-        if (denylistProvider != null && denylistProvider.isDenylisted(target)) {
-            LOGGER.error("Host {} is denylisted and will not be scanned.", targetString);
-            // TODO similar to the unknownHostException, we do not keep any information as to why
-            // the target is blocklisted it may be nice to distinguish cases where the domain is
-            // blocked or where the IP is blocked
-            return Pair.of(target, JobStatus.DENYLISTED);
-        }
-        return Pair.of(target, JobStatus.TO_BE_EXECUTED);
+
+        return results;
     }
 
     /** The resolved IP address of the target host. */

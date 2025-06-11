@@ -11,6 +11,7 @@ package de.rub.nds.crawler.data;
 import static org.junit.jupiter.api.Assertions.*;
 
 import de.rub.nds.crawler.constant.JobStatus;
+import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
@@ -21,9 +22,11 @@ class ScanTargetTest {
 
     @Test
     void testIPv4AddressWithPort() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("192.168.1.1:8080", DEFAULT_PORT, null);
 
+        assertEquals(1, results.size());
+        Pair<ScanTarget, JobStatus> result = results.get(0);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         ScanTarget target = result.getLeft();
         assertEquals("192.168.1.1", target.getIp());
@@ -33,9 +36,11 @@ class ScanTargetTest {
 
     @Test
     void testIPv4AddressWithoutPort() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("192.168.1.1", DEFAULT_PORT, null);
 
+        assertEquals(1, results.size());
+        Pair<ScanTarget, JobStatus> result = results.get(0);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         ScanTarget target = result.getLeft();
         assertEquals("192.168.1.1", target.getIp());
@@ -45,9 +50,11 @@ class ScanTargetTest {
 
     @Test
     void testIPv6AddressWithPort() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("[2001:db8::1]:8080", DEFAULT_PORT, null);
 
+        assertEquals(1, results.size());
+        Pair<ScanTarget, JobStatus> result = results.get(0);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         ScanTarget target = result.getLeft();
         assertEquals("2001:db8::1", target.getIp());
@@ -57,9 +64,11 @@ class ScanTargetTest {
 
     @Test
     void testIPv6AddressWithoutPort() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("2001:db8::1", DEFAULT_PORT, null);
 
+        assertEquals(1, results.size());
+        Pair<ScanTarget, JobStatus> result = results.get(0);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         ScanTarget target = result.getLeft();
         assertEquals("2001:db8::1", target.getIp());
@@ -69,9 +78,11 @@ class ScanTargetTest {
 
     @Test
     void testIPv6AddressWithPortAndDefaultPort() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("[::1]:443", DEFAULT_PORT, null);
 
+        assertEquals(1, results.size());
+        Pair<ScanTarget, JobStatus> result = results.get(0);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         ScanTarget target = result.getLeft();
         assertEquals("::1", target.getIp());
@@ -81,73 +92,93 @@ class ScanTargetTest {
 
     @Test
     void testHostnameWithPort() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("example.com:8080", DEFAULT_PORT, null);
 
-        assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
-        ScanTarget target = result.getLeft();
-        assertEquals("example.com", target.getHostname());
-        assertEquals(8080, target.getPort());
-        // IP will be resolved, so we just check it's not null
-        assertNotNull(target.getIp());
+        assertFalse(results.isEmpty());
+        // Should have at least one result for example.com
+        for (Pair<ScanTarget, JobStatus> result : results) {
+            assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
+            ScanTarget target = result.getLeft();
+            assertEquals("example.com", target.getHostname());
+            assertEquals(8080, target.getPort());
+            assertNotNull(target.getIp());
+        }
     }
 
     @Test
     void testHostnameWithoutPort() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("example.com", DEFAULT_PORT, null);
 
-        assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
-        ScanTarget target = result.getLeft();
-        assertEquals("example.com", target.getHostname());
-        assertEquals(DEFAULT_PORT, target.getPort());
-        // IP will be resolved, so we just check it's not null
-        assertNotNull(target.getIp());
+        assertFalse(results.isEmpty());
+        // Should have at least one result for example.com
+        for (Pair<ScanTarget, JobStatus> result : results) {
+            assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
+            ScanTarget target = result.getLeft();
+            assertEquals("example.com", target.getHostname());
+            assertEquals(DEFAULT_PORT, target.getPort());
+            assertNotNull(target.getIp());
+        }
     }
 
     @Test
     void testTrancoRankWithHostname() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("1,example.com", DEFAULT_PORT, null);
 
-        assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
-        ScanTarget target = result.getLeft();
-        assertEquals("example.com", target.getHostname());
-        assertEquals(1, target.getTrancoRank());
-        assertEquals(DEFAULT_PORT, target.getPort());
-        assertNotNull(target.getIp());
+        assertFalse(results.isEmpty());
+        // Should have at least one result for example.com
+        for (Pair<ScanTarget, JobStatus> result : results) {
+            assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
+            ScanTarget target = result.getLeft();
+            assertEquals("example.com", target.getHostname());
+            assertEquals(1, target.getTrancoRank());
+            assertEquals(DEFAULT_PORT, target.getPort());
+            assertNotNull(target.getIp());
+        }
     }
 
     @Test
     void testUrlPrefixRemoval() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("//example.com", DEFAULT_PORT, null);
 
-        assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
-        ScanTarget target = result.getLeft();
-        assertEquals("example.com", target.getHostname());
-        assertEquals(DEFAULT_PORT, target.getPort());
-        assertNotNull(target.getIp());
+        assertFalse(results.isEmpty());
+        // Should have at least one result for example.com
+        for (Pair<ScanTarget, JobStatus> result : results) {
+            assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
+            ScanTarget target = result.getLeft();
+            assertEquals("example.com", target.getHostname());
+            assertEquals(DEFAULT_PORT, target.getPort());
+            assertNotNull(target.getIp());
+        }
     }
 
     @Test
     void testQuotedHostname() {
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("\"example.com\"", DEFAULT_PORT, null);
 
-        assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
-        ScanTarget target = result.getLeft();
-        assertEquals("example.com", target.getHostname());
-        assertEquals(DEFAULT_PORT, target.getPort());
-        assertNotNull(target.getIp());
+        assertFalse(results.isEmpty());
+        // Should have at least one result for example.com
+        for (Pair<ScanTarget, JobStatus> result : results) {
+            assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
+            ScanTarget target = result.getLeft();
+            assertEquals("example.com", target.getHostname());
+            assertEquals(DEFAULT_PORT, target.getPort());
+            assertNotNull(target.getIp());
+        }
     }
 
     @Test
     void testInvalidPortHandling() {
         // Port out of range should default to defaultPort
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("[2001:db8::1]:99999", DEFAULT_PORT, null);
 
+        assertEquals(1, results.size());
+        Pair<ScanTarget, JobStatus> result = results.get(0);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         ScanTarget target = result.getLeft();
         assertEquals("2001:db8::1", target.getIp());
@@ -157,9 +188,11 @@ class ScanTargetTest {
     @Test
     void testMalformedPortHandling() {
         // Non-numeric port should default to defaultPort
-        Pair<ScanTarget, JobStatus> result =
+        List<Pair<ScanTarget, JobStatus>> results =
                 ScanTarget.fromTargetString("[2001:db8::1]:abc", DEFAULT_PORT, null);
 
+        assertEquals(1, results.size());
+        Pair<ScanTarget, JobStatus> result = results.get(0);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         ScanTarget target = result.getLeft();
         assertEquals("2001:db8::1", target.getIp());
@@ -179,14 +212,41 @@ class ScanTargetTest {
 
         for (String ipv6 : ipv6Addresses) {
             String targetString = "[" + ipv6 + "]:8080";
-            Pair<ScanTarget, JobStatus> result =
+            List<Pair<ScanTarget, JobStatus>> results =
                     ScanTarget.fromTargetString(targetString, DEFAULT_PORT, null);
 
+            assertEquals(1, results.size());
+            Pair<ScanTarget, JobStatus> result = results.get(0);
             assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
             ScanTarget target = result.getLeft();
             assertEquals(ipv6, target.getIp());
             assertEquals(8080, target.getPort());
         }
+    }
+
+    @Test
+    void testMultipleIPResolution() {
+        // Test with google.com which typically has multiple A records
+        List<Pair<ScanTarget, JobStatus>> results =
+                ScanTarget.fromTargetString("google.com", DEFAULT_PORT, null);
+
+        assertFalse(results.isEmpty());
+        // All results should be successful
+        for (Pair<ScanTarget, JobStatus> result : results) {
+            assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
+            ScanTarget target = result.getLeft();
+            assertEquals("google.com", target.getHostname());
+            assertEquals(DEFAULT_PORT, target.getPort());
+            assertNotNull(target.getIp());
+            // Verify it's a valid IP address format
+            assertTrue(
+                    target.getIp()
+                            .matches(
+                                    "^([0-9]{1,3}\\.){3}[0-9]{1,3}$|^([0-9a-fA-F]*:)+[0-9a-fA-F]*$"));
+        }
+
+        // Log the number of IPs found for debugging
+        System.out.println("google.com resolved to " + results.size() + " IP address(es)");
     }
 
     // Note: Testing unresolvable hostnames is environment-dependent and not reliable

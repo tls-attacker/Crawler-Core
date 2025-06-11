@@ -276,11 +276,16 @@ public class PublishBulkScanJob implements Job {
          * filtering, and job submission or error persistence. It uses the
          * ScanTarget.fromTargetString method for DNS resolution and denylist checking.
          *
+         * <p><strong>Multi-target Support:</strong> For hostnames that resolve to multiple IP
+         * addresses, multiple ScanJobDescription objects are created and processed. The returned
+         * JobStatus represents the primary outcome, with TO_BE_EXECUTED taking precedence if any
+         * targets were successfully submitted.
+         *
          * <p><strong>Processing Flow:</strong>
          *
          * <ol>
-         *   <li>Parse target string using ScanTarget.fromTargetString
-         *   <li>Create ScanJobDescription with parsed target and determined status
+         *   <li>Parse target string using ScanTarget.fromTargetString (may return multiple targets)
+         *   <li>Create ScanJobDescription for each parsed target with appropriate status
          *   <li>For valid targets (TO_BE_EXECUTED): submit to orchestration provider
          *   <li>For invalid targets: create and persist ScanResult with error details
          * </ol>
@@ -290,36 +295,49 @@ public class PublishBulkScanJob implements Job {
          * debugging purposes.
          *
          * @param targetString the target string to process (e.g., "example.com:443")
-         * @return the JobStatus indicating how the target was processed
+         * @return the JobStatus indicating how the target was processed (TO_BE_EXECUTED if any
+         *     targets were submitted successfully, otherwise the error status)
          */
         @Override
         public JobStatus apply(String targetString) {
-            ScanJobDescription jobDescription;
-            ScanResult errorResult = null;
             try {
-                var targetInfo =
+                var targetInfoList =
                         ScanTarget.fromTargetString(targetString, defaultPort, denylistProvider);
-                jobDescription =
-                        new ScanJobDescription(
-                                targetInfo.getLeft(), bulkScan, targetInfo.getRight());
+
+                boolean hasSuccessfulSubmission = false;
+                JobStatus primaryStatus = JobStatus.RESOLUTION_ERROR;
+
+                for (var targetInfo : targetInfoList) {
+                    ScanJobDescription jobDescription =
+                            new ScanJobDescription(
+                                    targetInfo.getLeft(), bulkScan, targetInfo.getRight());
+
+                    if (jobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {
+                        orchestrationProvider.submitScanJob(jobDescription);
+                        hasSuccessfulSubmission = true;
+                        primaryStatus = JobStatus.TO_BE_EXECUTED;
+                    } else {
+                        ScanResult errorResult = new ScanResult(jobDescription, null);
+                        persistenceProvider.insertScanResult(errorResult, jobDescription);
+
+                        // Update primary status if we haven't had a successful submission
+                        if (!hasSuccessfulSubmission) {
+                            primaryStatus = jobDescription.getStatus();
+                        }
+                    }
+                }
+
+                return primaryStatus;
             } catch (Exception e) {
-                jobDescription =
+                ScanJobDescription jobDescription =
                         new ScanJobDescription(
                                 new ScanTarget(), bulkScan, JobStatus.RESOLUTION_ERROR);
-                errorResult = ScanResult.fromException(jobDescription, e);
+                ScanResult errorResult = ScanResult.fromException(jobDescription, e);
                 LOGGER.error(
                         "Error while creating ScanJobDescription for target '{}'", targetString, e);
-            }
-
-            if (jobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {
-                orchestrationProvider.submitScanJob(jobDescription);
-            } else {
-                if (errorResult == null) {
-                    errorResult = new ScanResult(jobDescription, null);
-                }
                 persistenceProvider.insertScanResult(errorResult, jobDescription);
+                return JobStatus.RESOLUTION_ERROR;
             }
-            return jobDescription.getStatus();
         }
     }
 }
