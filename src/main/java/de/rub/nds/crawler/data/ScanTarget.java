@@ -30,15 +30,17 @@ import org.apache.logging.log4j.Logger;
  *
  * <ul>
  *   <li><code>example.com</code> - hostname only
- *   <li><code>192.168.1.1</code> - IP address only
+ *   <li><code>192.168.1.1</code> - IPv4 address only
+ *   <li><code>2001:db8::1</code> - IPv6 address only
  *   <li><code>example.com:8080</code> - hostname with port
- *   <li><code>192.168.1.1:443</code> - IP address with port
+ *   <li><code>192.168.1.1:443</code> - IPv4 address with port
+ *   <li><code>[2001:db8::1]:8080</code> - IPv6 address with port (bracket notation)
  *   <li><code>1,example.com</code> - Tranco rank with hostname
  *   <li><code>//example.com</code> - hostname with URL prefix
  * </ul>
  *
  * <p>The class performs hostname resolution and denylist checking during target creation. IPv6
- * addresses are currently not fully supported due to port parsing limitations.
+ * addresses are fully supported with proper bracket notation for port specification.
  *
  * @see JobStatus
  * @see IDenylistProvider
@@ -68,7 +70,6 @@ public class ScanTarget implements Serializable {
      * <p><strong>Known limitations:</strong>
      *
      * <ul>
-     *   <li>IPv6 addresses with ports are not correctly parsed due to colon conflicts
      *   <li>Only the first resolved IP address is used for multi-homed hosts
      * </ul>
      *
@@ -102,18 +103,41 @@ public class ScanTarget implements Serializable {
         }
         if (targetString.startsWith("\"") && targetString.endsWith("\"")) {
             targetString = targetString.replace("\"", "");
-            System.out.println(targetString);
         }
 
-        // check if targetString contains port (e.g. "www.example.com:8080")
-        // FIXME I guess this breaks any IPv6 parsing
-        if (targetString.contains(":")) {
-            int port = Integer.parseInt(targetString.split(":")[1]);
-            targetString = targetString.split(":")[0];
-            if (port > 1 && port < 65535) {
-                target.setPort(port);
+        // Parse port from target string, handling IPv6 addresses properly
+        if (targetString.startsWith("[") && targetString.contains("]:")) {
+            // IPv6 address with port: [2001:db8::1]:8080
+            int bracketEnd = targetString.indexOf("]:") + 1;
+            String portPart = targetString.substring(bracketEnd + 1);
+            targetString = targetString.substring(1, bracketEnd - 1); // Remove brackets
+            try {
+                int port = Integer.parseInt(portPart);
+                if (port > 0 && port <= 65535) {
+                    target.setPort(port);
+                } else {
+                    target.setPort(defaultPort);
+                }
+            } catch (NumberFormatException e) {
+                target.setPort(defaultPort);
+            }
+        } else if (targetString.contains(":")
+                && !InetAddressValidator.getInstance().isValidInet6Address(targetString)) {
+            // IPv4 address or hostname with port: www.example.com:8080 or 192.168.1.1:443
+            String[] parts = targetString.split(":", 2);
+            targetString = parts[0];
+            try {
+                int port = Integer.parseInt(parts[1]);
+                if (port > 0 && port <= 65535) {
+                    target.setPort(port);
+                } else {
+                    target.setPort(defaultPort);
+                }
+            } catch (NumberFormatException e) {
+                target.setPort(defaultPort);
             }
         } else {
+            // No port specified or IPv6 address without port
             target.setPort(defaultPort);
         }
 
