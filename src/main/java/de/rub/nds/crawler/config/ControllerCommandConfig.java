@@ -221,6 +221,12 @@ public abstract class ControllerCommandConfig {
      * @see IParameterValidator
      */
     public static class PositiveInteger implements IParameterValidator {
+
+        /** Creates a new positive integer validator. */
+        public PositiveInteger() {
+            // Default constructor for JCommander parameter validation
+        }
+
         /**
          * Validates that the parameter value is a positive integer.
          *
@@ -255,6 +261,12 @@ public abstract class ControllerCommandConfig {
      * @see CronScheduleBuilder
      */
     public static class CronSyntax implements IParameterValidator {
+
+        /** Creates a new cron syntax validator. */
+        public CronSyntax() {
+            // Default constructor for JCommander parameter validation
+        }
+
         /**
          * Validates that the parameter value is a valid Quartz cron expression.
          *

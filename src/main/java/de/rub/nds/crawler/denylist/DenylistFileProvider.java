@@ -26,8 +26,74 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Reads the specified denylist file. Supports hostnames, ips and complete subnets as denylist
- * entries.
+ * File-based denylist provider supporting hostnames, IP addresses, and CIDR subnet filtering.
+ *
+ * <p>The DenylistFileProvider implements IDenylistProvider by reading filtering rules from a local
+ * text file. It supports multiple entry types to provide comprehensive target filtering
+ * capabilities for compliance, security, and resource management requirements.
+ *
+ * <p>Key features:
+ *
+ * <ul>
+ *   <li><strong>Multiple Formats</strong> - Hostnames, individual IPs, and CIDR subnet blocks
+ *   <li><strong>Automatic Classification</strong> - Validates and categorizes entries by type
+ *   <li><strong>Performance Optimized</strong> - Uses appropriate data structures for fast lookups
+ *   <li><strong>Thread-Safe</strong> - Synchronized access for concurrent worker operations
+ * </ul>
+ *
+ * <p><strong>Supported Entry Types:</strong>
+ *
+ * <ul>
+ *   <li><strong>Domain Names</strong> - Exact hostname matching (e.g., "example.com")
+ *   <li><strong>IP Addresses</strong> - Individual IPv4/IPv6 addresses (e.g., "192.168.1.1")
+ *   <li><strong>CIDR Blocks</strong> - Subnet ranges (e.g., "192.168.0.0/16", "10.0.0.0/8")
+ * </ul>
+ *
+ * <p><strong>File Format:</strong> Plain text file with one entry per line. Invalid entries are
+ * silently ignored. Comments and empty lines are processed as invalid entries.
+ *
+ * <p><strong>Example Denylist File:</strong>
+ *
+ * <pre>
+ * # Private networks
+ * 192.168.0.0/16
+ * 10.0.0.0/8
+ * 172.16.0.0/12
+ *
+ * # Specific domains
+ * government.gov
+ * sensitive.internal
+ *
+ * # Individual IPs
+ * 203.0.113.1
+ * 2001:db8::1
+ * </pre>
+ *
+ * <p><strong>Validation and Processing:</strong>
+ *
+ * <ul>
+ *   <li><strong>Domain Validation</strong> - Uses Apache Commons validator for RFC compliance
+ *   <li><strong>IP Validation</strong> - Supports both IPv4 and IPv6 address formats
+ *   <li><strong>CIDR Validation</strong> - Validates subnet notation and creates SubnetUtils
+ *       objects
+ *   <li><strong>Error Handling</strong> - Invalid entries are logged and ignored
+ * </ul>
+ *
+ * <p><strong>Performance Characteristics:</strong>
+ *
+ * <ul>
+ *   <li><strong>Domain Lookup</strong> - O(1) HashSet lookup for exact hostname matches
+ *   <li><strong>IP Lookup</strong> - O(1) HashSet lookup for individual IP addresses
+ *   <li><strong>Subnet Lookup</strong> - O(n) linear search through CIDR blocks
+ *   <li><strong>Memory Usage</strong> - Efficient storage with type-specific collections
+ * </ul>
+ *
+ * <p><strong>Thread Safety:</strong> The isDenylisted method is synchronized to ensure thread-safe
+ * access during concurrent scanning operations.
+ *
+ * @see IDenylistProvider
+ * @see ScanTarget
+ * @see SubnetUtils
  */
 public class DenylistFileProvider implements IDenylistProvider {
 
@@ -37,6 +103,15 @@ public class DenylistFileProvider implements IDenylistProvider {
     private final List<SubnetUtils.SubnetInfo> cidrDenylist = new ArrayList<>();
     private final Set<String> domainDenylistSet = new HashSet<>();
 
+    /**
+     * Creates a new file-based denylist provider from the specified file.
+     *
+     * <p>The constructor reads and parses the denylist file, categorizing entries by type (domain,
+     * IP, CIDR) and storing them in optimized data structures for fast lookup. File access errors
+     * are logged but don't prevent provider creation.
+     *
+     * @param denylistFilename the path to the denylist file to read
+     */
     public DenylistFileProvider(String denylistFilename) {
         List<String> denylist = List.of();
         try (Stream<String> lines = Files.lines(Paths.get(denylistFilename))) {

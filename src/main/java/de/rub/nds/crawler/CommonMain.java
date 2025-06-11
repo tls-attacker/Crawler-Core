@@ -46,6 +46,11 @@ import org.apache.logging.log4j.Logger;
 public class CommonMain {
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /** Private constructor to prevent instantiation of utility class. */
+    private CommonMain() {
+        // Utility class should not be instantiated
+    }
+
     /**
      * Main entry point for the TLS-Crawler application.
      *
