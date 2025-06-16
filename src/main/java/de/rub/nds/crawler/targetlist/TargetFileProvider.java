@@ -39,7 +39,7 @@ public class TargetFileProvider implements ITargetListProvider {
         } catch (IOException ex) {
             throw new RuntimeException("Could not load " + filename, ex);
         }
-        LOGGER.info("Read " + targetList.size() + " hosts");
+        LOGGER.info("Read {} hosts", targetList.size());
         return targetList;
     }
 }
