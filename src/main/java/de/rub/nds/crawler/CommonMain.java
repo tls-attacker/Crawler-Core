@@ -19,19 +19,48 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Main entry point for the TLS-Crawler application. Provides the main method to start either a
- * controller or worker instance.
+ * Main entry point for the TLS-Crawler application.
+ *
+ * <p>This class provides the command-line interface for running the TLS-Crawler in two modes:
+ *
+ * <ul>
+ *   <li><strong>Controller</strong> - Orchestrates scan jobs and manages the scanning workflow
+ *   <li><strong>Worker</strong> - Executes individual scan tasks assigned by the controller
+ * </ul>
+ *
+ * <p>The application uses RabbitMQ for communication between controllers and workers, and MongoDB
+ * for persistence of scan results and job status.
+ *
+ * <p>Usage examples:
+ *
+ * <pre>
+ * java -jar crawler-core.jar controller --config controller.properties
+ * java -jar crawler-core.jar worker --config worker.properties
+ * </pre>
+ *
+ * @see Controller
+ * @see Worker
+ * @see ControllerCommandConfig
+ * @see WorkerCommandConfig
  */
 public class CommonMain {
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /** Private constructor to prevent instantiation of utility class. */
+    private CommonMain() {
+        // Utility class should not be instantiated
+    }
+
     /**
-     * Main entry point for the application. Parses command line arguments and starts either a
-     * controller or worker based on the command.
+     * Main entry point for the TLS-Crawler application.
      *
-     * @param args Command line arguments
-     * @param controllerCommandConfig Configuration for the controller
-     * @param workerCommandConfig Configuration for the worker
+     * <p>Parses command line arguments to determine whether to run as a controller or worker,
+     * initializes the appropriate configuration and dependencies, and starts the selected mode.
+     *
+     * @param args command line arguments including the mode ("controller" or "worker") and
+     *     configuration parameters
+     * @param controllerCommandConfig configuration for controller mode
+     * @param workerCommandConfig configuration for worker mode
      */
     public static void main(
             String[] args,
@@ -84,11 +113,13 @@ public class CommonMain {
     }
 
     /**
-     * Convenience method to start the application with just a controller configuration. Creates a
-     * default worker configuration.
+     * Convenience method for running the application with only controller configuration.
      *
-     * @param args Command line arguments
-     * @param controllerConfig Configuration for the controller
+     * <p>Creates a default worker configuration and delegates to the main method. This is useful
+     * when only controller functionality is needed.
+     *
+     * @param args command line arguments
+     * @param controllerConfig configuration for controller mode
      */
     public static void main(String[] args, ControllerCommandConfig controllerConfig) {
         main(args, controllerConfig, new WorkerCommandConfig());

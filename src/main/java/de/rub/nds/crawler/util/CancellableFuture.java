@@ -13,11 +13,45 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * A cancellable future implementation that can return partial results even when cancelled. This
- * class wraps a standard FutureTask but captures the result when available, allowing it to be
- * retrieved even after cancellation.
+ * Enhanced Future implementation that preserves results even after cancellation.
  *
- * @param <V> The result type returned by this future
+ * <p>The CancellableFuture provides a specialized Future implementation that allows retrieval of
+ * results even after the future has been cancelled. This is particularly useful in scenarios where
+ * partial results are valuable and should not be lost due to timeout or cancellation.
+ *
+ * <p>Key features:
+ *
+ * <ul>
+ *   <li><strong>Result Preservation</strong> - Results remain accessible after cancellation
+ *   <li><strong>Thread-Safe Access</strong> - Uses atomic references and semaphores for
+ *       synchronization
+ *   <li><strong>Timeout Support</strong> - Supports both blocking and timed result retrieval
+ *   <li><strong>Standard Interface</strong> - Implements RunnableFuture for executor compatibility
+ * </ul>
+ *
+ * <p><strong>Cancellation Behavior:</strong> Unlike standard FutureTask, this implementation allows
+ * access to the computed result even after the future is cancelled. The result is captured
+ * atomically before the cancellation takes effect.
+ *
+ * <p><strong>Synchronization Mechanism:</strong> Uses a Semaphore to coordinate access to results
+ * after cancellation, ensuring thread-safe retrieval without blocking indefinitely.
+ *
+ * <p><strong>Use Cases:</strong>
+ *
+ * <ul>
+ *   <li><strong>Timeout Scenarios</strong> - Preserve partial scan results when operations timeout
+ *   <li><strong>Resource Management</strong> - Cancel long-running tasks while keeping results
+ *   <li><strong>Progress Tracking</strong> - Access intermediate results during cancellation
+ *   <li><strong>Graceful Degradation</strong> - Use partial results when full completion fails
+ * </ul>
+ *
+ * <p><strong>Thread Safety:</strong> All operations are thread-safe through atomic references and
+ * semaphore synchronization. Multiple threads can safely access the future concurrently.
+ *
+ * @param <V> the type of result produced by this future
+ * @see RunnableFuture
+ * @see FutureTask
+ * @see CanceallableThreadPoolExecutor
  */
 public class CancellableFuture<V> implements RunnableFuture<V> {
 
@@ -26,10 +60,12 @@ public class CancellableFuture<V> implements RunnableFuture<V> {
     private final Semaphore resultWritten = new Semaphore(0);
 
     /**
-     * Creates a new cancellable future for the given callable. When the callable completes, the
-     * result is stored for retrieval even after cancellation.
+     * Creates a new cancellable future for the specified callable task.
      *
-     * @param callable The callable to be executed
+     * <p>The future wraps the callable in a FutureTask that captures the result atomically and
+     * signals completion via semaphore release, enabling result access even after cancellation.
+     *
+     * @param callable the task to execute that produces a result
      */
     public CancellableFuture(Callable<V> callable) {
         innerFuture =
@@ -43,11 +79,13 @@ public class CancellableFuture<V> implements RunnableFuture<V> {
     }
 
     /**
-     * Creates a new cancellable future for the given runnable and result value. When the runnable
-     * completes, the result value is stored for retrieval even after cancellation.
+     * Creates a new cancellable future for the specified runnable task with a fixed result.
      *
-     * @param runnable The runnable to be executed
-     * @param res The result value to return when the runnable completes
+     * <p>The future wraps the runnable in a FutureTask that executes the task and returns the
+     * provided result value, with atomic result capture for post-cancellation access.
+     *
+     * @param runnable the task to execute
+     * @param res the result value to return upon successful completion
      */
     public CancellableFuture(Runnable runnable, V res) {
         innerFuture =
@@ -60,46 +98,21 @@ public class CancellableFuture<V> implements RunnableFuture<V> {
                         });
     }
 
-    /**
-     * Attempts to cancel execution of this task.
-     *
-     * @param mayInterruptIfRunning True if the thread executing this task should be interrupted
-     * @return True if the task was cancelled, false otherwise
-     */
     @Override
-    public boolean cancel(boolean mayInterruptIfRunning) {
-        return innerFuture.cancel(mayInterruptIfRunning);
+    public boolean cancel(boolean b) {
+        return innerFuture.cancel(b);
     }
 
-    /**
-     * Returns true if this task was cancelled before it completed normally.
-     *
-     * @return True if this task was cancelled before it completed
-     */
     @Override
     public boolean isCancelled() {
         return innerFuture.isCancelled();
     }
 
-    /**
-     * Returns true if this task completed. Completion may be due to normal termination, an
-     * exception, or cancellation.
-     *
-     * @return True if this task completed
-     */
     @Override
     public boolean isDone() {
         return innerFuture.isDone();
     }
 
-    /**
-     * Waits if necessary for the computation to complete, and then retrieves its result. If the
-     * task was cancelled but the result was captured, returns the captured result.
-     *
-     * @return The computed result
-     * @throws InterruptedException If the current thread was interrupted while waiting
-     * @throws ExecutionException If the computation threw an exception
-     */
     @Override
     public V get() throws InterruptedException, ExecutionException {
         try {
@@ -110,32 +123,19 @@ public class CancellableFuture<V> implements RunnableFuture<V> {
         }
     }
 
-    /**
-     * Waits if necessary for at most the given time for the computation to complete, and then
-     * retrieves its result. If the task was cancelled but the result was captured, returns the
-     * captured result if available within the timeout.
-     *
-     * @param timeout The maximum time to wait
-     * @param timeUnit The time unit of the timeout argument
-     * @return The computed result
-     * @throws InterruptedException If the current thread was interrupted while waiting
-     * @throws ExecutionException If the computation threw an exception
-     * @throws TimeoutException If the wait timed out
-     */
     @Override
-    public V get(long timeout, @NonNull TimeUnit timeUnit)
+    public V get(long l, @NonNull TimeUnit timeUnit)
             throws InterruptedException, ExecutionException, TimeoutException {
         try {
-            return innerFuture.get(timeout, timeUnit);
+            return innerFuture.get(l, timeUnit);
         } catch (CancellationException e) {
-            if (resultWritten.tryAcquire(timeout, timeUnit)) {
+            if (resultWritten.tryAcquire(l, timeUnit)) {
                 return result.get();
             }
             throw new TimeoutException("Timeout while waiting for cancelled result");
         }
     }
 
-    /** Executes the underlying task. */
     @Override
     public void run() {
         innerFuture.run();

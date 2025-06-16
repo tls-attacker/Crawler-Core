@@ -11,18 +11,48 @@ package de.rub.nds.crawler.util;
 import java.util.concurrent.*;
 
 /**
- * A custom thread pool executor that creates cancellable futures. This executor allows tasks to
- * return a partial result even when cancelled.
+ * Thread pool executor that creates futures with result preservation after cancellation.
+ *
+ * <p>The CanceallableThreadPoolExecutor extends ThreadPoolExecutor to use CancellableFuture
+ * instances instead of standard FutureTask objects. This enables tasks to preserve their results
+ * even after being cancelled, which is valuable for timeout scenarios and graceful degradation in
+ * distributed scanning operations.
+ *
+ * <p>Key features:
+ *
+ * <ul>
+ *   <li><strong>Result Preservation</strong> - Tasks retain results after cancellation
+ *   <li><strong>Standard Interface</strong> - Drop-in replacement for ThreadPoolExecutor
+ *   <li><strong>Timeout Handling</strong> - Better handling of scan timeouts with partial results
+ *   <li><strong>Resource Management</strong> - Improved resource cleanup with preserved data
+ * </ul>
+ *
+ * <p><strong>Use Cases:</strong>
+ *
+ * <ul>
+ *   <li><strong>TLS Scanning</strong> - Preserve partial scan results when connections timeout
+ *   <li><strong>Long-Running Tasks</strong> - Cancel tasks while keeping intermediate results
+ *   <li><strong>Resource Constraints</strong> - Manage memory/CPU while preserving valuable data
+ *   <li><strong>Progress Tracking</strong> - Access results from cancelled operations
+ * </ul>
+ *
+ * <p><strong>Behavior:</strong> All submitted tasks are wrapped in CancellableFuture instances,
+ * which provide the enhanced cancellation behavior. The executor maintains standard
+ * ThreadPoolExecutor semantics for all other operations.
+ *
+ * @see CancellableFuture
+ * @see ThreadPoolExecutor
  */
 public class CanceallableThreadPoolExecutor extends ThreadPoolExecutor {
     /**
-     * Creates a new thread pool executor with the given parameters.
+     * Creates a new cancellable thread pool executor with basic configuration.
      *
-     * @param corePoolSize The number of threads to keep in the pool, even if idle
-     * @param maximumPoolSize The maximum number of threads to allow in the pool
-     * @param keepAliveTime How long idle threads should be kept alive
-     * @param unit The time unit for the keepAliveTime
-     * @param workQueue The queue to use for holding tasks before they are executed
+     * @param corePoolSize the number of threads to keep in the pool
+     * @param maximumPoolSize the maximum number of threads to allow in the pool
+     * @param keepAliveTime when the number of threads is greater than the core, this is the maximum
+     *     time that excess idle threads will wait for new tasks before terminating
+     * @param unit the time unit for the keepAliveTime argument
+     * @param workQueue the queue to use for holding tasks before they are executed
      */
     public CanceallableThreadPoolExecutor(
             int corePoolSize,
@@ -34,14 +64,15 @@ public class CanceallableThreadPoolExecutor extends ThreadPoolExecutor {
     }
 
     /**
-     * Creates a new thread pool executor with the given parameters.
+     * Creates a new cancellable thread pool executor with custom thread factory.
      *
-     * @param corePoolSize The number of threads to keep in the pool, even if idle
-     * @param maximumPoolSize The maximum number of threads to allow in the pool
-     * @param keepAliveTime How long idle threads should be kept alive
-     * @param unit The time unit for the keepAliveTime
-     * @param workQueue The queue to use for holding tasks before they are executed
-     * @param threadFactory The factory to use when creating new threads
+     * @param corePoolSize the number of threads to keep in the pool
+     * @param maximumPoolSize the maximum number of threads to allow in the pool
+     * @param keepAliveTime when the number of threads is greater than the core, this is the maximum
+     *     time that excess idle threads will wait for new tasks before terminating
+     * @param unit the time unit for the keepAliveTime argument
+     * @param workQueue the queue to use for holding tasks before they are executed
+     * @param threadFactory the factory to use when the executor creates a new thread
      */
     public CanceallableThreadPoolExecutor(
             int corePoolSize,
@@ -54,14 +85,16 @@ public class CanceallableThreadPoolExecutor extends ThreadPoolExecutor {
     }
 
     /**
-     * Creates a new thread pool executor with the given parameters.
+     * Creates a new cancellable thread pool executor with custom rejection handler.
      *
-     * @param corePoolSize The number of threads to keep in the pool, even if idle
-     * @param maximumPoolSize The maximum number of threads to allow in the pool
-     * @param keepAliveTime How long idle threads should be kept alive
-     * @param unit The time unit for the keepAliveTime
-     * @param workQueue The queue to use for holding tasks before they are executed
-     * @param handler The handler to use when execution is blocked
+     * @param corePoolSize the number of threads to keep in the pool
+     * @param maximumPoolSize the maximum number of threads to allow in the pool
+     * @param keepAliveTime when the number of threads is greater than the core, this is the maximum
+     *     time that excess idle threads will wait for new tasks before terminating
+     * @param unit the time unit for the keepAliveTime argument
+     * @param workQueue the queue to use for holding tasks before they are executed
+     * @param handler the handler to use when execution is blocked because the thread bounds and
+     *     queue capacities are reached
      */
     public CanceallableThreadPoolExecutor(
             int corePoolSize,
@@ -74,15 +107,17 @@ public class CanceallableThreadPoolExecutor extends ThreadPoolExecutor {
     }
 
     /**
-     * Creates a new thread pool executor with the given parameters.
+     * Creates a new cancellable thread pool executor with full configuration options.
      *
-     * @param corePoolSize The number of threads to keep in the pool, even if idle
-     * @param maximumPoolSize The maximum number of threads to allow in the pool
-     * @param keepAliveTime How long idle threads should be kept alive
-     * @param unit The time unit for the keepAliveTime
-     * @param workQueue The queue to use for holding tasks before they are executed
-     * @param threadFactory The factory to use when creating new threads
-     * @param handler The handler to use when execution is blocked
+     * @param corePoolSize the number of threads to keep in the pool
+     * @param maximumPoolSize the maximum number of threads to allow in the pool
+     * @param keepAliveTime when the number of threads is greater than the core, this is the maximum
+     *     time that excess idle threads will wait for new tasks before terminating
+     * @param unit the time unit for the keepAliveTime argument
+     * @param workQueue the queue to use for holding tasks before they are executed
+     * @param threadFactory the factory to use when the executor creates a new thread
+     * @param handler the handler to use when execution is blocked because the thread bounds and
+     *     queue capacities are reached
      */
     public CanceallableThreadPoolExecutor(
             int corePoolSize,
@@ -102,26 +137,11 @@ public class CanceallableThreadPoolExecutor extends ThreadPoolExecutor {
                 handler);
     }
 
-    /**
-     * Creates a new cancellable future for the given callable.
-     *
-     * @param <T> The type of the result
-     * @param callable The callable to be executed
-     * @return A new cancellable future for the callable
-     */
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
         return new CancellableFuture<>(callable);
     }
 
-    /**
-     * Creates a new cancellable future for the given runnable and result value.
-     *
-     * @param <T> The type of the result
-     * @param runnable The runnable to be executed
-     * @param value The result value to return when the runnable completes
-     * @return A new cancellable future for the runnable
-     */
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
         return new CancellableFuture<>(runnable, value);

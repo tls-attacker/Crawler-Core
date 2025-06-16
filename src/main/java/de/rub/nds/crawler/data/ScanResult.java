@@ -15,45 +15,70 @@ import java.util.UUID;
 import org.bson.Document;
 
 /**
- * Represents the result of a completed scan. Contains information about the scan target, status,
- * and the actual scan results. This class is used to store scan results in the database and for
- * notifications.
+ * Immutable container for TLS scan results and associated metadata.
+ *
+ * <p>The ScanResult class encapsulates the complete outcome of a TLS scan operation, including the
+ * scan target, execution status, result data, and traceability information. It serves as the
+ * primary data transfer object between the scanning engine, persistence layer, and monitoring
+ * systems in the distributed TLS-Crawler architecture.
+ *
+ * <p>Key characteristics:
+ *
+ * <ul>
+ *   <li><strong>Immutability</strong> - All fields are final except the database-managed ID
+ *   <li><strong>Traceability</strong> - Links results back to their originating bulk scan
+ *   <li><strong>Status Tracking</strong> - Maintains job execution status for monitoring
+ *   <li><strong>Error Handling</strong> - Supports both successful results and exception storage
+ *   <li><strong>Serialization</strong> - Compatible with JSON/BSON for database persistence
+ * </ul>
+ *
+ * <p><strong>Construction Patterns:</strong>
+ *
+ * <ul>
+ *   <li><strong>Normal Constructor</strong> - Creates result from completed ScanJobDescription
+ *   <li><strong>Exception Factory</strong> - Creates error result via fromException() method
+ *   <li><strong>Validation</strong> - Enforces valid status transitions and error states
+ * </ul>
+ *
+ * <p><strong>Data Components:</strong>
+ *
+ * <ul>
+ *   <li><strong>Unique ID</strong> - UUID for database primary key and result identification
+ *   <li><strong>Bulk Scan ID</strong> - Reference to the parent bulk scanning campaign
+ *   <li><strong>Scan Target</strong> - The host/port combination that was scanned
+ *   <li><strong>Job Status</strong> - Final execution status (SUCCESS, ERROR, TIMEOUT, etc.)
+ *   <li><strong>Result Document</strong> - BSON document containing scan findings or error details
+ * </ul>
+ *
+ * <p><strong>Status Validation:</strong> The class enforces that results are only created from scan
+ * jobs that have completed execution (not in TO_BE_EXECUTED state) and that error results have
+ * appropriate error status codes.
+ *
+ * <p><strong>Database Integration:</strong> Uses Jackson annotations for JSON serialization and
+ * MongoDB integration, with the _id field mapping to the database primary key.
+ *
+ * @see ScanJobDescription
+ * @see ScanTarget
+ * @see JobStatus
+ * @see BulkScanInfo
  */
 public class ScanResult implements Serializable {
 
-    /** Unique identifier for this scan result. */
+    /** Unique identifier for this scan result record. */
     private String id;
 
-    /** Reference to the bulk scan this result belongs to. */
+    /** Identifier of the bulk scan operation that produced this result. */
     private final String bulkScan;
 
-    /** The target that was scanned. */
+    /** Target specification that was scanned to produce this result. */
     private final ScanTarget scanTarget;
 
-    /** The status of the scan job. */
+    /** Final execution status indicating success, failure, or error condition. */
     private final JobStatus jobStatus;
 
-    /** The actual scan results as a MongoDB document. */
+    /** MongoDB document containing the actual scan results or error information. */
     private final Document result;
 
-    @SuppressWarnings("unused")
-    public ScanResult() {
-        // Default constructor for serialization
-        this.id = null;
-        this.bulkScan = null;
-        this.scanTarget = null;
-        this.jobStatus = null;
-        this.result = null;
-    }
-
-    /**
-     * Private constructor for creating a scan result.
-     *
-     * @param bulkScan The bulk scan ID this result belongs to
-     * @param scanTarget The target that was scanned
-     * @param jobStatus The status of the scan job
-     * @param result The actual scan results
-     */
     private ScanResult(
             String bulkScan, ScanTarget scanTarget, JobStatus jobStatus, Document result) {
         this.id = UUID.randomUUID().toString();
@@ -64,11 +89,23 @@ public class ScanResult implements Serializable {
     }
 
     /**
-     * Creates a scan result from a scan job description and result document.
+     * Creates a new scan result from a completed scan job description and result document.
      *
-     * @param scanJobDescription The completed scan job description
-     * @param result The scan results as a document
-     * @throws IllegalArgumentException If the job status is TO_BE_EXECUTED
+     * <p>This is the primary constructor for creating scan results from successful or failed scan
+     * operations. It extracts metadata from the scan job description and associates it with the
+     * result document from the scanning process.
+     *
+     * <p><strong>Status Validation:</strong> The constructor validates that the scan job has
+     * completed execution by checking that its status is not TO_BE_EXECUTED. This ensures that only
+     * completed scan jobs are converted to results.
+     *
+     * <p><strong>Metadata Extraction:</strong> The constructor extracts key information from the
+     * scan job description including the bulk scan ID, scan target, and execution status to
+     * populate the result object.
+     *
+     * @param scanJobDescription the completed scan job containing metadata and final status
+     * @param result the BSON document containing scan results, may be null for empty results
+     * @throws IllegalArgumentException if the scan job is still in TO_BE_EXECUTED state
      */
     public ScanResult(ScanJobDescription scanJobDescription, Document result) {
         this(
@@ -83,27 +120,110 @@ public class ScanResult implements Serializable {
     }
 
     /**
-     * Creates a scan result from a scan job description and an exception. Used when a scan fails
-     * with an exception.
+     * Factory method for creating scan results from exceptions during scan execution.
      *
-     * @param scanJobDescription The scan job description that encountered an error
-     * @param e The exception that occurred
-     * @return A new ScanResult containing the exception information
-     * @throws IllegalArgumentException If the job status is not an error state
+     * <p>This method provides a standardized way to create scan results when scan operations fail
+     * with exceptions. It creates a result document containing the exception details and ensures
+     * the scan job description is in an appropriate error state.
+     *
+     * <p><strong>Error State Validation:</strong> The method validates that the scan job
+     * description has an error status (ERROR, CANCELLED, INTERNAL_ERROR, etc.) before creating the
+     * error result, ensuring consistency between status and result content.
+     *
+     * <p><strong>Exception Handling:</strong> The exception information is stored in a structured
+     * format with separate fields for type, message, cause, and timestamp, enabling detailed
+     * analysis and debugging of scan failures while avoiding serialization issues with raw
+     * exception objects.
+     *
+     * @param scanJobDescription the scan job in an error state
+     * @param e the exception that caused the scan to fail
+     * @return a new ScanResult containing the exception details
+     * @throws IllegalArgumentException if the scan job is not in an error state
      */
     public static ScanResult fromException(ScanJobDescription scanJobDescription, Exception e) {
         if (!scanJobDescription.getStatus().isError()) {
             throw new IllegalArgumentException("ScanJobDescription must be in an error state");
         }
         Document errorDocument = new Document();
-        errorDocument.put("exception", e);
+
+        // Store structured exception information for better analysis and debugging
+        errorDocument.put("exceptionType", e.getClass().getSimpleName());
+        errorDocument.put("exceptionMessage", e.getMessage());
+        errorDocument.put("exceptionCause", e.getCause() != null ? e.getCause().toString() : null);
+        errorDocument.put("timestamp", System.currentTimeMillis());
+
+        // Include target information if available for context
+        ScanTarget target = scanJobDescription.getScanTarget();
+        if (target != null) {
+            errorDocument.put("targetHostname", target.getHostname());
+            errorDocument.put("targetIp", target.getIp());
+            errorDocument.put("targetPort", target.getPort());
+
+            // Include additional error context from the target if available
+            if (target.getErrorMessage() != null) {
+                errorDocument.put("targetErrorMessage", target.getErrorMessage());
+            }
+            if (target.getErrorType() != null) {
+                errorDocument.put("targetErrorType", target.getErrorType());
+            }
+        }
+
+        return new ScanResult(scanJobDescription, errorDocument);
+    }
+
+    /**
+     * Creates a scan result from an exception with additional error context.
+     *
+     * <p>This overloaded method extends the basic exception handling by allowing additional
+     * contextual information to be included in the error document. This is particularly useful for
+     * providing specific failure reasons, debugging hints, or operational details.
+     *
+     * @param scanJobDescription the scan job in an error state
+     * @param e the exception that caused the scan to fail
+     * @param errorContext additional error context as key-value pairs
+     * @return a new ScanResult containing the exception details and additional context
+     * @throws IllegalArgumentException if the scan job is not in an error state
+     */
+    public static ScanResult fromException(
+            ScanJobDescription scanJobDescription, Exception e, String errorContext) {
+        if (!scanJobDescription.getStatus().isError()) {
+            throw new IllegalArgumentException("ScanJobDescription must be in an error state");
+        }
+        Document errorDocument = new Document();
+
+        // Store structured exception information
+        errorDocument.put("exceptionType", e.getClass().getSimpleName());
+        errorDocument.put("exceptionMessage", e.getMessage());
+        errorDocument.put("exceptionCause", e.getCause() != null ? e.getCause().toString() : null);
+        errorDocument.put("timestamp", System.currentTimeMillis());
+        errorDocument.put("errorContext", errorContext);
+
+        // Include target information if available for context
+        ScanTarget target = scanJobDescription.getScanTarget();
+        if (target != null) {
+            errorDocument.put("targetHostname", target.getHostname());
+            errorDocument.put("targetIp", target.getIp());
+            errorDocument.put("targetPort", target.getPort());
+
+            // Include additional error context from the target if available
+            if (target.getErrorMessage() != null) {
+                errorDocument.put("targetErrorMessage", target.getErrorMessage());
+            }
+            if (target.getErrorType() != null) {
+                errorDocument.put("targetErrorType", target.getErrorType());
+            }
+        }
+
         return new ScanResult(scanJobDescription, errorDocument);
     }
 
     /**
      * Gets the unique identifier for this scan result.
      *
-     * @return The scan result ID
+     * <p>The ID is a UUID string that serves as the primary key for database storage and unique
+     * identification of scan results across the system.
+     *
+     * @return the unique ID string for this scan result
      */
     @JsonProperty("_id")
     public String getId() {
@@ -111,9 +231,12 @@ public class ScanResult implements Serializable {
     }
 
     /**
-     * Sets the unique identifier for this scan result. Used by MongoDB for document IDs.
+     * Sets the unique identifier for this scan result.
      *
-     * @param id The scan result ID
+     * <p>This method is primarily used by serialization frameworks and database drivers to set the
+     * ID when loading results from persistent storage.
+     *
+     * @param id the unique ID string to assign to this scan result
      */
     @JsonProperty("_id")
     public void setId(String id) {
@@ -121,36 +244,47 @@ public class ScanResult implements Serializable {
     }
 
     /**
-     * Gets the bulk scan ID this result belongs to.
+     * Gets the bulk scan ID that this result belongs to.
      *
-     * @return The bulk scan ID
+     * <p>This provides traceability back to the bulk scanning campaign that generated this
+     * individual scan result.
+     *
+     * @return the bulk scan ID string
      */
     public String getBulkScan() {
         return this.bulkScan;
     }
 
     /**
-     * Gets the target that was scanned.
+     * Gets the scan target (host and port) that was scanned.
      *
-     * @return The scan target
+     * @return the scan target containing hostname and port information
      */
     public ScanTarget getScanTarget() {
         return this.scanTarget;
     }
 
     /**
-     * Gets the actual scan results.
+     * Gets the result document containing scan findings or error details.
      *
-     * @return The scan results as a MongoDB document
+     * <p>For successful scans, this contains the TLS scanner output in BSON format. For failed
+     * scans created via fromException(), this contains exception details. May be null for scans
+     * that completed but produced no results.
+     *
+     * @return the BSON document containing scan results or error information, may be null
      */
     public Document getResult() {
         return this.result;
     }
 
     /**
-     * Gets the status of the scan job.
+     * Gets the final execution status of the scan job.
      *
-     * @return The job status
+     * <p>This status indicates how the scan completed, including success, various error conditions,
+     * timeouts, and cancellations.
+     *
+     * @return the final job status for this scan result
+     * @see JobStatus
      */
     public JobStatus getResultStatus() {
         return jobStatus;

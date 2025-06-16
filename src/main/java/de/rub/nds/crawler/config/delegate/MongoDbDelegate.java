@@ -11,10 +11,54 @@ package de.rub.nds.crawler.config.delegate;
 import com.beust.jcommander.Parameter;
 
 /**
- * Configuration delegate that holds MongoDB connection settings. Used by both controller and worker
- * configurations to avoid code duplication.
+ * Configuration delegate for MongoDB database connection parameters in TLS-Crawler.
+ *
+ * <p>The MongoDbDelegate encapsulates all MongoDB-specific configuration parameters used for
+ * database connectivity in the TLS-Crawler distributed architecture. It uses JCommander annotations
+ * to provide command-line parameter parsing and supports both password-based and file-based
+ * authentication methods.
+ *
+ * <p>Key features:
+ *
+ * <ul>
+ *   <li><strong>Connection Configuration</strong> - Host, port, and database specification
+ *   <li><strong>Authentication Support</strong> - Username/password and file-based credentials
+ *   <li><strong>Security Options</strong> - Password file support for secure credential storage
+ *   <li><strong>Delegate Pattern</strong> - Reusable across controller and worker configurations
+ * </ul>
+ *
+ * <p><strong>Authentication Methods:</strong>
+ *
+ * <ul>
+ *   <li><strong>Direct Password</strong> - mongoDbPass parameter for direct password specification
+ *   <li><strong>Password File</strong> - mongoDbPassFile parameter for file-based password storage
+ *   <li><strong>Auth Source</strong> - mongoDbAuthSource specifies the authentication database
+ * </ul>
+ *
+ * <p><strong>Usage Pattern:</strong> This delegate is embedded in both ControllerCommandConfig and
+ * WorkerCommandConfig using JCommander's @ParametersDelegate annotation, allowing the same MongoDB
+ * configuration to be shared across all application components.
+ *
+ * <p><strong>Security Considerations:</strong>
+ *
+ * <ul>
+ *   <li>Password file option prevents credentials from appearing in command-line history
+ *   <li>Authentication source allows for centralized user management
+ *   <li>Connection parameters support both local and remote MongoDB deployments
+ * </ul>
+ *
+ * <p><strong>Default Behavior:</strong> All parameters are optional and default to null, allowing
+ * for environment-specific configuration or default MongoDB connection settings.
+ *
+ * <p>Used by ControllerCommandConfig and WorkerCommandConfig for database configuration. Creates
+ * IPersistenceProvider instances, typically MongoPersistenceProvider implementations.
  */
 public class MongoDbDelegate {
+
+    /** Creates a new MongoDB configuration delegate with default settings. */
+    public MongoDbDelegate() {
+        // Default constructor for JCommander parameter injection
+    }
 
     @Parameter(
             names = "-mongoDbHost",
@@ -49,7 +93,7 @@ public class MongoDbDelegate {
     /**
      * Gets the MongoDB host address.
      *
-     * @return The MongoDB host address
+     * @return the MongoDB hostname or IP address, or null if not configured
      */
     public String getMongoDbHost() {
         return mongoDbHost;
@@ -58,43 +102,52 @@ public class MongoDbDelegate {
     /**
      * Gets the MongoDB port number.
      *
-     * @return The MongoDB port number
+     * @return the MongoDB port number, or 0 if not configured (uses MongoDB default)
      */
     public int getMongoDbPort() {
         return mongoDbPort;
     }
 
     /**
-     * Gets the MongoDB username for authentication.
+     * Gets the MongoDB authentication username.
      *
-     * @return The MongoDB username
+     * @return the username for MongoDB authentication, or null if not configured
      */
     public String getMongoDbUser() {
         return mongoDbUser;
     }
 
     /**
-     * Gets the MongoDB password for authentication.
+     * Gets the MongoDB authentication password.
      *
-     * @return The MongoDB password
+     * <p><strong>Security Note:</strong> Consider using mongoDbPassFile for production deployments
+     * to avoid exposing passwords in command-line arguments.
+     *
+     * @return the password for MongoDB authentication, or null if not configured
      */
     public String getMongoDbPass() {
         return mongoDbPass;
     }
 
     /**
-     * Gets the file path containing the MongoDB password.
+     * Gets the path to the MongoDB password file.
      *
-     * @return The MongoDB password file path
+     * <p>This provides a more secure alternative to specifying passwords directly in command-line
+     * arguments by reading the password from a file.
+     *
+     * @return the path to the password file, or null if not configured
      */
     public String getMongoDbPassFile() {
         return mongoDbPassFile;
     }
 
     /**
-     * Gets the MongoDB authentication source database name.
+     * Gets the MongoDB authentication source database.
      *
-     * @return The authentication source database name
+     * <p>This specifies which database contains the user credentials for authentication. Commonly
+     * set to "admin" for centralized user management.
+     *
+     * @return the authentication source database name, or null if not configured
      */
     public String getMongoDbAuthSource() {
         return mongoDbAuthSource;
@@ -103,7 +156,7 @@ public class MongoDbDelegate {
     /**
      * Sets the MongoDB host address.
      *
-     * @param mongoDbHost The MongoDB host address
+     * @param mongoDbHost the MongoDB hostname or IP address
      */
     public void setMongoDbHost(String mongoDbHost) {
         this.mongoDbHost = mongoDbHost;
@@ -112,43 +165,43 @@ public class MongoDbDelegate {
     /**
      * Sets the MongoDB port number.
      *
-     * @param mongoDbPort The MongoDB port number
+     * @param mongoDbPort the MongoDB port number (typically 27017)
      */
     public void setMongoDbPort(int mongoDbPort) {
         this.mongoDbPort = mongoDbPort;
     }
 
     /**
-     * Sets the MongoDB username for authentication.
+     * Sets the MongoDB authentication username.
      *
-     * @param mongoDbUser The MongoDB username
+     * @param mongoDbUser the username for MongoDB authentication
      */
     public void setMongoDbUser(String mongoDbUser) {
         this.mongoDbUser = mongoDbUser;
     }
 
     /**
-     * Sets the MongoDB password for authentication.
+     * Sets the MongoDB authentication password.
      *
-     * @param mongoDbPass The MongoDB password
+     * @param mongoDbPass the password for MongoDB authentication
      */
     public void setMongoDbPass(String mongoDbPass) {
         this.mongoDbPass = mongoDbPass;
     }
 
     /**
-     * Sets the file path containing the MongoDB password.
+     * Sets the path to the MongoDB password file.
      *
-     * @param mongoDbPassFile The MongoDB password file path
+     * @param mongoDbPassFile the path to the file containing the MongoDB password
      */
     public void setMongoDbPassFile(String mongoDbPassFile) {
         this.mongoDbPassFile = mongoDbPassFile;
     }
 
     /**
-     * Sets the MongoDB authentication source database name.
+     * Sets the MongoDB authentication source database.
      *
-     * @param mongoDbAuthSource The authentication source database name
+     * @param mongoDbAuthSource the database name containing user credentials
      */
     public void setMongoDbAuthSource(String mongoDbAuthSource) {
         this.mongoDbAuthSource = mongoDbAuthSource;

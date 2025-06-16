@@ -13,29 +13,80 @@ import de.rub.nds.crawler.denylist.IDenylistProvider;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Represents a target to be scanned by the crawler. Contains information about the hostname, IP
- * address, port, and ranking information. This class is used to track targets throughout the
- * scanning process.
+ * Represents a target for TLS scanning operations.
+ *
+ * <p>A scan target encapsulates the network location (hostname/IP address and port) and optional
+ * metadata (such as Tranco ranking) for a host to be scanned. This class provides parsing
+ * functionality to extract target information from various string formats commonly found in target
+ * lists and rankings.
+ *
+ * <p>Supported target string formats:
+ *
+ * <ul>
+ *   <li><code>example.com</code> - hostname only
+ *   <li><code>192.168.1.1</code> - IPv4 address only
+ *   <li><code>2001:db8::1</code> - IPv6 address only
+ *   <li><code>example.com:8080</code> - hostname with port
+ *   <li><code>192.168.1.1:443</code> - IPv4 address with port
+ *   <li><code>[2001:db8::1]:8080</code> - IPv6 address with port (bracket notation)
+ *   <li><code>1,example.com</code> - Tranco rank with hostname
+ *   <li><code>//example.com</code> - hostname with URL prefix
+ * </ul>
+ *
+ * <p>The class performs hostname resolution and denylist checking during target creation. IPv6
+ * addresses are fully supported with proper bracket notation for port specification.
+ *
+ * @see JobStatus
+ * @see IDenylistProvider
  */
 public class ScanTarget implements Serializable {
     private static final Logger LOGGER = LogManager.getLogger();
 
     /**
-     * Initializes a ScanTarget object from a string that potentially contains a hostname, an ip, a
-     * port, the tranco rank.
+     * Creates a ScanTarget from a target string with comprehensive parsing and validation.
      *
-     * @param targetString from which to create the ScanTarget object
-     * @param defaultPort that used if no port is present in targetString
-     * @param denylistProvider which provides info if a host is denylisted
-     * @return ScanTarget object
+     * <p>This method parses various target string formats, performs hostname resolution, and checks
+     * against denylists. The parsing handles multiple formats including Tranco-ranked entries,
+     * URLs, and port specifications.
+     *
+     * <p>Parsing logic:
+     *
+     * <ol>
+     *   <li>Extract Tranco rank if present (format: "rank,hostname")
+     *   <li>Remove URL prefixes ("//hostname")
+     *   <li>Remove quotes around hostnames
+     *   <li>Extract port number if specified ("hostname:port")
+     *   <li>Determine if target is IP address or hostname
+     *   <li>Resolve hostname to IP address if needed
+     *   <li>Check against denylist if provider is available
+     * </ol>
+     *
+     * <p><strong>Multi-homed host support:</strong> For hostnames that resolve to multiple IP
+     * addresses, this method will create separate ScanTarget instances for each resolved IP
+     * address. This enables comprehensive scanning of domains with both IPv4 and IPv6 addresses or
+     * multiple A/AAAA records.
+     *
+     * @param targetString the string to parse (supports various formats as documented in class
+     *     description)
+     * @param defaultPort the port to use when none is specified in the target string
+     * @param denylistProvider optional provider for checking if targets are denylisted (may be
+     *     null)
+     * @return a list of pairs, each containing a ScanTarget and its status (TO_BE_EXECUTED,
+     *     UNRESOLVABLE, or DENYLISTED). For hostnames resolving to multiple IPs, multiple pairs are
+     *     returned. For IP addresses or single-resolution hostnames, a single-element list is
+     *     returned.
+     * @throws NumberFormatException if port or rank parsing fails
+     * @see JobStatus
      */
-    public static Pair<ScanTarget, JobStatus> fromTargetString(
+    public static List<Pair<ScanTarget, JobStatus>> fromTargetString(
             String targetString, int defaultPort, IDenylistProvider denylistProvider) {
         ScanTarget target = new ScanTarget();
 
@@ -55,67 +106,142 @@ public class ScanTarget implements Serializable {
         }
         if (targetString.startsWith("\"") && targetString.endsWith("\"")) {
             targetString = targetString.replace("\"", "");
-            System.out.println(targetString);
         }
 
-        // check if targetString contains port (e.g. "www.example.com:8080")
-        // FIXME I guess this breaks any IPv6 parsing
-        if (targetString.contains(":")) {
-            int port = Integer.parseInt(targetString.split(":")[1]);
-            targetString = targetString.split(":")[0];
-            if (port > 1 && port < 65535) {
-                target.setPort(port);
+        // Parse port from target string, handling IPv6 addresses properly
+        if (targetString.startsWith("[") && targetString.contains("]:")) {
+            // IPv6 address with port: [2001:db8::1]:8080
+            int bracketEnd = targetString.indexOf("]:") + 1;
+            String portPart = targetString.substring(bracketEnd + 1);
+            targetString = targetString.substring(1, bracketEnd - 1); // Remove brackets
+            try {
+                int port = Integer.parseInt(portPart);
+                if (port > 0 && port <= 65535) {
+                    target.setPort(port);
+                } else {
+                    target.setPort(defaultPort);
+                }
+            } catch (NumberFormatException e) {
+                target.setPort(defaultPort);
+            }
+        } else if (targetString.contains(":")
+                && !InetAddressValidator.getInstance().isValidInet6Address(targetString)) {
+            // IPv4 address or hostname with port: www.example.com:8080 or 192.168.1.1:443
+            String[] parts = targetString.split(":", 2);
+            targetString = parts[0];
+            try {
+                int port = Integer.parseInt(parts[1]);
+                if (port > 0 && port <= 65535) {
+                    target.setPort(port);
+                } else {
+                    target.setPort(defaultPort);
+                }
+            } catch (NumberFormatException e) {
+                target.setPort(defaultPort);
             }
         } else {
+            // No port specified or IPv6 address without port
             target.setPort(defaultPort);
         }
 
+        List<Pair<ScanTarget, JobStatus>> results = new ArrayList<>();
+
         if (InetAddressValidator.getInstance().isValid(targetString)) {
+            // Direct IP address - create single target
             target.setIp(targetString);
+
+            if (denylistProvider != null && denylistProvider.isDenylisted(target)) {
+                LOGGER.error("IP {} is denylisted and will not be scanned.", targetString);
+
+                // Store denylist rejection information
+                target.setErrorMessage("Target blocked by denylist: IP address " + targetString);
+                target.setErrorType("DenylistRejection");
+
+                results.add(Pair.of(target, JobStatus.DENYLISTED));
+            } else {
+                results.add(Pair.of(target, JobStatus.TO_BE_EXECUTED));
+            }
         } else {
+            // Hostname - resolve to potentially multiple IPs
             target.setHostname(targetString);
             try {
-                // TODO this only allows one IP per hostname; it may be interesting to scan all IPs
-                // for a domain, or at least one v4 and one v6
-                target.setIp(InetAddress.getByName(targetString).getHostAddress());
+                InetAddress[] addresses = InetAddress.getAllByName(targetString);
+                LOGGER.debug(
+                        "Resolved hostname {} to {} IP address(es)",
+                        targetString,
+                        addresses.length);
+
+                for (InetAddress address : addresses) {
+                    ScanTarget ipTarget = new ScanTarget();
+                    ipTarget.setHostname(targetString);
+                    ipTarget.setIp(address.getHostAddress());
+                    ipTarget.setPort(target.getPort());
+                    ipTarget.setTrancoRank(target.getTrancoRank());
+
+                    if (denylistProvider != null && denylistProvider.isDenylisted(ipTarget)) {
+                        LOGGER.error(
+                                "IP {} for hostname {} is denylisted and will not be scanned.",
+                                address.getHostAddress(),
+                                targetString);
+
+                        // Store detailed denylist rejection information
+                        ipTarget.setErrorMessage(
+                                "Target blocked by denylist: IP "
+                                        + address.getHostAddress()
+                                        + " for hostname "
+                                        + targetString);
+                        ipTarget.setErrorType("DenylistRejection");
+
+                        results.add(Pair.of(ipTarget, JobStatus.DENYLISTED));
+                    } else {
+                        results.add(Pair.of(ipTarget, JobStatus.TO_BE_EXECUTED));
+                    }
+                }
             } catch (UnknownHostException e) {
                 LOGGER.error(
                         "Host {} is unknown or can not be reached with error {}.", targetString, e);
-                // TODO in the current design we discard the exception info; maybe we want to keep
-                // this in the future
-                return Pair.of(target, JobStatus.UNRESOLVABLE);
+
+                // Store detailed error information for debugging and analysis
+                target.setErrorMessage("DNS resolution failed: " + e.getMessage());
+                target.setErrorType("UnknownHostException");
+
+                results.add(Pair.of(target, JobStatus.UNRESOLVABLE));
             }
         }
-        if (denylistProvider != null && denylistProvider.isDenylisted(target)) {
-            LOGGER.error("Host {} is denylisted and will not be scanned.", targetString);
-            // TODO similar to the unknownHostException, we do not keep any information as to why
-            // the target is blocklisted it may be nice to distinguish cases where the domain is
-            // blocked or where the IP is blocked
-            return Pair.of(target, JobStatus.DENYLISTED);
-        }
-        return Pair.of(target, JobStatus.TO_BE_EXECUTED);
+
+        return results;
     }
 
-    /** The IP address of the target. */
+    /** The resolved IP address of the target host. */
     private String ip;
 
-    /** The hostname of the target. */
+    /** The hostname of the target (may be null if target was specified as IP address). */
     private String hostname;
 
-    /** The port number to connect to. */
+    /** The port number for the scan target. */
     private int port;
 
-    /** The Tranco rank of the target (if applicable). */
+    /** The Tranco ranking of the target (0 if not available or not specified). */
     private int trancoRank;
 
-    /** Creates a new empty scan target. Fields should be set using the setter methods. */
+    /** Error message for debugging when target processing fails (may be null). */
+    private String errorMessage;
+
+    /** Error type classification for debugging (may be null). */
+    private String errorType;
+
+    /**
+     * Creates an empty ScanTarget.
+     *
+     * <p>All fields will be initialized to default values. This constructor is primarily used for
+     * deserialization and testing purposes.
+     */
     public ScanTarget() {}
 
     /**
-     * Returns a string representation of this scan target. Uses the hostname if available,
-     * otherwise uses the IP address.
+     * Returns a string representation of the scan target.
      *
-     * @return The string representation
+     * @return the hostname if available, otherwise the IP address
      */
     @Override
     public String toString() {
@@ -123,74 +249,120 @@ public class ScanTarget implements Serializable {
     }
 
     /**
-     * Gets the IP address of this target.
+     * Gets the resolved IP address of the target.
      *
-     * @return The IP address
+     * @return the IP address as a string
      */
     public String getIp() {
         return this.ip;
     }
 
     /**
-     * Gets the hostname of this target.
+     * Gets the hostname of the target.
      *
-     * @return The hostname
+     * @return the hostname, or null if the target was specified as an IP address
      */
     public String getHostname() {
         return this.hostname;
     }
 
     /**
-     * Gets the port number to connect to.
+     * Gets the port number for the scan target.
      *
-     * @return The port number
+     * @return the port number (1-65534)
      */
     public int getPort() {
         return this.port;
     }
 
     /**
-     * Gets the Tranco rank of this target (if applicable).
+     * Gets the Tranco ranking of the target.
      *
-     * @return The Tranco rank
+     * <p>The Tranco ranking is a research-oriented top sites ranking that provides a more stable
+     * and transparent alternative to other web ranking services.
+     *
+     * @return the Tranco rank, or 0 if not available
+     * @see <a href="https://tranco-list.eu/">Tranco: A Research-Oriented Top Sites Ranking</a>
      */
     public int getTrancoRank() {
         return this.trancoRank;
     }
 
     /**
-     * Sets the IP address of this target.
+     * Sets the IP address of the target.
      *
-     * @param ip The IP address
+     * @param ip the IP address as a string (IPv4 or IPv6 format)
      */
     public void setIp(String ip) {
         this.ip = ip;
     }
 
     /**
-     * Sets the hostname of this target.
+     * Sets the hostname of the target.
      *
-     * @param hostname The hostname
+     * @param hostname the hostname (may be null if target is IP-only)
      */
     public void setHostname(String hostname) {
         this.hostname = hostname;
     }
 
     /**
-     * Sets the port number to connect to.
+     * Sets the port number for the scan target.
      *
-     * @param port The port number
+     * @param port the port number (should be between 1 and 65534)
      */
     public void setPort(int port) {
         this.port = port;
     }
 
     /**
-     * Sets the Tranco rank of this target.
+     * Sets the Tranco ranking of the target.
      *
-     * @param trancoRank The Tranco rank
+     * @param trancoRank the Tranco rank (use 0 if not available)
      */
     public void setTrancoRank(int trancoRank) {
         this.trancoRank = trancoRank;
+    }
+
+    /**
+     * Gets the error message associated with this target.
+     *
+     * <p>The error message provides detailed information about why target processing failed,
+     * including specific exception messages, DNS resolution failures, or parsing errors.
+     *
+     * @return the error message, or null if no error occurred
+     */
+    public String getErrorMessage() {
+        return this.errorMessage;
+    }
+
+    /**
+     * Sets the error message for this target.
+     *
+     * @param errorMessage the error message describing the failure
+     */
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
+    /**
+     * Gets the error type classification for this target.
+     *
+     * <p>The error type provides a high-level classification of the failure type, such as
+     * "UnknownHostException", "NumberFormatException", or "DenylistRejection".
+     *
+     * @return the error type, or null if no error occurred
+     */
+    public String getErrorType() {
+        return this.errorType;
+    }
+
+    /**
+     * Sets the error type classification for this target.
+     *
+     * @param errorType the error type classification
+     */
+    public void setErrorType(String errorType) {
+        this.errorType = errorType;
     }
 }
