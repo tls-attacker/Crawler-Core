@@ -26,10 +26,119 @@ import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
+/**
+ * Quartz job implementation responsible for initializing and publishing bulk scan operations.
+ *
+ * <p>The PublishBulkScanJob serves as the main orchestration component that transforms a bulk scan
+ * configuration into individual scan jobs distributed to worker instances. It handles the complete
+ * job creation workflow including target list processing, filtering, validation, and submission to
+ * the message queue infrastructure.
+ *
+ * <p>Key responsibilities:
+ *
+ * <ul>
+ *   <li><strong>Bulk Scan Initialization</strong> - Creates and persists BulkScan metadata
+ *   <li><strong>Target Processing</strong> - Processes target lists with filtering and validation
+ *   <li><strong>Job Creation</strong> - Converts targets into individual ScanJobDescription objects
+ *   <li><strong>Quality Control</strong> - Filters denylisted and unresolvable targets
+ *   <li><strong>Progress Monitoring</strong> - Initializes monitoring for tracked scans
+ *   <li><strong>Statistics Collection</strong> - Tracks submission statistics and error counts
+ * </ul>
+ *
+ * <p><strong>Execution Workflow:</strong>
+ *
+ * <ol>
+ *   <li><strong>Configuration Extraction</strong> - Retrieves all required providers from
+ *       JobDataMap
+ *   <li><strong>BulkScan Creation</strong> - Creates and persists the parent bulk scan object
+ *   <li><strong>Target List Retrieval</strong> - Fetches targets from the configured provider
+ *   <li><strong>Monitoring Setup</strong> - Initializes progress tracking if enabled
+ *   <li><strong>Parallel Processing</strong> - Processes targets concurrently using parallel
+ *       streams
+ *   <li><strong>Job Submission</strong> - Submits valid jobs to orchestration provider
+ *   <li><strong>Statistics Update</strong> - Updates bulk scan with final submission counts
+ * </ol>
+ *
+ * <p><strong>Target Filtering Pipeline:</strong>
+ *
+ * <ul>
+ *   <li><strong>Target Parsing</strong> - Converts string targets to ScanTarget objects
+ *   <li><strong>DNS Resolution</strong> - Validates that hostnames can be resolved
+ *   <li><strong>Denylist Checking</strong> - Filters out prohibited targets
+ *   <li><strong>Error Handling</strong> - Categorizes and persists processing errors
+ * </ul>
+ *
+ * <p><strong>Error Handling:</strong> The job implements comprehensive error handling that
+ * categorizes failures into specific JobStatus types (UNRESOLVABLE, DENYLISTED, RESOLUTION_ERROR)
+ * and persists error results for analysis while continuing processing of valid targets.
+ *
+ * <p><strong>Parallel Processing:</strong> Uses Java parallel streams for efficient processing of
+ * large target lists, with the JobSubmitter functional interface handling individual target
+ * processing and submission.
+ *
+ * <p><strong>Monitoring Integration:</strong> For monitored scans, sets up ProgressMonitor tracking
+ * and handles the special case where no jobs are submitted (immediate completion).
+ *
+ * @see Job
+ * @see ControllerCommandConfig
+ * @see BulkScan
+ * @see ScanJobDescription
+ * @see ProgressMonitor
+ * @see IOrchestrationProvider
+ * @see ITargetListProvider
+ */
 public class PublishBulkScanJob implements Job {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /**
+     * Creates a new bulk scan job publisher instance.
+     *
+     * <p>Default constructor required by the Quartz scheduler framework. The job execution context
+     * provides all necessary configuration and dependencies at execution time.
+     */
+    public PublishBulkScanJob() {
+        // Default constructor for Quartz scheduler instantiation
+    }
+
+    /**
+     * Executes the bulk scan job creation and publication process.
+     *
+     * <p>This method implements the Quartz Job interface and performs the complete workflow for
+     * transforming a bulk scan configuration into individual scan jobs distributed to workers. It
+     * handles all aspects of job creation including filtering, validation, and submission while
+     * providing comprehensive error handling and statistics collection.
+     *
+     * <p><strong>Required JobDataMap Entries:</strong>
+     *
+     * <ul>
+     *   <li><strong>config</strong> - ControllerCommandConfig with scan parameters
+     *   <li><strong>orchestrationProvider</strong> - IOrchestrationProvider for job submission
+     *   <li><strong>persistenceProvider</strong> - IPersistenceProvider for data storage
+     *   <li><strong>targetListProvider</strong> - ITargetListProvider for target acquisition
+     *   <li><strong>denylistProvider</strong> - IDenylistProvider for target filtering
+     *   <li><strong>progressMonitor</strong> - ProgressMonitor for tracking (if enabled)
+     * </ul>
+     *
+     * <p><strong>Execution Steps:</strong>
+     *
+     * <ol>
+     *   <li>Extract configuration and providers from JobDataMap
+     *   <li>Create and persist BulkScan object with metadata
+     *   <li>Retrieve target list from configured provider
+     *   <li>Initialize progress monitoring if enabled
+     *   <li>Process targets in parallel using JobSubmitter
+     *   <li>Collect statistics and update BulkScan
+     *   <li>Handle edge case of zero submitted jobs
+     * </ol>
+     *
+     * <p><strong>Error Handling:</strong> Any exception during execution is caught, logged, and
+     * converted to a JobExecutionException with unscheduleAllTriggers=true to prevent retry
+     * attempts that would likely fail with the same error.
+     *
+     * @param context the Quartz job execution context containing configuration and providers
+     * @throws JobExecutionException if any error occurs during job execution
+     */
     public void execute(JobExecutionContext context) throws JobExecutionException {
         try {
             JobDataMap data = context.getMergedJobDataMap();
@@ -102,6 +211,35 @@ public class PublishBulkScanJob implements Job {
         }
     }
 
+    /**
+     * Functional interface implementation for processing individual target strings into scan jobs.
+     *
+     * <p>The JobSubmitter class implements the Function interface to enable parallel processing of
+     * target lists using Java streams. Each instance processes target strings by parsing,
+     * validating, filtering, and either submitting valid jobs or persisting error results.
+     *
+     * <p><strong>Processing Pipeline:</strong>
+     *
+     * <ol>
+     *   <li><strong>Target Parsing</strong> - Converts string to ScanTarget with DNS resolution
+     *   <li><strong>Denylist Checking</strong> - Validates target against configured denylist
+     *   <li><strong>Job Creation</strong> - Creates ScanJobDescription with appropriate status
+     *   <li><strong>Submission/Persistence</strong> - Submits valid jobs or persists error results
+     * </ol>
+     *
+     * <p><strong>Status Determination:</strong>
+     *
+     * <ul>
+     *   <li><strong>TO_BE_EXECUTED</strong> - Valid target, submitted to orchestration provider
+     *   <li><strong>DENYLISTED</strong> - Target blocked by denylist configuration
+     *   <li><strong>UNRESOLVABLE</strong> - DNS resolution failed for hostname
+     *   <li><strong>RESOLUTION_ERROR</strong> - Unexpected error during target processing
+     * </ul>
+     *
+     * <p><strong>Error Persistence:</strong> All error cases result in ScanResult objects being
+     * persisted to maintain complete audit trails and enable analysis of filtering effectiveness
+     * and target list quality.
+     */
     private static class JobSubmitter implements Function<String, JobStatus> {
         private final IOrchestrationProvider orchestrationProvider;
         private final IPersistenceProvider persistenceProvider;
@@ -109,6 +247,15 @@ public class PublishBulkScanJob implements Job {
         private final BulkScan bulkScan;
         private final int defaultPort;
 
+        /**
+         * Creates a new JobSubmitter with the required dependencies for target processing.
+         *
+         * @param orchestrationProvider provider for submitting valid scan jobs
+         * @param persistenceProvider provider for storing error results
+         * @param denylistProvider provider for target filtering
+         * @param bulkScan the parent bulk scan for job association
+         * @param defaultPort the default port to use when not specified in target strings
+         */
         public JobSubmitter(
                 IOrchestrationProvider orchestrationProvider,
                 IPersistenceProvider persistenceProvider,
@@ -122,34 +269,76 @@ public class PublishBulkScanJob implements Job {
             this.defaultPort = defaultPort;
         }
 
+        /**
+         * Processes a single target string and returns the resulting job status.
+         *
+         * <p>This method implements the core target processing logic, handling parsing, validation,
+         * filtering, and job submission or error persistence. It uses the
+         * ScanTarget.fromTargetString method for DNS resolution and denylist checking.
+         *
+         * <p><strong>Multi-target Support:</strong> For hostnames that resolve to multiple IP
+         * addresses, multiple ScanJobDescription objects are created and processed. The returned
+         * JobStatus represents the primary outcome, with TO_BE_EXECUTED taking precedence if any
+         * targets were successfully submitted.
+         *
+         * <p><strong>Processing Flow:</strong>
+         *
+         * <ol>
+         *   <li>Parse target string using ScanTarget.fromTargetString (may return multiple targets)
+         *   <li>Create ScanJobDescription for each parsed target with appropriate status
+         *   <li>For valid targets (TO_BE_EXECUTED): submit to orchestration provider
+         *   <li>For invalid targets: create and persist ScanResult with error details
+         * </ol>
+         *
+         * <p><strong>Error Handling:</strong> Exceptions during target parsing are caught and
+         * result in RESOLUTION_ERROR status with the exception persisted in the ScanResult for
+         * debugging purposes.
+         *
+         * @param targetString the target string to process (e.g., "example.com:443")
+         * @return the JobStatus indicating how the target was processed (TO_BE_EXECUTED if any
+         *     targets were submitted successfully, otherwise the error status)
+         */
         @Override
         public JobStatus apply(String targetString) {
-            ScanJobDescription jobDescription;
-            ScanResult errorResult = null;
             try {
-                var targetInfo =
+                var targetInfoList =
                         ScanTarget.fromTargetString(targetString, defaultPort, denylistProvider);
-                jobDescription =
-                        new ScanJobDescription(
-                                targetInfo.getLeft(), bulkScan, targetInfo.getRight());
+
+                boolean hasSuccessfulSubmission = false;
+                JobStatus primaryStatus = JobStatus.RESOLUTION_ERROR;
+
+                for (var targetInfo : targetInfoList) {
+                    ScanJobDescription jobDescription =
+                            new ScanJobDescription(
+                                    targetInfo.getLeft(), bulkScan, targetInfo.getRight());
+
+                    if (jobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {
+                        orchestrationProvider.submitScanJob(jobDescription);
+                        hasSuccessfulSubmission = true;
+                        primaryStatus = JobStatus.TO_BE_EXECUTED;
+                    } else {
+                        ScanResult errorResult = new ScanResult(jobDescription, null);
+                        persistenceProvider.insertScanResult(errorResult, jobDescription);
+
+                        // Update primary status if we haven't had a successful submission
+                        if (!hasSuccessfulSubmission) {
+                            primaryStatus = jobDescription.getStatus();
+                        }
+                    }
+                }
+
+                return primaryStatus;
             } catch (Exception e) {
-                jobDescription =
+                ScanJobDescription jobDescription =
                         new ScanJobDescription(
                                 new ScanTarget(), bulkScan, JobStatus.RESOLUTION_ERROR);
-                errorResult = ScanResult.fromException(jobDescription, e);
+                String errorContext = "Failed to parse target string: '" + targetString + "'";
+                ScanResult errorResult = ScanResult.fromException(jobDescription, e, errorContext);
                 LOGGER.error(
                         "Error while creating ScanJobDescription for target '{}'", targetString, e);
-            }
-
-            if (jobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {
-                orchestrationProvider.submitScanJob(jobDescription);
-            } else {
-                if (errorResult == null) {
-                    errorResult = new ScanResult(jobDescription, null);
-                }
                 persistenceProvider.insertScanResult(errorResult, jobDescription);
+                return JobStatus.RESOLUTION_ERROR;
             }
-            return jobDescription.getStatus();
         }
     }
 }

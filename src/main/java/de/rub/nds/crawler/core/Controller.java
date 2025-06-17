@@ -23,16 +23,45 @@ import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.quartz.impl.matchers.GroupMatcher;
 
-/** Controller that schedules the publishing of bulk scans. */
+/**
+ * Controller that orchestrates and schedules bulk scanning operations.
+ *
+ * <p>Central coordination component managing TLS scanning campaigns. Uses Quartz scheduler for
+ * timing, integrates with orchestration providers for job distribution, and supports progress
+ * monitoring.
+ *
+ * @see ControllerCommandConfig
+ * @see PublishBulkScanJob
+ * @see IOrchestrationProvider
+ * @see IPersistenceProvider
+ */
 public class Controller {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /** Provider for distributing scan jobs to worker instances. */
     private final IOrchestrationProvider orchestrationProvider;
+
+    /** Provider for scan result storage and retrieval. */
     private final IPersistenceProvider persistenceProvider;
+
+    /** Configuration containing controller parameters and scheduling options. */
     private final ControllerCommandConfig config;
+
+    /** Optional provider for filtering prohibited scan targets. */
     private IDenylistProvider denylistProvider;
 
+    /**
+     * Creates a new Controller with the specified configuration and providers.
+     *
+     * <p>This constructor initializes the controller with all necessary dependencies for
+     * orchestrating bulk scanning operations. If a denylist file is specified in the configuration,
+     * a denylist provider is automatically created.
+     *
+     * @param config the controller configuration containing scheduling and scan parameters
+     * @param orchestrationProvider the provider for distributing scan jobs to workers
+     * @param persistenceProvider the provider for storing and retrieving scan results
+     */
     public Controller(
             ControllerCommandConfig config,
             IOrchestrationProvider orchestrationProvider,
@@ -45,6 +74,31 @@ public class Controller {
         }
     }
 
+    /**
+     * Starts the controller and begins scheduling bulk scan operations.
+     *
+     * <p>This method performs the complete initialization and startup sequence:
+     *
+     * <ol>
+     *   <li>Obtains the target list provider from configuration
+     *   <li>Initializes the Quartz scheduler with appropriate listeners
+     *   <li>Creates progress monitoring if enabled in configuration
+     *   <li>Prepares job data map with all necessary providers and configuration
+     *   <li>Schedules the bulk scan publishing job according to configuration
+     *   <li>Starts the scheduler to begin processing
+     * </ol>
+     *
+     * <p><strong>Progress Monitoring:</strong> If monitoring is enabled in the configuration, a
+     * {@link ProgressMonitor} is created to track scan progress and send notifications.
+     *
+     * <p><strong>Automatic Shutdown:</strong> The scheduler is configured to automatically shut
+     * down when all scheduled jobs complete execution.
+     *
+     * @throws RuntimeException if scheduler initialization or startup fails
+     * @see ControllerCommandConfig#isMonitored()
+     * @see PublishBulkScanJob
+     * @see ProgressMonitor
+     */
     public void start() {
         ITargetListProvider targetListProvider = config.getTargetListProvider();
 
@@ -82,6 +136,21 @@ public class Controller {
         }
     }
 
+    /**
+     * Creates the appropriate schedule builder based on configuration.
+     *
+     * <p>This method determines the scheduling strategy:
+     *
+     * <ul>
+     *   <li><strong>Cron-based:</strong> If a cron interval is specified, creates a cron schedule
+     *       using the system default timezone
+     *   <li><strong>Simple:</strong> If no cron interval is specified, creates a simple schedule
+     *       for immediate one-time execution
+     * </ul>
+     *
+     * @return the appropriate ScheduleBuilder for the configured scheduling strategy
+     * @see ControllerCommandConfig#getScanCronInterval()
+     */
     private ScheduleBuilder<?> getScanSchedule() {
         if (config.getScanCronInterval() != null) {
             return CronScheduleBuilder.cronSchedule(config.getScanCronInterval())
@@ -91,6 +160,30 @@ public class Controller {
         }
     }
 
+    /**
+     * Conditionally shuts down the scheduler if all triggers have completed.
+     *
+     * <p>This utility method provides graceful scheduler shutdown by checking the state of all
+     * registered triggers. The scheduler is shut down only when no triggers are capable of firing
+     * again, indicating that all scheduled work is complete.
+     *
+     * <p><strong>Trigger State Checking:</strong>
+     *
+     * <ul>
+     *   <li>Examines all triggers across all groups
+     *   <li>Checks if each trigger can fire again using {@code mayFireAgain()}
+     *   <li>Handles scheduler exceptions by assuming triggers are still active
+     *   <li>Only shuts down when all triggers are finalized
+     * </ul>
+     *
+     * <p><strong>Error Handling:</strong> If trigger state cannot be determined due to scheduler
+     * exceptions, the trigger is conservatively treated as still active to prevent premature
+     * shutdown.
+     *
+     * @param scheduler the Quartz scheduler to potentially shut down
+     * @see Scheduler#shutdown()
+     * @see Trigger#mayFireAgain()
+     */
     public static void shutdownSchedulerIfAllTriggersFinalized(Scheduler scheduler) {
         try {
             boolean allTriggersFinalized =

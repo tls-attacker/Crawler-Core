@@ -40,7 +40,11 @@ class ControllerTest {
 
         Thread.sleep(1000);
 
-        Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
+        // With multi-IP hostname support, we expect at least 2 jobs (one per hostname)
+        // but may get more if hostnames resolve to multiple IPs
+        Assertions.assertTrue(
+                orchestrationProvider.jobQueue.size() >= 2,
+                "Expected at least 2 jobs but got " + orchestrationProvider.jobQueue.size());
         Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
     }
 }
