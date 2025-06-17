@@ -18,36 +18,10 @@ import java.util.Map;
 import javax.persistence.Id;
 
 /**
- * Represents a bulk scanning operation with its configuration, progress tracking, and metadata.
+ * Represents a bulk scanning operation with configuration, progress tracking, and metadata.
  *
- * <p>A BulkScan encapsulates all information about a large-scale TLS scanning operation, including
- * the scan configuration, target statistics, job status tracking, and version information. This
- * class serves as the primary coordination entity for distributed scanning operations.
- *
- * <p>The bulk scan lifecycle typically follows this pattern:
- *
- * <ol>
- *   <li>Creation with scan configuration and target list
- *   <li>Target processing and job publishing to worker queues
- *   <li>Progress monitoring through job status counters
- *   <li>Completion marking and result aggregation
- * </ol>
- *
- * <p>Key features:
- *
- * <ul>
- *   <li><strong>Distributed coordination</strong> - Tracks jobs across multiple worker instances
- *   <li><strong>Progress monitoring</strong> - Real-time status counters for different job states
- *   <li><strong>Version tracking</strong> - Records scanner and crawler versions for
- *       reproducibility
- *   <li><strong>Time tracking</strong> - Start and end time recording for performance analysis
- *   <li><strong>Collection management</strong> - Automatic database collection naming with
- *       timestamps
- * </ul>
- *
- * <p><strong>Persistence:</strong> This class is designed for MongoDB persistence with JPA
- * annotations. Method naming follows serialization conventions and should not be changed without
- * considering backward compatibility.
+ * <p>Encapsulates large-scale TLS scanning operations with distributed coordination, progress
+ * monitoring, version tracking, and time recording. Designed for MongoDB persistence.
  *
  * @see ScanConfig
  * @see JobStatus

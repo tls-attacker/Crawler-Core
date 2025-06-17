@@ -15,47 +15,10 @@ import java.util.UUID;
 import org.bson.Document;
 
 /**
- * Immutable container for TLS scan results and associated metadata.
+ * Immutable container for TLS scan results and metadata.
  *
- * <p>The ScanResult class encapsulates the complete outcome of a TLS scan operation, including the
- * scan target, execution status, result data, and traceability information. It serves as the
- * primary data transfer object between the scanning engine, persistence layer, and monitoring
- * systems in the distributed TLS-Crawler architecture.
- *
- * <p>Key characteristics:
- *
- * <ul>
- *   <li><strong>Immutability</strong> - All fields are final except the database-managed ID
- *   <li><strong>Traceability</strong> - Links results back to their originating bulk scan
- *   <li><strong>Status Tracking</strong> - Maintains job execution status for monitoring
- *   <li><strong>Error Handling</strong> - Supports both successful results and exception storage
- *   <li><strong>Serialization</strong> - Compatible with JSON/BSON for database persistence
- * </ul>
- *
- * <p><strong>Construction Patterns:</strong>
- *
- * <ul>
- *   <li><strong>Normal Constructor</strong> - Creates result from completed ScanJobDescription
- *   <li><strong>Exception Factory</strong> - Creates error result via fromException() method
- *   <li><strong>Validation</strong> - Enforces valid status transitions and error states
- * </ul>
- *
- * <p><strong>Data Components:</strong>
- *
- * <ul>
- *   <li><strong>Unique ID</strong> - UUID for database primary key and result identification
- *   <li><strong>Bulk Scan ID</strong> - Reference to the parent bulk scanning campaign
- *   <li><strong>Scan Target</strong> - The host/port combination that was scanned
- *   <li><strong>Job Status</strong> - Final execution status (SUCCESS, ERROR, TIMEOUT, etc.)
- *   <li><strong>Result Document</strong> - BSON document containing scan findings or error details
- * </ul>
- *
- * <p><strong>Status Validation:</strong> The class enforces that results are only created from scan
- * jobs that have completed execution (not in TO_BE_EXECUTED state) and that error results have
- * appropriate error status codes.
- *
- * <p><strong>Database Integration:</strong> Uses Jackson annotations for JSON serialization and
- * MongoDB integration, with the _id field mapping to the database primary key.
+ * <p>Encapsulates scan outcome including target, status, result data, and traceability. Supports
+ * both successful results and error conditions. Uses Jackson/BSON for persistence.
  *
  * @see ScanJobDescription
  * @see ScanTarget
@@ -120,25 +83,15 @@ public class ScanResult implements Serializable {
     }
 
     /**
-     * Factory method for creating scan results from exceptions during scan execution.
+     * Creates scan result from exception during scan execution.
      *
-     * <p>This method provides a standardized way to create scan results when scan operations fail
-     * with exceptions. It creates a result document containing the exception details and ensures
-     * the scan job description is in an appropriate error state.
+     * <p>Creates structured error document with exception details. Validates scan job is in error
+     * state.
      *
-     * <p><strong>Error State Validation:</strong> The method validates that the scan job
-     * description has an error status (ERROR, CANCELLED, INTERNAL_ERROR, etc.) before creating the
-     * error result, ensuring consistency between status and result content.
-     *
-     * <p><strong>Exception Handling:</strong> The exception information is stored in a structured
-     * format with separate fields for type, message, cause, and timestamp, enabling detailed
-     * analysis and debugging of scan failures while avoiding serialization issues with raw
-     * exception objects.
-     *
-     * @param scanJobDescription the scan job in an error state
-     * @param e the exception that caused the scan to fail
-     * @return a new ScanResult containing the exception details
-     * @throws IllegalArgumentException if the scan job is not in an error state
+     * @param scanJobDescription scan job in error state
+     * @param e exception that caused scan failure
+     * @return ScanResult containing exception details
+     * @throws IllegalArgumentException if scan job not in error state
      */
     public static ScanResult fromException(ScanJobDescription scanJobDescription, Exception e) {
         if (!scanJobDescription.getStatus().isError()) {
@@ -172,13 +125,9 @@ public class ScanResult implements Serializable {
     }
 
     /**
-     * Creates a scan result from an exception with additional error context.
+     * Creates scan result from exception with additional error context.
      *
-     * <p>This overloaded method extends the basic exception handling by allowing additional
-     * contextual information to be included in the error document. This is particularly useful for
-     * providing specific failure reasons, debugging hints, or operational details.
-     *
-     * @param scanJobDescription the scan job in an error state
+     * @param scanJobDescription scan job in error state
      * @param e the exception that caused the scan to fail
      * @param errorContext additional error context as key-value pairs
      * @return a new ScanResult containing the exception details and additional context

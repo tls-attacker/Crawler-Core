@@ -45,55 +45,10 @@ import org.bson.UuidRepresentation;
 import org.mongojack.JacksonMongoCollection;
 
 /**
- * MongoDB implementation of the persistence provider for TLS-Crawler scan data.
+ * MongoDB persistence provider for TLS-Crawler scan data.
  *
- * <p>This class provides a comprehensive MongoDB-based persistence layer that handles storage and
- * retrieval of bulk scan metadata and individual scan results. It implements sophisticated caching
- * mechanisms and provides flexible JSON serialization support.
- *
- * <p>Key features:
- *
- * <ul>
- *   <li><strong>Dual Storage Model</strong> - Separate handling for bulk scan metadata and scan
- *       results
- *   <li><strong>Database per Scan</strong> - Each bulk scan uses its own MongoDB database
- *   <li><strong>Collection Caching</strong> - Guava cache for database and collection instances
- *   <li><strong>Custom Serialization</strong> - Extensible Jackson mapper with custom serializers
- *   <li><strong>Automatic Indexing</strong> - Performance-optimized indexes on scan target fields
- *   <li><strong>Error Recovery</strong> - Graceful handling of serialization errors
- * </ul>
- *
- * <p><strong>Storage Architecture:</strong>
- *
- * <ul>
- *   <li><strong>Bulk Scans</strong> - Stored in a dedicated "bulkScans" collection within each scan
- *       database
- *   <li><strong>Scan Results</strong> - Stored in dynamically named collections based on scan
- *       configuration
- *   <li><strong>Database Naming</strong> - Each bulk scan creates a database named after the scan
- *   <li><strong>Index Strategy</strong> - Automatic indexing on IP, hostname, Tranco rank, and
- *       result status
- * </ul>
- *
- * <p><strong>Caching Strategy:</strong>
- *
- * <ul>
- *   <li>Database connections cached for 10 minutes after last access
- *   <li>Collection instances cached for 10 minutes after last access
- *   <li>Automatic cleanup of unused connections to prevent resource leaks
- * </ul>
- *
- * <p><strong>Serialization Support:</strong>
- *
- * <ul>
- *   <li>Custom JsonSerializer registration for complex types
- *   <li>Jackson module support for extended functionality
- *   <li>BigDecimal serialization as strings for precision
- *   <li>Java Time API support through JavaTimeModule
- * </ul>
- *
- * <p><strong>Error Handling:</strong> Implements sophisticated error recovery for serialization
- * failures, creating error records instead of losing scan results.
+ * <p>Provides MongoDB-based storage with separate databases per scan, collection caching, custom
+ * serialization, automatic indexing, and error recovery.
  *
  * @see IPersistenceProvider
  * @see MongoDbDelegate
@@ -110,13 +65,9 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private static final Set<Module> modules = new HashSet<>();
 
     /**
-     * Registers a custom JSON serializer for use in MongoDB document serialization.
+     * Registers custom JSON serializer for MongoDB document serialization.
      *
-     * <p>This method allows registration of custom Jackson serializers that will be applied during
-     * JSON serialization of scan results before storing them in MongoDB. Serializers must be
-     * registered before the first MongoPersistenceProvider instance is created.
-     *
-     * <p><strong>Registration Lifecycle:</strong>
+     * <p>Must be registered before first MongoPersistenceProvider instance is created.
      *
      * <ul>
      *   <li>Serializers can only be registered before initialization

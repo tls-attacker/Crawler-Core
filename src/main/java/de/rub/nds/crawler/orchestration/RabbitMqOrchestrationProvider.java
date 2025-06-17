@@ -32,47 +32,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * RabbitMQ-based implementation of the orchestration provider for TLS-Crawler.
+ * RabbitMQ-based orchestration provider for TLS-Crawler.
  *
- * <p>This class implements a distributed messaging system using RabbitMQ for coordinating
- * large-scale TLS scanning operations between controllers and workers. It handles job distribution,
- * progress monitoring, and completion notifications across multiple worker instances.
- *
- * <p>Key features:
- *
- * <ul>
- *   <li><strong>Job Distribution</strong> - Publishes scan jobs to worker instances via queues
- *   <li><strong>Load Balancing</strong> - Uses RabbitMQ's round-robin job distribution
- *   <li><strong>Progress Monitoring</strong> - Optional completion notifications for tracking
- *   <li><strong>Connection Management</strong> - Handles RabbitMQ connections with TLS support
- *   <li><strong>Error Recovery</strong> - Graceful handling of serialization and network errors
- * </ul>
- *
- * <p><strong>Queue Architecture:</strong>
- *
- * <ul>
- *   <li><strong>scan-job-queue</strong> - Main queue for distributing scan jobs to workers
- *   <li><strong>done-notify-queue_*</strong> - Per-scan completion notification queues
- *   <li><strong>TTL Management</strong> - Automatic cleanup of unused notification queues
- * </ul>
- *
- * <p><strong>Connection Features:</strong>
- *
- * <ul>
- *   <li>TLS/SSL support for secure communication
- *   <li>Authentication with username/password or password files
- *   <li>Configurable connection parameters (host, port, credentials)
- *   <li>Named thread factory for proper thread management
- * </ul>
- *
- * <p><strong>Message Handling:</strong>
- *
- * <ul>
- *   <li>Java object serialization for scan job descriptions
- *   <li>Message acknowledgment for reliable delivery
- *   <li>Prefetch control for optimal worker performance
- *   <li>Error handling with message rejection for invalid data
- * </ul>
+ * <p>Implements distributed messaging for scan coordination using RabbitMQ. Handles job
+ * distribution, load balancing, progress monitoring, and TLS connections.
  *
  * @see IOrchestrationProvider
  * @see RabbitMqDelegate

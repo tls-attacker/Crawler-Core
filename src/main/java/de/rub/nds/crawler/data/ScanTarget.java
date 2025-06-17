@@ -23,26 +23,9 @@ import org.apache.logging.log4j.Logger;
 /**
  * Represents a target for TLS scanning operations.
  *
- * <p>A scan target encapsulates the network location (hostname/IP address and port) and optional
- * metadata (such as Tranco ranking) for a host to be scanned. This class provides parsing
- * functionality to extract target information from various string formats commonly found in target
- * lists and rankings.
- *
- * <p>Supported target string formats:
- *
- * <ul>
- *   <li><code>example.com</code> - hostname only
- *   <li><code>192.168.1.1</code> - IPv4 address only
- *   <li><code>2001:db8::1</code> - IPv6 address only
- *   <li><code>example.com:8080</code> - hostname with port
- *   <li><code>192.168.1.1:443</code> - IPv4 address with port
- *   <li><code>[2001:db8::1]:8080</code> - IPv6 address with port (bracket notation)
- *   <li><code>1,example.com</code> - Tranco rank with hostname
- *   <li><code>//example.com</code> - hostname with URL prefix
- * </ul>
- *
- * <p>The class performs hostname resolution and denylist checking during target creation. IPv6
- * addresses are fully supported with proper bracket notation for port specification.
+ * <p>Encapsulates network location (hostname/IP and port) and optional metadata (Tranco ranking).
+ * Supports parsing various string formats: hostnames, IPs (IPv4/IPv6), ports, ranks, and URL
+ * prefixes. Performs hostname resolution and denylist checking.
  *
  * @see JobStatus
  * @see IDenylistProvider
@@ -51,40 +34,16 @@ public class ScanTarget implements Serializable {
     private static final Logger LOGGER = LogManager.getLogger();
 
     /**
-     * Creates a ScanTarget from a target string with comprehensive parsing and validation.
+     * Creates ScanTarget(s) from a target string with parsing and validation.
      *
-     * <p>This method parses various target string formats, performs hostname resolution, and checks
-     * against denylists. The parsing handles multiple formats including Tranco-ranked entries,
-     * URLs, and port specifications.
+     * <p>Parses various formats (rank,hostname, URLs, ports), performs hostname resolution, and
+     * checks denylists. Creates separate targets for multi-homed hosts.
      *
-     * <p>Parsing logic:
-     *
-     * <ol>
-     *   <li>Extract Tranco rank if present (format: "rank,hostname")
-     *   <li>Remove URL prefixes ("//hostname")
-     *   <li>Remove quotes around hostnames
-     *   <li>Extract port number if specified ("hostname:port")
-     *   <li>Determine if target is IP address or hostname
-     *   <li>Resolve hostname to IP address if needed
-     *   <li>Check against denylist if provider is available
-     * </ol>
-     *
-     * <p><strong>Multi-homed host support:</strong> For hostnames that resolve to multiple IP
-     * addresses, this method will create separate ScanTarget instances for each resolved IP
-     * address. This enables comprehensive scanning of domains with both IPv4 and IPv6 addresses or
-     * multiple A/AAAA records.
-     *
-     * @param targetString the string to parse (supports various formats as documented in class
-     *     description)
-     * @param defaultPort the port to use when none is specified in the target string
-     * @param denylistProvider optional provider for checking if targets are denylisted (may be
-     *     null)
-     * @return a list of pairs, each containing a ScanTarget and its status (TO_BE_EXECUTED,
-     *     UNRESOLVABLE, or DENYLISTED). For hostnames resolving to multiple IPs, multiple pairs are
-     *     returned. For IP addresses or single-resolution hostnames, a single-element list is
-     *     returned.
+     * @param targetString string to parse (hostname, IP, with optional rank/port)
+     * @param defaultPort port to use when none specified
+     * @param denylistProvider optional denylist checker (may be null)
+     * @return list of (ScanTarget, JobStatus) pairs - multiple for multi-homed hosts
      * @throws NumberFormatException if port or rank parsing fails
-     * @see JobStatus
      */
     public static List<Pair<ScanTarget, JobStatus>> fromTargetString(
             String targetString, int defaultPort, IDenylistProvider denylistProvider) {

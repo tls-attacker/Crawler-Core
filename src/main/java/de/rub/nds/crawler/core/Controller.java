@@ -26,48 +26,9 @@ import org.quartz.impl.matchers.GroupMatcher;
 /**
  * Controller that orchestrates and schedules bulk scanning operations.
  *
- * <p>The Controller is the central coordination component of the TLS-Crawler system, responsible
- * for managing the lifecycle of large-scale TLS scanning campaigns. It integrates with multiple
- * subsystems to provide comprehensive scan orchestration.
- *
- * <p>Core responsibilities:
- *
- * <ul>
- *   <li><strong>Schedule Management</strong> - Uses Quartz scheduler for flexible scan timing
- *   <li><strong>Job Publishing</strong> - Coordinates with orchestration providers to distribute
- *       scan jobs
- *   <li><strong>Progress Monitoring</strong> - Optional real-time monitoring and notification
- *       system
- *   <li><strong>Resource Integration</strong> - Manages target lists, denylists, and persistence
- *       layers
- * </ul>
- *
- * <p><strong>Architecture Integration:</strong>
- *
- * <ul>
- *   <li>{@link IOrchestrationProvider} - Distributes scan jobs to worker instances
- *   <li>{@link IPersistenceProvider} - Handles scan result storage and retrieval
- *   <li>{@link ITargetListProvider} - Sources scan targets from various providers
- *   <li>{@link IDenylistProvider} - Filters prohibited targets
- *   <li>{@link ProgressMonitor} - Tracks scan progress and sends notifications
- * </ul>
- *
- * <p><strong>Scheduling Options:</strong>
- *
- * <ul>
- *   <li><strong>One-time execution</strong> - Immediate scan job publishing
- *   <li><strong>Cron-based scheduling</strong> - Recurring scans with flexible timing
- *   <li><strong>Simple scheduling</strong> - Basic interval-based execution
- * </ul>
- *
- * <p><strong>Lifecycle:</strong>
- *
- * <ol>
- *   <li>Controller initialization with configuration and providers
- *   <li>Optional denylist and progress monitoring setup
- *   <li>Quartz scheduler configuration and job registration
- *   <li>Automatic shutdown when all scheduled jobs complete
- * </ol>
+ * <p>Central coordination component managing TLS scanning campaigns. Uses Quartz scheduler for
+ * timing, integrates with orchestration providers for job distribution, and supports progress
+ * monitoring.
  *
  * @see ControllerCommandConfig
  * @see PublishBulkScanJob
