@@ -47,6 +47,13 @@ public class ProgressMonitor {
 
     private boolean listenerRegistered;
 
+    /**
+     * Constructs a ProgressMonitor with the specified providers and scheduler.
+     *
+     * @param orchestrationProvider the orchestration provider for managing scan jobs
+     * @param persistenceProvider the persistence provider for database operations
+     * @param scheduler the Quartz scheduler instance
+     */
     public ProgressMonitor(
             IOrchestrationProvider orchestrationProvider,
             IPersistenceProvider persistenceProvider,
