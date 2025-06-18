@@ -13,8 +13,6 @@ import de.rub.nds.crawler.config.ControllerCommandConfig;
 import de.rub.nds.crawler.config.WorkerCommandConfig;
 import de.rub.nds.crawler.core.Controller;
 import de.rub.nds.crawler.core.Worker;
-import de.rub.nds.crawler.orchestration.RabbitMqOrchestrationProvider;
-import de.rub.nds.crawler.persistence.MongoPersistenceProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -49,10 +47,8 @@ public class CommonMain {
                 Worker worker =
                         new Worker(
                                 workerCommandConfig,
-                                new RabbitMqOrchestrationProvider(
-                                        workerCommandConfig.getRabbitMqDelegate()),
-                                new MongoPersistenceProvider(
-                                        workerCommandConfig.getMongoDbDelegate()));
+                                workerCommandConfig.createRabbitMqOrchestrationProvider(),
+                                workerCommandConfig.createMongoPersistenceProvider());
                 worker.start();
                 break;
             case "controller":
@@ -60,10 +56,8 @@ public class CommonMain {
                 Controller controller =
                         new Controller(
                                 controllerCommandConfig,
-                                new RabbitMqOrchestrationProvider(
-                                        controllerCommandConfig.getRabbitMqDelegate()),
-                                new MongoPersistenceProvider(
-                                        controllerCommandConfig.getMongoDbDelegate()));
+                                controllerCommandConfig.createRabbitMqOrchestrationProvider(),
+                                controllerCommandConfig.createMongoPersistenceProvider());
                 controller.start();
                 break;
             default:

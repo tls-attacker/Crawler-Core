@@ -22,6 +22,9 @@ import de.rub.nds.scanner.core.config.ScannerDetail;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.quartz.CronScheduleBuilder;
 
+import de.rub.nds.crawler.orchestration.RabbitMqOrchestrationProvider;
+import de.rub.nds.crawler.persistence.MongoPersistenceProvider;
+
 public abstract class ControllerCommandConfig {
 
     @ParametersDelegate private final RabbitMqDelegate rabbitMqDelegate;
@@ -128,12 +131,20 @@ public abstract class ControllerCommandConfig {
         }
     }
 
-    public RabbitMqDelegate getRabbitMqDelegate() {
+    RabbitMqDelegate getRabbitMqDelegate() {
         return rabbitMqDelegate;
     }
 
-    public MongoDbDelegate getMongoDbDelegate() {
+    MongoDbDelegate getMongoDbDelegate() {
         return mongoDbDelegate;
+    }
+
+    public RabbitMqOrchestrationProvider createRabbitMqOrchestrationProvider() {
+        return new RabbitMqOrchestrationProvider(rabbitMqDelegate);
+    }
+
+    public MongoPersistenceProvider createMongoPersistenceProvider() {
+        return new MongoPersistenceProvider(mongoDbDelegate);
     }
 
     public int getPort() {

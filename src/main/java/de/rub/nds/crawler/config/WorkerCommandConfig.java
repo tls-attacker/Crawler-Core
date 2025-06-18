@@ -12,6 +12,8 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import de.rub.nds.crawler.config.delegate.MongoDbDelegate;
 import de.rub.nds.crawler.config.delegate.RabbitMqDelegate;
+import de.rub.nds.crawler.orchestration.RabbitMqOrchestrationProvider;
+import de.rub.nds.crawler.persistence.MongoPersistenceProvider;
 
 public class WorkerCommandConfig {
 
@@ -43,12 +45,20 @@ public class WorkerCommandConfig {
         mongoDbDelegate = new MongoDbDelegate();
     }
 
-    public RabbitMqDelegate getRabbitMqDelegate() {
+    RabbitMqDelegate getRabbitMqDelegate() {
         return rabbitMqDelegate;
     }
 
-    public MongoDbDelegate getMongoDbDelegate() {
+    MongoDbDelegate getMongoDbDelegate() {
         return mongoDbDelegate;
+    }
+
+    public RabbitMqOrchestrationProvider createRabbitMqOrchestrationProvider() {
+        return new RabbitMqOrchestrationProvider(rabbitMqDelegate);
+    }
+
+    public MongoPersistenceProvider createMongoPersistenceProvider() {
+        return new MongoPersistenceProvider(mongoDbDelegate);
     }
 
     public int getParallelScanThreads() {
