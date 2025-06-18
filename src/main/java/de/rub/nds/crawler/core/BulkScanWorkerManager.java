@@ -23,8 +23,8 @@ import org.apache.logging.log4j.Logger;
 import org.bson.Document;
 
 /**
- * Manager for bulk scan workers that maintains a cache of active workers.
- * Handles worker lifecycle and provides centralized access to scan operations.
+ * Manager for bulk scan workers that maintains a cache of active workers. Handles worker lifecycle
+ * and provides centralized access to scan operations.
  */
 public class BulkScanWorkerManager {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -60,9 +60,7 @@ public class BulkScanWorkerManager {
 
     private final Cache<String, BulkScanWorker<?>> bulkScanWorkers;
 
-    /**
-     * Private constructor for singleton pattern.
-     */
+    /** Private constructor for singleton pattern. */
     private BulkScanWorkerManager() {
         bulkScanWorkers =
                 CacheBuilder.newBuilder()

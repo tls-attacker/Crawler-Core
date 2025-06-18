@@ -11,8 +11,8 @@ package de.rub.nds.crawler.denylist;
 import de.rub.nds.crawler.data.ScanTarget;
 
 /**
- * Provider interface for managing denylisted scan targets.
- * Implementations determine which targets should be excluded from scanning.
+ * Provider interface for managing denylisted scan targets. Implementations determine which targets
+ * should be excluded from scanning.
  */
 public interface IDenylistProvider {
 

@@ -19,8 +19,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Main entry point for the TLS-Crawler application.
- * Handles command line parsing and initializes either controller or worker mode.
+ * Main entry point for the TLS-Crawler application. Handles command line parsing and initializes
+ * either controller or worker mode.
  */
 public class CommonMain {
     private static final Logger LOGGER = LogManager.getLogger();

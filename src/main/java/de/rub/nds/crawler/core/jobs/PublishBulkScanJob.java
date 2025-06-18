@@ -27,8 +27,8 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
 /**
- * Quartz job that publishes bulk scan jobs to the orchestration provider.
- * Creates and manages the lifecycle of bulk scans from target lists.
+ * Quartz job that publishes bulk scan jobs to the orchestration provider. Creates and manages the
+ * lifecycle of bulk scans from target lists.
  */
 public class PublishBulkScanJob implements Job {
 
@@ -113,8 +113,8 @@ public class PublishBulkScanJob implements Job {
     }
 
     /**
-     * Function that submits individual scan jobs for target strings.
-     * Handles target resolution, denylisting, and error cases.
+     * Function that submits individual scan jobs for target strings. Handles target resolution,
+     * denylisting, and error cases.
      */
     private static class JobSubmitter implements Function<String, JobStatus> {
         private final IOrchestrationProvider orchestrationProvider;

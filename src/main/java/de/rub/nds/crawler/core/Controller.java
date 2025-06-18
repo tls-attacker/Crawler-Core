@@ -52,9 +52,7 @@ public class Controller {
         }
     }
 
-    /**
-     * Starts the controller and schedules bulk scan publishing jobs.
-     */
+    /** Starts the controller and schedules bulk scan publishing jobs. */
     public void start() {
         ITargetListProvider targetListProvider = config.getTargetListProvider();
 

@@ -11,8 +11,8 @@ package de.rub.nds.crawler.orchestration;
 import de.rub.nds.crawler.data.ScanJobDescription;
 
 /**
- * Functional interface for consuming scan jobs from the orchestration provider.
- * Implementations process individual scan job descriptions.
+ * Functional interface for consuming scan jobs from the orchestration provider. Implementations
+ * process individual scan job descriptions.
  */
 @FunctionalInterface
 public interface ScanJobConsumer {

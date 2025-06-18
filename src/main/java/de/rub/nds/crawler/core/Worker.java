@@ -64,9 +64,7 @@ public class Worker {
                         new NamedThreadFactory("crawler-worker: result handler"));
     }
 
-    /**
-     * Starts the worker by registering a scan job consumer with the orchestration provider.
-     */
+    /** Starts the worker by registering a scan job consumer with the orchestration provider. */
     public void start() {
         this.orchestrationProvider.registerScanJobConsumer(
                 this::handleScanJob, this.parallelScanThreads);

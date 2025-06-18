@@ -99,41 +99,87 @@ public class ScanTarget implements Serializable {
 
     private int trancoRank;
 
+    /** Creates an empty scan target. Properties should be set using setter methods. */
     public ScanTarget() {}
 
+    /**
+     * Returns a string representation of this scan target, preferring hostname over IP.
+     *
+     * @return the hostname if set, otherwise the IP address
+     */
     @Override
     public String toString() {
         return hostname != null ? hostname : ip;
     }
 
+    /**
+     * Gets the IP address of the scan target.
+     *
+     * @return the IP address
+     */
     public String getIp() {
         return this.ip;
     }
 
+    /**
+     * Gets the hostname of the scan target.
+     *
+     * @return the hostname, or null if only IP is set
+     */
     public String getHostname() {
         return this.hostname;
     }
 
+    /**
+     * Gets the port number for the scan target.
+     *
+     * @return the port number
+     */
     public int getPort() {
         return this.port;
     }
 
+    /**
+     * Gets the Tranco rank of the scan target.
+     *
+     * @return the Tranco rank, or 0 if not set
+     */
     public int getTrancoRank() {
         return this.trancoRank;
     }
 
+    /**
+     * Sets the IP address of the scan target.
+     *
+     * @param ip the IP address to set
+     */
     public void setIp(String ip) {
         this.ip = ip;
     }
 
+    /**
+     * Sets the hostname of the scan target.
+     *
+     * @param hostname the hostname to set
+     */
     public void setHostname(String hostname) {
         this.hostname = hostname;
     }
 
+    /**
+     * Sets the port number for the scan target.
+     *
+     * @param port the port number to set
+     */
     public void setPort(int port) {
         this.port = port;
     }
 
+    /**
+     * Sets the Tranco rank of the scan target.
+     *
+     * @param trancoRank the Tranco rank to set
+     */
     public void setTrancoRank(int trancoRank) {
         this.trancoRank = trancoRank;
     }

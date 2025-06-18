@@ -35,6 +35,13 @@ public class ScanResult implements Serializable {
         this.result = result;
     }
 
+    /**
+     * Creates a scan result from a scan job description and the scan result document.
+     *
+     * @param scanJobDescription the scan job description containing target and status information
+     * @param result the scan result data as a MongoDB document
+     * @throws IllegalArgumentException if the scan job status is TO_BE_EXECUTED
+     */
     public ScanResult(ScanJobDescription scanJobDescription, Document result) {
         this(
                 scanJobDescription.getBulkScanInfo().getBulkScanId(),
@@ -47,6 +54,15 @@ public class ScanResult implements Serializable {
         }
     }
 
+    /**
+     * Creates a scan result from a scan job description and an exception that occurred during
+     * scanning.
+     *
+     * @param scanJobDescription the scan job description containing target and error status
+     * @param e the exception that occurred during scanning
+     * @return a scan result containing the exception information
+     * @throws IllegalArgumentException if the scan job status is not an error status
+     */
     public static ScanResult fromException(ScanJobDescription scanJobDescription, Exception e) {
         if (!scanJobDescription.getStatus().isError()) {
             throw new IllegalArgumentException("ScanJobDescription must be in an error state");
@@ -56,28 +72,58 @@ public class ScanResult implements Serializable {
         return new ScanResult(scanJobDescription, errorDocument);
     }
 
+    /**
+     * Gets the unique identifier of this scan result.
+     *
+     * @return the unique identifier
+     */
     @JsonProperty("_id")
     public String getId() {
         return this.id;
     }
 
+    /**
+     * Sets the unique identifier of this scan result.
+     *
+     * @param id the unique identifier to set
+     */
     @JsonProperty("_id")
     public void setId(String id) {
         this.id = id;
     }
 
+    /**
+     * Gets the bulk scan identifier that this result belongs to.
+     *
+     * @return the bulk scan identifier
+     */
     public String getBulkScan() {
         return this.bulkScan;
     }
 
+    /**
+     * Gets the scan target that was scanned to produce this result.
+     *
+     * @return the scan target
+     */
     public ScanTarget getScanTarget() {
         return this.scanTarget;
     }
 
+    /**
+     * Gets the scan result data as a MongoDB document.
+     *
+     * @return the result document containing scan data or error information
+     */
     public Document getResult() {
         return this.result;
     }
 
+    /**
+     * Gets the job status indicating the outcome of the scan.
+     *
+     * @return the job status
+     */
     public JobStatus getResultStatus() {
         return jobStatus;
     }

@@ -20,6 +20,11 @@ public class BulkScanJobCounters {
     private final AtomicInteger totalJobDoneCount = new AtomicInteger(0);
     private final Map<JobStatus, AtomicInteger> jobStatusCounters = new EnumMap<>(JobStatus.class);
 
+    /**
+     * Creates job counters for tracking the progress of a bulk scan.
+     *
+     * @param bulkScan the bulk scan to track counters for
+     */
     public BulkScanJobCounters(BulkScan bulkScan) {
         this.bulkScan = bulkScan;
         for (JobStatus jobStatus : JobStatus.values()) {
@@ -30,10 +35,21 @@ public class BulkScanJobCounters {
         }
     }
 
+    /**
+     * Gets the bulk scan associated with these counters.
+     *
+     * @return the bulk scan
+     */
     public BulkScan getBulkScan() {
         return bulkScan;
     }
 
+    /**
+     * Gets a copy of the current job status counters. The returned map is a snapshot and will not
+     * reflect future updates to the counters.
+     *
+     * @return a copy of the job status counters map
+     */
     public Map<JobStatus, Integer> getJobStatusCountersCopy() {
         EnumMap<JobStatus, Integer> ret = new EnumMap<>(JobStatus.class);
         for (Map.Entry<JobStatus, AtomicInteger> entry : jobStatusCounters.entrySet()) {
@@ -42,10 +58,22 @@ public class BulkScanJobCounters {
         return ret;
     }
 
+    /**
+     * Gets the current count for a specific job status.
+     *
+     * @param jobStatus the job status to get the count for
+     * @return the current count for the specified job status
+     */
     public int getJobStatusCount(JobStatus jobStatus) {
         return jobStatusCounters.get(jobStatus).get();
     }
 
+    /**
+     * Increments the counter for a specific job status and the total job count.
+     *
+     * @param jobStatus the job status to increment the counter for
+     * @return the new total job done count after incrementing
+     */
     public int increaseJobStatusCount(JobStatus jobStatus) {
         jobStatusCounters.get(jobStatus).incrementAndGet();
         return totalJobDoneCount.incrementAndGet();

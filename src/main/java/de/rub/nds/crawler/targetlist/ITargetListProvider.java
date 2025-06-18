@@ -11,8 +11,8 @@ package de.rub.nds.crawler.targetlist;
 import java.util.List;
 
 /**
- * Provider interface for obtaining scan target lists.
- * Implementations supply lists of targets to be scanned.
+ * Provider interface for obtaining scan target lists. Implementations supply lists of targets to be
+ * scanned.
  */
 public interface ITargetListProvider {
 

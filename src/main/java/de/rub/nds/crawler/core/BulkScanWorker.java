@@ -20,8 +20,8 @@ import org.apache.logging.log4j.Logger;
 import org.bson.Document;
 
 /**
- * Abstract base class for workers that handle bulk scanning operations.
- * Manages initialization, cleanup, and timeout handling for scan jobs.
+ * Abstract base class for workers that handle bulk scanning operations. Manages initialization,
+ * cleanup, and timeout handling for scan jobs.
  *
  * @param <T> the type of scan configuration
  */
@@ -133,13 +133,9 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         return false;
     }
 
-    /**
-     * Performs internal initialization specific to the implementation.
-     */
+    /** Performs internal initialization specific to the implementation. */
     protected abstract void initInternal();
 
-    /**
-     * Performs internal cleanup specific to the implementation.
-     */
+    /** Performs internal cleanup specific to the implementation. */
     protected abstract void cleanupInternal();
 }

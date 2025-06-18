@@ -30,6 +30,15 @@ public class ScanJobDescription implements Serializable {
 
     private final String collectionName;
 
+    /**
+     * Creates a scan job description with the specified parameters.
+     *
+     * @param scanTarget the target to scan
+     * @param bulkScanInfo metadata about the bulk scan
+     * @param dbName the database name for storing results
+     * @param collectionName the collection name for storing results
+     * @param status the initial job status
+     */
     public ScanJobDescription(
             ScanTarget scanTarget,
             BulkScanInfo bulkScanInfo,
@@ -43,6 +52,13 @@ public class ScanJobDescription implements Serializable {
         this.status = status;
     }
 
+    /**
+     * Creates a scan job description from a scan target and bulk scan.
+     *
+     * @param scanTarget the target to scan
+     * @param bulkScan the bulk scan this job belongs to
+     * @param status the initial job status
+     */
     public ScanJobDescription(ScanTarget scanTarget, BulkScan bulkScan, JobStatus status) {
         this(
                 scanTarget,
@@ -59,30 +75,67 @@ public class ScanJobDescription implements Serializable {
         deliveryTag = Optional.empty();
     }
 
+    /**
+     * Gets the scan target for this job.
+     *
+     * @return the scan target
+     */
     public ScanTarget getScanTarget() {
         return scanTarget;
     }
 
+    /**
+     * Gets the database name where results should be stored.
+     *
+     * @return the database name
+     */
     public String getDbName() {
         return dbName;
     }
 
+    /**
+     * Gets the collection name where results should be stored.
+     *
+     * @return the collection name
+     */
     public String getCollectionName() {
         return collectionName;
     }
 
+    /**
+     * Gets the current status of this scan job.
+     *
+     * @return the job status
+     */
     public JobStatus getStatus() {
         return status;
     }
 
+    /**
+     * Sets the status of this scan job.
+     *
+     * @param status the new job status
+     */
     public void setStatus(JobStatus status) {
         this.status = status;
     }
 
+    /**
+     * Gets the delivery tag for message queue acknowledgment.
+     *
+     * @return the delivery tag
+     * @throws NoSuchElementException if the delivery tag has not been set
+     */
     public long getDeliveryTag() {
         return deliveryTag.get();
     }
 
+    /**
+     * Sets the delivery tag for message queue acknowledgment.
+     *
+     * @param deliveryTag the delivery tag to set
+     * @throws IllegalStateException if the delivery tag has already been set
+     */
     public void setDeliveryTag(Long deliveryTag) {
         if (this.deliveryTag.isPresent()) {
             throw new IllegalStateException("Delivery tag already set");
@@ -90,6 +143,11 @@ public class ScanJobDescription implements Serializable {
         this.deliveryTag = Optional.of(deliveryTag);
     }
 
+    /**
+     * Gets the bulk scan information for this job.
+     *
+     * @return the bulk scan info
+     */
     public BulkScanInfo getBulkScanInfo() {
         return bulkScanInfo;
     }
