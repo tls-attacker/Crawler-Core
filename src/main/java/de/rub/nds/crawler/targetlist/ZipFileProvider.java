@@ -24,8 +24,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Abstract base class for target list providers that download and extract target lists from compressed files.
- * Supports .gz and .zip file formats.
+ * Abstract base class for target list providers that download and extract target lists from
+ * compressed files. Supports .gz and .zip file formats.
  */
 public abstract class ZipFileProvider implements ITargetListProvider {
 
@@ -127,8 +127,8 @@ public abstract class ZipFileProvider implements ITargetListProvider {
     }
 
     /**
-     * Processes the lines from the extracted file to create the target list.
-     * Subclasses must implement this method to define how to extract targets from the file content.
+     * Processes the lines from the extracted file to create the target list. Subclasses must
+     * implement this method to define how to extract targets from the file content.
      *
      * @param lines A stream of lines from the extracted file
      * @return A list of target hostnames

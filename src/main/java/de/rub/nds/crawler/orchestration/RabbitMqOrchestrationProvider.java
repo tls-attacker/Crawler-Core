@@ -99,8 +99,8 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
     }
 
     /**
-     * Gets the done notification queue name for a specific bulk scan.
-     * Creates the queue if it doesn't exist yet.
+     * Gets the done notification queue name for a specific bulk scan. Creates the queue if it
+     * doesn't exist yet.
      *
      * @param bulkScanId The ID of the bulk scan
      * @return The name of the done notification queue

@@ -10,6 +10,10 @@ package de.rub.nds.crawler.config.delegate;
 
 import com.beust.jcommander.Parameter;
 
+/**
+ * Command-line parameter delegate for RabbitMQ connection configuration. This class encapsulates
+ * all RabbitMQ-related command-line parameters used by the crawler for message queue orchestration.
+ */
 public class RabbitMqDelegate {
 
     @Parameter(names = "-rabbitMqHost")

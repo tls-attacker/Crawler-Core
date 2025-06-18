@@ -8,6 +8,10 @@
  */
 package de.rub.nds.crawler.constant;
 
+/**
+ * Represents the various states a scan job can be in during its lifecycle. Each status indicates
+ * whether an error occurred and how the job was processed.
+ */
 public enum JobStatus {
     /** Job is waiting to be executed. */
     TO_BE_EXECUTED(false),
@@ -42,6 +46,11 @@ public enum JobStatus {
         this.isError = isError;
     }
 
+    /**
+     * Checks if this status represents an error state.
+     *
+     * @return true if this status indicates an error occurred, false otherwise
+     */
     public boolean isError() {
         return isError;
     }

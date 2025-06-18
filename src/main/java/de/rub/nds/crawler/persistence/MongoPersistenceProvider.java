@@ -55,8 +55,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private static final Set<Module> modules = new HashSet<>();
 
     /**
-     * Registers a custom JSON serializer to be used by the ObjectMapper.
-     * Must be called before any MongoPersistenceProvider is initialized.
+     * Registers a custom JSON serializer to be used by the ObjectMapper. Must be called before any
+     * MongoPersistenceProvider is initialized.
      *
      * @param serializer The JSON serializer to register
      * @throws RuntimeException If called after initialization
@@ -69,8 +69,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     }
 
     /**
-     * Registers multiple custom JSON serializers to be used by the ObjectMapper.
-     * Must be called before any MongoPersistenceProvider is initialized.
+     * Registers multiple custom JSON serializers to be used by the ObjectMapper. Must be called
+     * before any MongoPersistenceProvider is initialized.
      *
      * @param serializers The JSON serializers to register
      * @throws RuntimeException If called after initialization
@@ -82,8 +82,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     }
 
     /**
-     * Registers a Jackson module to be used by the ObjectMapper.
-     * Must be called before any MongoPersistenceProvider is initialized.
+     * Registers a Jackson module to be used by the ObjectMapper. Must be called before any
+     * MongoPersistenceProvider is initialized.
      *
      * @param module The Jackson module to register
      * @throws RuntimeException If called after initialization
@@ -96,8 +96,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     }
 
     /**
-     * Registers multiple Jackson modules to be used by the ObjectMapper.
-     * Must be called before any MongoPersistenceProvider is initialized.
+     * Registers multiple Jackson modules to be used by the ObjectMapper. Must be called before any
+     * MongoPersistenceProvider is initialized.
      *
      * @param modules The Jackson modules to register
      * @throws RuntimeException If called after initialization

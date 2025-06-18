@@ -10,6 +10,10 @@ package de.rub.nds.crawler.config.delegate;
 
 import com.beust.jcommander.Parameter;
 
+/**
+ * Command-line parameter delegate for MongoDB connection configuration. This class encapsulates all
+ * MongoDB-related command-line parameters used by the crawler for storing scan results.
+ */
 public class MongoDbDelegate {
 
     @Parameter(

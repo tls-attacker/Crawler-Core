@@ -12,6 +12,12 @@ import de.rub.nds.crawler.core.BulkScanWorker;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import java.io.Serializable;
 
+/**
+ * Abstract base class for scan configurations used by the TLS-Crawler. This class defines common
+ * parameters for all scan types including scan detail level, re-execution settings, and timeout
+ * configuration. Concrete implementations must provide a factory method to create the appropriate
+ * BulkScanWorker for their scan type.
+ */
 public abstract class ScanConfig implements Serializable {
 
     private ScannerDetail scannerDetail;

@@ -124,6 +124,7 @@ public abstract class ControllerCommandConfig {
         }
     }
 
+    /** Parameter validator that ensures a value is a positive integer. */
     public static class PositiveInteger implements IParameterValidator {
         /**
          * Validates that the parameter value is a positive integer.
@@ -141,6 +142,7 @@ public abstract class ControllerCommandConfig {
         }
     }
 
+    /** Parameter validator that ensures a value is a valid cron expression. */
     public static class CronSyntax implements IParameterValidator {
         /**
          * Validates that the parameter value is a valid cron expression.

@@ -25,7 +25,8 @@ public class CruxListProvider extends ZipFileProvider {
     private static final String FILENAME = "current.csv";
 
     /**
-     * Constructs a new CruxListProvider that downloads and extracts hosts based on the specified list size.
+     * Constructs a new CruxListProvider that downloads and extracts hosts based on the specified
+     * list size.
      *
      * @param cruxListNumber The enum value specifying how many top hosts to extract
      */
