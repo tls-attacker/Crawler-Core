@@ -26,10 +26,20 @@ import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
+/**
+ * Quartz job that publishes bulk scan jobs to the orchestration provider.
+ * Creates and manages the lifecycle of bulk scans from target lists.
+ */
 public class PublishBulkScanJob implements Job {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /**
+     * Executes the bulk scan publishing job.
+     *
+     * @param context the job execution context containing configuration and providers
+     * @throws JobExecutionException if an error occurs during job execution
+     */
     public void execute(JobExecutionContext context) throws JobExecutionException {
         try {
             JobDataMap data = context.getMergedJobDataMap();
@@ -102,6 +112,10 @@ public class PublishBulkScanJob implements Job {
         }
     }
 
+    /**
+     * Function that submits individual scan jobs for target strings.
+     * Handles target resolution, denylisting, and error cases.
+     */
     private static class JobSubmitter implements Function<String, JobStatus> {
         private final IOrchestrationProvider orchestrationProvider;
         private final IPersistenceProvider persistenceProvider;
@@ -109,6 +123,15 @@ public class PublishBulkScanJob implements Job {
         private final BulkScan bulkScan;
         private final int defaultPort;
 
+        /**
+         * Constructs a JobSubmitter with the necessary providers and configuration.
+         *
+         * @param orchestrationProvider provider for job orchestration
+         * @param persistenceProvider provider for data persistence
+         * @param denylistProvider provider for checking denylisted targets
+         * @param bulkScan the bulk scan being processed
+         * @param defaultPort the default port to use for targets
+         */
         public JobSubmitter(
                 IOrchestrationProvider orchestrationProvider,
                 IPersistenceProvider persistenceProvider,
