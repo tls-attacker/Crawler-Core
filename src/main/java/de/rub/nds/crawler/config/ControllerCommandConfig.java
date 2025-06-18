@@ -17,13 +17,12 @@ import de.rub.nds.crawler.config.delegate.RabbitMqDelegate;
 import de.rub.nds.crawler.constant.CruxListNumber;
 import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.ScanConfig;
+import de.rub.nds.crawler.orchestration.RabbitMqOrchestrationProvider;
+import de.rub.nds.crawler.persistence.MongoPersistenceProvider;
 import de.rub.nds.crawler.targetlist.*;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.quartz.CronScheduleBuilder;
-
-import de.rub.nds.crawler.orchestration.RabbitMqOrchestrationProvider;
-import de.rub.nds.crawler.persistence.MongoPersistenceProvider;
 
 public abstract class ControllerCommandConfig {
 
