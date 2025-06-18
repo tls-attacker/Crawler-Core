@@ -131,14 +131,6 @@ public abstract class ControllerCommandConfig {
         }
     }
 
-    RabbitMqDelegate getRabbitMqDelegate() {
-        return rabbitMqDelegate;
-    }
-
-    MongoDbDelegate getMongoDbDelegate() {
-        return mongoDbDelegate;
-    }
-
     public RabbitMqOrchestrationProvider createRabbitMqOrchestrationProvider() {
         return new RabbitMqOrchestrationProvider(rabbitMqDelegate);
     }

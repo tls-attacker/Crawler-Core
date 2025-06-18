@@ -45,14 +45,6 @@ public class WorkerCommandConfig {
         mongoDbDelegate = new MongoDbDelegate();
     }
 
-    RabbitMqDelegate getRabbitMqDelegate() {
-        return rabbitMqDelegate;
-    }
-
-    MongoDbDelegate getMongoDbDelegate() {
-        return mongoDbDelegate;
-    }
-
     public RabbitMqOrchestrationProvider createRabbitMqOrchestrationProvider() {
         return new RabbitMqOrchestrationProvider(rabbitMqDelegate);
     }
