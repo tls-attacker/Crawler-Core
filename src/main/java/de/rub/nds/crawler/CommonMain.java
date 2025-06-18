@@ -18,9 +18,20 @@ import de.rub.nds.crawler.persistence.MongoPersistenceProvider;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Main entry point for the TLS-Crawler application.
+ * Handles command line parsing and initializes either controller or worker mode.
+ */
 public class CommonMain {
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /**
+     * Main method that parses command line arguments and starts the appropriate component.
+     *
+     * @param args command line arguments
+     * @param controllerCommandConfig configuration for controller mode
+     * @param workerCommandConfig configuration for worker mode
+     */
     public static void main(
             String[] args,
             ControllerCommandConfig controllerCommandConfig,
@@ -71,6 +82,12 @@ public class CommonMain {
         }
     }
 
+    /**
+     * Convenience method for starting with controller configuration only.
+     *
+     * @param args command line arguments
+     * @param controllerConfig configuration for controller mode
+     */
     public static void main(String[] args, ControllerCommandConfig controllerConfig) {
         main(args, controllerConfig, new WorkerCommandConfig());
     }

@@ -64,11 +64,24 @@ public class Worker {
                         new NamedThreadFactory("crawler-worker: result handler"));
     }
 
+    /**
+     * Starts the worker by registering a scan job consumer with the orchestration provider.
+     */
     public void start() {
         this.orchestrationProvider.registerScanJobConsumer(
                 this::handleScanJob, this.parallelScanThreads);
     }
 
+    /**
+     * Waits for a scan result with timeout handling.
+     *
+     * @param resultFuture the future containing the scan result document
+     * @param scanJobDescription the scan job description
+     * @return the scan result
+     * @throws ExecutionException if the computation threw an exception
+     * @throws InterruptedException if the current thread was interrupted while waiting
+     * @throws TimeoutException if the wait timed out
+     */
     private ScanResult waitForScanResult(
             Future<Document> resultFuture, ScanJobDescription scanJobDescription)
             throws ExecutionException, InterruptedException, TimeoutException {
@@ -90,6 +103,11 @@ public class Worker {
         return new ScanResult(scanJobDescription, resultDocument);
     }
 
+    /**
+     * Handles a scan job by executing it and managing the result.
+     *
+     * @param scanJobDescription the scan job to handle
+     */
     private void handleScanJob(ScanJobDescription scanJobDescription) {
         LOGGER.info("Received scan job for {}", scanJobDescription.getScanTarget());
         Future<Document> resultFuture =
@@ -135,6 +153,12 @@ public class Worker {
                 });
     }
 
+    /**
+     * Persists the scan result and notifies the orchestration provider.
+     *
+     * @param scanJobDescription the scan job description
+     * @param scanResult the result to persist
+     */
     private void persistResult(ScanJobDescription scanJobDescription, ScanResult scanResult) {
         try {
             if (scanResult != null) {

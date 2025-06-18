@@ -33,6 +33,13 @@ public class Controller {
     private final ControllerCommandConfig config;
     private IDenylistProvider denylistProvider;
 
+    /**
+     * Constructs a Controller with the specified configuration and providers.
+     *
+     * @param config the controller configuration
+     * @param orchestrationProvider the provider for job orchestration
+     * @param persistenceProvider the provider for data persistence
+     */
     public Controller(
             ControllerCommandConfig config,
             IOrchestrationProvider orchestrationProvider,
@@ -45,6 +52,9 @@ public class Controller {
         }
     }
 
+    /**
+     * Starts the controller and schedules bulk scan publishing jobs.
+     */
     public void start() {
         ITargetListProvider targetListProvider = config.getTargetListProvider();
 
@@ -82,6 +92,11 @@ public class Controller {
         }
     }
 
+    /**
+     * Creates a schedule builder based on the configured scan interval.
+     *
+     * @return a cron schedule builder if cron interval is set, otherwise a simple schedule
+     */
     private ScheduleBuilder<?> getScanSchedule() {
         if (config.getScanCronInterval() != null) {
             return CronScheduleBuilder.cronSchedule(config.getScanCronInterval())
@@ -91,6 +106,11 @@ public class Controller {
         }
     }
 
+    /**
+     * Shuts down the scheduler if all triggers have been finalized.
+     *
+     * @param scheduler the scheduler to check and potentially shut down
+     */
     public static void shutdownSchedulerIfAllTriggersFinalized(Scheduler scheduler) {
         try {
             boolean allTriggersFinalized =
