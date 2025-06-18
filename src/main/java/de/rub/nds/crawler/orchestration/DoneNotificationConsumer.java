@@ -10,8 +10,18 @@ package de.rub.nds.crawler.orchestration;
 
 import de.rub.nds.crawler.data.ScanJobDescription;
 
+/**
+ * Functional interface for consuming completion notifications for scan jobs.
+ * Implementations handle notifications when scan jobs are completed.
+ */
 @FunctionalInterface
 public interface DoneNotificationConsumer {
 
+    /**
+     * Consumes a notification that a scan job has been completed.
+     *
+     * @param consumerTag the consumer tag identifying the notification source
+     * @param scanJobDescription the completed scan job description
+     */
     void consumeDoneNotification(String consumerTag, ScanJobDescription scanJobDescription);
 }
