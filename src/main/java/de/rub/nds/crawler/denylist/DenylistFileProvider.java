@@ -37,6 +37,12 @@ public class DenylistFileProvider implements IDenylistProvider {
     private final List<SubnetUtils.SubnetInfo> cidrDenylist = new ArrayList<>();
     private final Set<String> domainDenylistSet = new HashSet<>();
 
+    /**
+     * Constructs a new DenylistFileProvider that reads denylist entries from the specified file.
+     * Supports hostnames, IP addresses, and CIDR subnet notations.
+     *
+     * @param denylistFilename The path to the denylist file
+     */
     public DenylistFileProvider(String denylistFilename) {
         List<String> denylist = List.of();
         try (Stream<String> lines = Files.lines(Paths.get(denylistFilename))) {
@@ -58,6 +64,13 @@ public class DenylistFileProvider implements IDenylistProvider {
         }
     }
 
+    /**
+     * Checks if an IP address is within the specified subnet.
+     *
+     * @param ip The IP address to check
+     * @param subnetInfo The subnet information to check against
+     * @return true if the IP is in the subnet, false otherwise or if the IP format is incompatible
+     */
     private boolean isInSubnet(String ip, SubnetUtils.SubnetInfo subnetInfo) {
         try {
             return subnetInfo.isInRange(ip);

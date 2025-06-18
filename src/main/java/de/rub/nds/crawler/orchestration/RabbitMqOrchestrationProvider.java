@@ -54,6 +54,12 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
 
     private Set<String> declaredQueues = new HashSet<>();
 
+    /**
+     * Constructs a new RabbitMqOrchestrationProvider with the provided configuration.
+     *
+     * @param rabbitMqDelegate The RabbitMQ configuration delegate containing connection parameters
+     * @throws RuntimeException If connection to RabbitMQ fails
+     */
     public RabbitMqOrchestrationProvider(RabbitMqDelegate rabbitMqDelegate) {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(rabbitMqDelegate.getRabbitMqHost());
@@ -92,6 +98,13 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         }
     }
 
+    /**
+     * Gets the done notification queue name for a specific bulk scan.
+     * Creates the queue if it doesn't exist yet.
+     *
+     * @param bulkScanId The ID of the bulk scan
+     * @return The name of the done notification queue
+     */
     private String getDoneNotifyQueue(String bulkScanId) {
         String queueName = "done-notify-queue_" + bulkScanId;
         if (!declaredQueues.contains(queueName)) {
@@ -143,6 +156,11 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         }
     }
 
+    /**
+     * Sends an acknowledgment for a message with the given delivery tag.
+     *
+     * @param deliveryTag The delivery tag of the message to acknowledge
+     */
     private void sendAck(long deliveryTag) {
         try {
             channel.basicAck(deliveryTag, false);

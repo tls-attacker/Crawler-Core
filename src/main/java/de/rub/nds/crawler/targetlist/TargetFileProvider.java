@@ -17,12 +17,21 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Target list provider that reads target hostnames from a local file.
+ * The file can contain comments (lines starting with #) and empty lines which are ignored.
+ */
 public class TargetFileProvider implements ITargetListProvider {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
     private String filename;
 
+    /**
+     * Constructs a new TargetFileProvider for the specified file.
+     *
+     * @param filename The path to the file containing target hostnames
+     */
     public TargetFileProvider(String filename) {
         this.filename = filename;
     }

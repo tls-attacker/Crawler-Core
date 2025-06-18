@@ -54,6 +54,13 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private static final Set<JsonSerializer<?>> serializers = new HashSet<>();
     private static final Set<Module> modules = new HashSet<>();
 
+    /**
+     * Registers a custom JSON serializer to be used by the ObjectMapper.
+     * Must be called before any MongoPersistenceProvider is initialized.
+     *
+     * @param serializer The JSON serializer to register
+     * @throws RuntimeException If called after initialization
+     */
     public static void registerSerializer(JsonSerializer<?> serializer) {
         if (isInitialized) {
             throw new RuntimeException("Cannot register serializer after initialization");
@@ -61,12 +68,26 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         serializers.add(serializer);
     }
 
+    /**
+     * Registers multiple custom JSON serializers to be used by the ObjectMapper.
+     * Must be called before any MongoPersistenceProvider is initialized.
+     *
+     * @param serializers The JSON serializers to register
+     * @throws RuntimeException If called after initialization
+     */
     public static void registerSerializer(JsonSerializer<?>... serializers) {
         for (JsonSerializer<?> serializer : serializers) {
             registerSerializer(serializer);
         }
     }
 
+    /**
+     * Registers a Jackson module to be used by the ObjectMapper.
+     * Must be called before any MongoPersistenceProvider is initialized.
+     *
+     * @param module The Jackson module to register
+     * @throws RuntimeException If called after initialization
+     */
     public static void registerModule(Module module) {
         if (isInitialized) {
             throw new RuntimeException("Cannot register module after initialization");
@@ -74,6 +95,13 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         modules.add(module);
     }
 
+    /**
+     * Registers multiple Jackson modules to be used by the ObjectMapper.
+     * Must be called before any MongoPersistenceProvider is initialized.
+     *
+     * @param modules The Jackson modules to register
+     * @throws RuntimeException If called after initialization
+     */
     public static void registerModule(Module... modules) {
         for (Module module : modules) {
             registerModule(module);
@@ -87,6 +115,12 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
             resultCollectionCache;
     private JacksonMongoCollection<BulkScan> bulkScanCollection;
 
+    /**
+     * Creates a MongoClient with the provided configuration.
+     *
+     * @param mongoDbDelegate The MongoDB configuration delegate
+     * @return A configured MongoClient instance
+     */
     private static MongoClient createMongoClient(MongoDbDelegate mongoDbDelegate) {
         ConnectionString connectionString =
                 new ConnectionString(
@@ -120,6 +154,11 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         return MongoClients.create(mongoClientSettings);
     }
 
+    /**
+     * Creates and configures the ObjectMapper for JSON serialization.
+     *
+     * @return A configured ObjectMapper instance
+     */
     private static ObjectMapper createMapper() {
         ObjectMapper mapper = new ObjectMapper();
 
@@ -175,11 +214,24 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                                                         key.getLeft(), key.getRight())));
     }
 
+    /**
+     * Initializes and returns a MongoDB database instance.
+     *
+     * @param dbName The name of the database to initialize
+     * @return The initialized MongoDatabase instance
+     */
     private MongoDatabase initDatabase(String dbName) {
         LOGGER.info("Initializing database: {}.", dbName);
         return mongoClient.getDatabase(dbName);
     }
 
+    /**
+     * Initializes a MongoDB collection for storing scan results with appropriate indexes.
+     *
+     * @param dbName The name of the database
+     * @param collectionName The name of the collection to initialize
+     * @return The initialized JacksonMongoCollection for ScanResult objects
+     */
     private JacksonMongoCollection<ScanResult> initResultCollection(
             String dbName, String collectionName) {
         LOGGER.info("Initializing collection: {}.{}.", dbName, collectionName);
@@ -199,6 +251,12 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         return collection;
     }
 
+    /**
+     * Gets or creates the bulk scan collection for the specified database.
+     *
+     * @param dbName The name of the database
+     * @return The JacksonMongoCollection for BulkScan objects
+     */
     private JacksonMongoCollection<BulkScan> getBulkScanCollection(String dbName) {
         if (this.bulkScanCollection == null) {
             this.bulkScanCollection =
@@ -224,6 +282,13 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         this.insertBulkScan(bulkScan);
     }
 
+    /**
+     * Writes a scan result to the specified database and collection.
+     *
+     * @param dbName The name of the database
+     * @param collectionName The name of the collection
+     * @param scanResult The scan result to write
+     */
     private void writeResultToDatabase(
             String dbName, String collectionName, ScanResult scanResult) {
         LOGGER.info(

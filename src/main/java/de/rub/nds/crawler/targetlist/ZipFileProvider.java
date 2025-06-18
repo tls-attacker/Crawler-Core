@@ -23,6 +23,10 @@ import java.util.zip.ZipInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Abstract base class for target list providers that download and extract target lists from compressed files.
+ * Supports .gz and .zip file formats.
+ */
 public abstract class ZipFileProvider implements ITargetListProvider {
 
     protected static final Logger LOGGER = LogManager.getLogger();
@@ -32,6 +36,15 @@ public abstract class ZipFileProvider implements ITargetListProvider {
     private final String outputFile;
     private final String listName;
 
+    /**
+     * Constructs a new ZipFileProvider with the specified parameters.
+     *
+     * @param number The number of entries to extract from the list
+     * @param sourceUrl The URL to download the compressed file from
+     * @param zipFilename The local filename to save the downloaded compressed file
+     * @param outputFile The filename for the extracted content
+     * @param listName The name of the list for logging purposes
+     */
     protected ZipFileProvider(
             int number, String sourceUrl, String zipFilename, String outputFile, String listName) {
         this.number = number;
@@ -41,6 +54,13 @@ public abstract class ZipFileProvider implements ITargetListProvider {
         this.listName = listName;
     }
 
+    /**
+     * Downloads the compressed target list, extracts it, and returns the processed entries.
+     * Automatically cleans up the downloaded and extracted files after processing.
+     *
+     * @return A list of target hostnames extracted from the downloaded file
+     * @throws RuntimeException If the file cannot be loaded or processed
+     */
     public List<String> getTargetList() {
         List<String> targetList;
         try {
@@ -91,6 +111,13 @@ public abstract class ZipFileProvider implements ITargetListProvider {
         return targetList;
     }
 
+    /**
+     * Creates an appropriate input stream based on the file extension.
+     *
+     * @param filename The filename to determine the compression type
+     * @return A GZIPInputStream for .gz files or ZipInputStream for other files
+     * @throws IOException If the file cannot be opened
+     */
     private InflaterInputStream getZipInputStream(String filename) throws IOException {
         if (filename.contains(".gz")) {
             return new GZIPInputStream(new FileInputStream(filename));
@@ -99,5 +126,12 @@ public abstract class ZipFileProvider implements ITargetListProvider {
         }
     }
 
+    /**
+     * Processes the lines from the extracted file to create the target list.
+     * Subclasses must implement this method to define how to extract targets from the file content.
+     *
+     * @param lines A stream of lines from the extracted file
+     * @return A list of target hostnames
+     */
     protected abstract List<String> getTargetListFromLines(Stream<String> lines);
 }
