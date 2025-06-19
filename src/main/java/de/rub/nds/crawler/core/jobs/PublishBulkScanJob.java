@@ -30,6 +30,12 @@ public class PublishBulkScanJob implements Job {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /**
+     * Executes the bulk scan publishing job.
+     *
+     * @param context the job execution context
+     * @throws JobExecutionException if an error occurs during job execution
+     */
     public void execute(JobExecutionContext context) throws JobExecutionException {
         try {
             JobDataMap data = context.getMergedJobDataMap();
