@@ -64,6 +64,11 @@ public class Worker {
                         new NamedThreadFactory("crawler-worker: result handler"));
     }
 
+    /**
+     * Starts the worker by registering it as a consumer for scan jobs. Once started, the worker
+     * will begin receiving and processing scan jobs from the orchestration provider's job queue.
+     * The number of parallel scan threads determines how many jobs can be consumed concurrently.
+     */
     public void start() {
         this.orchestrationProvider.registerScanJobConsumer(
                 this::handleScanJob, this.parallelScanThreads);
