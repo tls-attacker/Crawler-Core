@@ -8,6 +8,12 @@
  */
 package de.rub.nds.crawler.constant;
 
+/**
+ * Enumeration of possible job execution statuses in the TLS-Crawler.
+ *
+ * <p>This enum defines all possible states a scanning job can have during its lifecycle, from
+ * initial submission through execution to completion or error states.
+ */
 public enum JobStatus {
     /** Job is waiting to be executed. */
     TO_BE_EXECUTED(false),
@@ -38,10 +44,20 @@ public enum JobStatus {
 
     private final boolean isError;
 
+    /**
+     * Creates a JobStatus with the specified error flag.
+     *
+     * @param isError true if this status represents an error condition, false otherwise
+     */
     JobStatus(boolean isError) {
         this.isError = isError;
     }
 
+    /**
+     * Checks if this status represents an error condition.
+     *
+     * @return true if this is an error status, false otherwise
+     */
     public boolean isError() {
         return isError;
     }

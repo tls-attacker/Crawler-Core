@@ -8,6 +8,12 @@
  */
 package de.rub.nds.crawler.constant;
 
+/**
+ * Enumeration of CrUX (Chrome User Experience Report) list sizes.
+ *
+ * <p>This enum defines the different sizes of top website lists available from CrUX, ranging from
+ * the top 1,000 to the top 1 million most popular websites.
+ */
 public enum CruxListNumber {
     TOP_1k(1000),
     TOP_5K(5000),
@@ -19,10 +25,20 @@ public enum CruxListNumber {
 
     private final int number;
 
+    /**
+     * Creates a CruxListNumber with the specified numeric value.
+     *
+     * @param number the numeric value representing the list size
+     */
     CruxListNumber(int number) {
         this.number = number;
     }
 
+    /**
+     * Gets the numeric value of this CrUX list size.
+     *
+     * @return the number of websites in this CrUX list
+     */
     public int getNumber() {
         return number;
     }
