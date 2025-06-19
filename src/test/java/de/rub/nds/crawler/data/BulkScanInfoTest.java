@@ -9,22 +9,17 @@
 package de.rub.nds.crawler.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import java.io.Serializable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class BulkScanInfoTest {
 
-    @Mock private BulkScan mockBulkScan;
+    private BulkScan testBulkScan;
 
-    @Mock private ScanConfig mockScanConfig;
+    private ScanConfig testScanConfig;
 
     private BulkScanInfo bulkScanInfo;
 
@@ -61,37 +56,62 @@ class BulkScanInfoTest {
         }
     }
 
+    // Basic test implementation of ScanConfig
+    private static class BasicTestScanConfig extends ScanConfig {
+        public BasicTestScanConfig() {
+            super(ScannerDetail.NORMAL, 1, 1000);
+        }
+
+        @Override
+        public de.rub.nds.crawler.core.BulkScanWorker<? extends ScanConfig> createWorker(
+                String bulkScanID, int parallelConnectionThreads, int parallelScanThreads) {
+            return null;
+        }
+    }
+
     @BeforeEach
     void setUp() {
-        when(mockBulkScan.get_id()).thenReturn("bulk-scan-123");
-        when(mockBulkScan.getScanConfig()).thenReturn(mockScanConfig);
-        when(mockBulkScan.isMonitored()).thenReturn(true);
+        testScanConfig = new BasicTestScanConfig();
 
-        bulkScanInfo = new BulkScanInfo(mockBulkScan);
+        testBulkScan =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "TestScan",
+                        testScanConfig,
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        testBulkScan.set_id("bulk-scan-123");
+
+        bulkScanInfo = new BulkScanInfo(testBulkScan);
     }
 
     @Test
     void testConstructor() {
         assertNotNull(bulkScanInfo);
         assertEquals("bulk-scan-123", bulkScanInfo.getBulkScanId());
-        assertEquals(mockScanConfig, bulkScanInfo.getScanConfig());
+        assertEquals(testScanConfig, bulkScanInfo.getScanConfig());
         assertTrue(bulkScanInfo.isMonitored());
-
-        // Verify mock interactions
-        verify(mockBulkScan).get_id();
-        verify(mockBulkScan).getScanConfig();
-        verify(mockBulkScan).isMonitored();
     }
 
     @Test
     void testConstructorWithDifferentValues() {
-        when(mockBulkScan.get_id()).thenReturn("another-scan-456");
-        when(mockBulkScan.isMonitored()).thenReturn(false);
+        BulkScan anotherBulkScan =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "AnotherTestScan",
+                        testScanConfig,
+                        System.currentTimeMillis(),
+                        false,
+                        null);
+        anotherBulkScan.set_id("another-scan-456");
 
-        BulkScanInfo anotherInfo = new BulkScanInfo(mockBulkScan);
+        BulkScanInfo anotherInfo = new BulkScanInfo(anotherBulkScan);
 
         assertEquals("another-scan-456", anotherInfo.getBulkScanId());
-        assertEquals(mockScanConfig, anotherInfo.getScanConfig());
+        assertEquals(testScanConfig, anotherInfo.getScanConfig());
         assertFalse(anotherInfo.isMonitored());
     }
 
@@ -102,15 +122,24 @@ class BulkScanInfoTest {
 
     @Test
     void testGetScanConfig() {
-        assertEquals(mockScanConfig, bulkScanInfo.getScanConfig());
+        assertEquals(testScanConfig, bulkScanInfo.getScanConfig());
     }
 
     @Test
     void testGetScanConfigWithClass() {
         TestScanConfig testConfig = new TestScanConfig("test-value");
-        when(mockBulkScan.getScanConfig()).thenReturn(testConfig);
+        BulkScan bulkScanWithTestConfig =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "TestScan",
+                        testConfig,
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        bulkScanWithTestConfig.set_id("test-scan-id");
 
-        BulkScanInfo infoWithTestConfig = new BulkScanInfo(mockBulkScan);
+        BulkScanInfo infoWithTestConfig = new BulkScanInfo(bulkScanWithTestConfig);
 
         // Test type-safe getter
         TestScanConfig retrievedConfig = infoWithTestConfig.getScanConfig(TestScanConfig.class);
@@ -122,9 +151,18 @@ class BulkScanInfoTest {
     @Test
     void testGetScanConfigWithWrongClass() {
         TestScanConfig testConfig = new TestScanConfig("test-value");
-        when(mockBulkScan.getScanConfig()).thenReturn(testConfig);
+        BulkScan bulkScanWithTestConfig =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "TestScan",
+                        testConfig,
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        bulkScanWithTestConfig.set_id("test-scan-id");
 
-        BulkScanInfo infoWithTestConfig = new BulkScanInfo(mockBulkScan);
+        BulkScanInfo infoWithTestConfig = new BulkScanInfo(bulkScanWithTestConfig);
 
         // Test ClassCastException when casting to wrong type
         assertThrows(
@@ -141,8 +179,18 @@ class BulkScanInfoTest {
 
     @Test
     void testIsMonitoredFalse() {
-        when(mockBulkScan.isMonitored()).thenReturn(false);
-        BulkScanInfo unmonitoredInfo = new BulkScanInfo(mockBulkScan);
+        BulkScan unmonitoredBulkScan =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "UnmonitoredScan",
+                        testScanConfig,
+                        System.currentTimeMillis(),
+                        false,
+                        null);
+        unmonitoredBulkScan.set_id("unmonitored-scan-id");
+
+        BulkScanInfo unmonitoredInfo = new BulkScanInfo(unmonitoredBulkScan);
         assertFalse(unmonitoredInfo.isMonitored());
     }
 
@@ -167,28 +215,56 @@ class BulkScanInfoTest {
 
     @Test
     void testNullBulkScanId() {
-        when(mockBulkScan.get_id()).thenReturn(null);
-        BulkScanInfo infoWithNullId = new BulkScanInfo(mockBulkScan);
+        BulkScan bulkScanWithNullId =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "NullIdScan",
+                        testScanConfig,
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        // Don't set ID, leaving it null
+
+        BulkScanInfo infoWithNullId = new BulkScanInfo(bulkScanWithNullId);
         assertNull(infoWithNullId.getBulkScanId());
     }
 
     @Test
     void testNullScanConfig() {
-        when(mockBulkScan.getScanConfig()).thenReturn(null);
-        BulkScanInfo infoWithNullConfig = new BulkScanInfo(mockBulkScan);
+        BulkScan bulkScanWithNullConfig =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "NullConfigScan",
+                        null,
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        bulkScanWithNullConfig.set_id("null-config-scan-id");
+
+        BulkScanInfo infoWithNullConfig = new BulkScanInfo(bulkScanWithNullConfig);
         assertNull(infoWithNullConfig.getScanConfig());
     }
 
     @Test
     void testGetScanConfigWithClassOnNull() {
-        when(mockBulkScan.getScanConfig()).thenReturn(null);
-        BulkScanInfo infoWithNullConfig = new BulkScanInfo(mockBulkScan);
+        BulkScan bulkScanWithNullConfig =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "NullConfigScan",
+                        null,
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        bulkScanWithNullConfig.set_id("null-config-scan-id");
 
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    infoWithNullConfig.getScanConfig(TestScanConfig.class);
-                });
+        BulkScanInfo infoWithNullConfig = new BulkScanInfo(bulkScanWithNullConfig);
+
+        // The cast method will return null when called on null
+        TestScanConfig result = infoWithNullConfig.getScanConfig(TestScanConfig.class);
+        assertNull(result);
     }
 
     @Test
@@ -208,8 +284,18 @@ class BulkScanInfoTest {
 
     @Test
     void testEmptyBulkScanId() {
-        when(mockBulkScan.get_id()).thenReturn("");
-        BulkScanInfo infoWithEmptyId = new BulkScanInfo(mockBulkScan);
+        BulkScan bulkScanWithEmptyId =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "EmptyIdScan",
+                        testScanConfig,
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        bulkScanWithEmptyId.set_id("");
+
+        BulkScanInfo infoWithEmptyId = new BulkScanInfo(bulkScanWithEmptyId);
         assertEquals("", infoWithEmptyId.getBulkScanId());
     }
 
@@ -217,9 +303,18 @@ class BulkScanInfoTest {
     void testGetScanConfigGenericCast() {
         // Test that the generic method properly preserves type
         TestScanConfig testConfig = new TestScanConfig("generic-test");
-        when(mockBulkScan.getScanConfig()).thenReturn(testConfig);
+        BulkScan bulkScanWithTestConfig =
+                new BulkScan(
+                        BulkScanInfoTest.class,
+                        BulkScanInfoTest.class,
+                        "GenericTestScan",
+                        testConfig,
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        bulkScanWithTestConfig.set_id("generic-test-scan-id");
 
-        BulkScanInfo info = new BulkScanInfo(mockBulkScan);
+        BulkScanInfo info = new BulkScanInfo(bulkScanWithTestConfig);
 
         // This should compile and work without explicit cast
         TestScanConfig retrieved = info.getScanConfig(TestScanConfig.class);

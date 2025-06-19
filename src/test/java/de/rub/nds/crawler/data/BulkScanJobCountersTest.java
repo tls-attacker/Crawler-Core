@@ -9,7 +9,6 @@
 package de.rub.nds.crawler.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 import de.rub.nds.crawler.constant.JobStatus;
 import java.util.Map;
@@ -20,26 +19,46 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class BulkScanJobCountersTest {
 
-    @Mock private BulkScan mockBulkScan;
+    private BulkScan testBulkScan;
 
     private BulkScanJobCounters counters;
 
+    // Test implementation of ScanConfig for BulkScan
+    private static class TestScanConfig extends ScanConfig {
+        public TestScanConfig() {
+            super(de.rub.nds.scanner.core.config.ScannerDetail.NORMAL, 1, 1000);
+        }
+
+        @Override
+        public de.rub.nds.crawler.core.BulkScanWorker<? extends ScanConfig> createWorker(
+                String bulkScanID, int parallelConnectionThreads, int parallelScanThreads) {
+            return null;
+        }
+    }
+
     @BeforeEach
     void setUp() {
-        counters = new BulkScanJobCounters(mockBulkScan);
+        testBulkScan =
+                new BulkScan(
+                        BulkScanJobCountersTest.class,
+                        BulkScanJobCountersTest.class,
+                        "TestScan",
+                        new TestScanConfig(),
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        testBulkScan.set_id("test-bulk-scan-id");
+
+        counters = new BulkScanJobCounters(testBulkScan);
     }
 
     @Test
     void testConstructor() {
         assertNotNull(counters);
-        assertEquals(mockBulkScan, counters.getBulkScan());
+        assertEquals(testBulkScan, counters.getBulkScan());
 
         // Verify all JobStatus values except TO_BE_EXECUTED are initialized with 0
         Map<JobStatus, Integer> statusCounts = counters.getJobStatusCountersCopy();
@@ -57,7 +76,7 @@ class BulkScanJobCountersTest {
 
     @Test
     void testGetBulkScan() {
-        assertEquals(mockBulkScan, counters.getBulkScan());
+        assertEquals(testBulkScan, counters.getBulkScan());
     }
 
     @Test

@@ -9,9 +9,7 @@
 package de.rub.nds.crawler.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
-import de.rub.nds.crawler.core.BulkScanWorker;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import java.io.Serializable;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,8 +24,6 @@ class ScanConfigTest {
 
     // Concrete implementation for testing
     private static class TestScanConfig extends ScanConfig {
-        private BulkScanWorker<TestScanConfig> mockWorker;
-
         public TestScanConfig(ScannerDetail scannerDetail, int reexecutions, int timeout) {
             super(scannerDetail, reexecutions, timeout);
         }
@@ -37,17 +33,11 @@ class ScanConfigTest {
             super(ScannerDetail.NORMAL, 0, 0);
         }
 
-        public void setMockWorker(BulkScanWorker<TestScanConfig> mockWorker) {
-            this.mockWorker = mockWorker;
-        }
-
         @Override
-        public BulkScanWorker<? extends ScanConfig> createWorker(
+        public de.rub.nds.crawler.core.BulkScanWorker<? extends ScanConfig> createWorker(
                 String bulkScanID, int parallelConnectionThreads, int parallelScanThreads) {
-            if (mockWorker != null) {
-                return mockWorker;
-            }
-            return mock(BulkScanWorker.class);
+            // Return null for testing - we're not testing actual worker creation
+            return null;
         }
     }
 
@@ -114,21 +104,22 @@ class ScanConfigTest {
 
     @Test
     void testCreateWorker() {
-        BulkScanWorker<TestScanConfig> mockWorker = mock(BulkScanWorker.class);
-        scanConfig.setMockWorker(mockWorker);
-
-        BulkScanWorker<? extends ScanConfig> worker = scanConfig.createWorker("bulkScan123", 4, 8);
-        assertNotNull(worker);
-        assertEquals(mockWorker, worker);
+        // Just test that createWorker can be called - we return null in the test implementation
+        de.rub.nds.crawler.core.BulkScanWorker<? extends ScanConfig> worker =
+                scanConfig.createWorker("bulkScan123", 4, 8);
+        assertNull(worker);
     }
 
     @Test
     void testCreateWorkerWithDifferentParameters() {
-        BulkScanWorker<? extends ScanConfig> worker1 = scanConfig.createWorker("scan1", 1, 1);
-        BulkScanWorker<? extends ScanConfig> worker2 = scanConfig.createWorker("scan2", 10, 20);
+        de.rub.nds.crawler.core.BulkScanWorker<? extends ScanConfig> worker1 =
+                scanConfig.createWorker("scan1", 1, 1);
+        de.rub.nds.crawler.core.BulkScanWorker<? extends ScanConfig> worker2 =
+                scanConfig.createWorker("scan2", 10, 20);
 
-        assertNotNull(worker1);
-        assertNotNull(worker2);
+        // We return null in test implementation
+        assertNull(worker1);
+        assertNull(worker2);
     }
 
     @Test

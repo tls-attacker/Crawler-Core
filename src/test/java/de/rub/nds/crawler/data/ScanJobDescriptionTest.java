@@ -9,50 +9,73 @@
 package de.rub.nds.crawler.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 import de.rub.nds.crawler.constant.JobStatus;
 import java.io.*;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class ScanJobDescriptionTest {
 
-    @Mock private ScanTarget mockScanTarget;
+    private ScanTarget testScanTarget;
 
-    @Mock private BulkScanInfo mockBulkScanInfo;
+    private BulkScanInfo testBulkScanInfo;
 
-    @Mock private BulkScan mockBulkScan;
+    private BulkScan testBulkScan;
 
     private ScanJobDescription scanJobDescription;
 
+    // Test implementation of ScanConfig
+    private static class TestScanConfig extends ScanConfig {
+        public TestScanConfig() {
+            super(de.rub.nds.scanner.core.config.ScannerDetail.NORMAL, 1, 1000);
+        }
+
+        @Override
+        public de.rub.nds.crawler.core.BulkScanWorker<? extends ScanConfig> createWorker(
+                String bulkScanID, int parallelConnectionThreads, int parallelScanThreads) {
+            return null;
+        }
+    }
+
     @BeforeEach
     void setUp() {
-        when(mockBulkScan.getName()).thenReturn("TestScan");
-        when(mockBulkScan.getCollectionName()).thenReturn("test_collection");
-        when(mockBulkScan.get_id()).thenReturn("bulk-scan-id");
-        when(mockBulkScan.getScanConfig()).thenReturn(mock(ScanConfig.class));
-        when(mockBulkScan.isMonitored()).thenReturn(true);
+        // Create test ScanTarget
+        testScanTarget = new ScanTarget();
+        testScanTarget.setIp("192.168.1.100");
+        testScanTarget.setPort(443);
+
+        // Create test BulkScan
+        testBulkScan =
+                new BulkScan(
+                        ScanJobDescriptionTest.class,
+                        ScanJobDescriptionTest.class,
+                        "TestScan",
+                        new TestScanConfig(),
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        testBulkScan.set_id("bulk-scan-id");
+        testBulkScan.setCollectionName("test_collection");
+
+        // Create test BulkScanInfo
+        testBulkScanInfo = new BulkScanInfo(testBulkScan);
     }
 
     @Test
     void testConstructorWithBulkScanInfo() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "test_db",
                         "test_collection",
                         JobStatus.TO_BE_EXECUTED);
 
         assertNotNull(scanJobDescription);
-        assertEquals(mockScanTarget, scanJobDescription.getScanTarget());
-        assertEquals(mockBulkScanInfo, scanJobDescription.getBulkScanInfo());
+        assertEquals(testScanTarget, scanJobDescription.getScanTarget());
+        assertEquals(testBulkScanInfo, scanJobDescription.getBulkScanInfo());
         assertEquals("test_db", scanJobDescription.getDbName());
         assertEquals("test_collection", scanJobDescription.getCollectionName());
         assertEquals(JobStatus.TO_BE_EXECUTED, scanJobDescription.getStatus());
@@ -61,39 +84,39 @@ class ScanJobDescriptionTest {
     @Test
     void testConstructorWithBulkScan() {
         scanJobDescription =
-                new ScanJobDescription(mockScanTarget, mockBulkScan, JobStatus.SUCCESS);
+                new ScanJobDescription(testScanTarget, testBulkScan, JobStatus.SUCCESS);
 
         assertNotNull(scanJobDescription);
-        assertEquals(mockScanTarget, scanJobDescription.getScanTarget());
+        assertEquals(testScanTarget, scanJobDescription.getScanTarget());
         assertNotNull(scanJobDescription.getBulkScanInfo());
         assertEquals("TestScan", scanJobDescription.getDbName());
         assertEquals("test_collection", scanJobDescription.getCollectionName());
         assertEquals(JobStatus.SUCCESS, scanJobDescription.getStatus());
 
-        // Verify BulkScanInfo was created
-        verify(mockBulkScan).getName();
-        verify(mockBulkScan).getCollectionName();
+        // Verify BulkScanInfo was created properly
+        assertEquals("bulk-scan-id", scanJobDescription.getBulkScanInfo().getBulkScanId());
+        assertTrue(scanJobDescription.getBulkScanInfo().isMonitored());
     }
 
     @Test
     void testGetScanTarget() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "db",
                         "collection",
                         JobStatus.TO_BE_EXECUTED);
 
-        assertEquals(mockScanTarget, scanJobDescription.getScanTarget());
+        assertEquals(testScanTarget, scanJobDescription.getScanTarget());
     }
 
     @Test
     void testGetDbName() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "production_db",
                         "collection",
                         JobStatus.TO_BE_EXECUTED);
@@ -105,8 +128,8 @@ class ScanJobDescriptionTest {
     void testGetCollectionName() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "db",
                         "scan_results",
                         JobStatus.TO_BE_EXECUTED);
@@ -118,8 +141,8 @@ class ScanJobDescriptionTest {
     void testGetAndSetStatus() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "db",
                         "collection",
                         JobStatus.TO_BE_EXECUTED);
@@ -137,8 +160,8 @@ class ScanJobDescriptionTest {
     void testDeliveryTagInitiallyEmpty() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "db",
                         "collection",
                         JobStatus.TO_BE_EXECUTED);
@@ -155,8 +178,8 @@ class ScanJobDescriptionTest {
     void testSetAndGetDeliveryTag() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "db",
                         "collection",
                         JobStatus.TO_BE_EXECUTED);
@@ -169,8 +192,8 @@ class ScanJobDescriptionTest {
     void testSetDeliveryTagTwiceThrowsException() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "db",
                         "collection",
                         JobStatus.TO_BE_EXECUTED);
@@ -192,21 +215,21 @@ class ScanJobDescriptionTest {
     void testGetBulkScanInfo() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "db",
                         "collection",
                         JobStatus.TO_BE_EXECUTED);
 
-        assertEquals(mockBulkScanInfo, scanJobDescription.getBulkScanInfo());
+        assertEquals(testBulkScanInfo, scanJobDescription.getBulkScanInfo());
     }
 
     @Test
     void testSerializable() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "db",
                         "collection",
                         JobStatus.TO_BE_EXECUTED);
@@ -222,10 +245,16 @@ class ScanJobDescriptionTest {
         realTarget.setPort(443);
 
         // Create a real BulkScan and BulkScanInfo
-        BulkScan realBulkScan = mock(BulkScan.class);
-        when(realBulkScan.get_id()).thenReturn("real-id");
-        when(realBulkScan.getScanConfig()).thenReturn(mock(ScanConfig.class));
-        when(realBulkScan.isMonitored()).thenReturn(false);
+        BulkScan realBulkScan =
+                new BulkScan(
+                        ScanJobDescriptionTest.class,
+                        ScanJobDescriptionTest.class,
+                        "RealScan",
+                        new TestScanConfig(),
+                        System.currentTimeMillis(),
+                        false,
+                        null);
+        realBulkScan.set_id("real-id");
         BulkScanInfo realBulkScanInfo = new BulkScanInfo(realBulkScan);
 
         scanJobDescription =
@@ -277,7 +306,7 @@ class ScanJobDescriptionTest {
         for (JobStatus status : JobStatus.values()) {
             ScanJobDescription jobDesc =
                     new ScanJobDescription(
-                            mockScanTarget, mockBulkScanInfo, "db", "collection", status);
+                            testScanTarget, testBulkScanInfo, "db", "collection", status);
             assertEquals(status, jobDesc.getStatus());
         }
     }
@@ -298,7 +327,7 @@ class ScanJobDescriptionTest {
     void testEmptyStrings() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget, mockBulkScanInfo, "", "", JobStatus.TO_BE_EXECUTED);
+                        testScanTarget, testBulkScanInfo, "", "", JobStatus.TO_BE_EXECUTED);
 
         assertEquals("", scanJobDescription.getDbName());
         assertEquals("", scanJobDescription.getCollectionName());
@@ -308,8 +337,8 @@ class ScanJobDescriptionTest {
     void testSetDeliveryTagWithNull() {
         scanJobDescription =
                 new ScanJobDescription(
-                        mockScanTarget,
-                        mockBulkScanInfo,
+                        testScanTarget,
+                        testBulkScanInfo,
                         "db",
                         "collection",
                         JobStatus.TO_BE_EXECUTED);

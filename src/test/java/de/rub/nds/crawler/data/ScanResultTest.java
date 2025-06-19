@@ -9,34 +9,68 @@
 package de.rub.nds.crawler.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 import de.rub.nds.crawler.constant.JobStatus;
 import java.io.Serializable;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class ScanResultTest {
 
-    @Mock private ScanJobDescription mockScanJobDescription;
+    private ScanJobDescription testScanJobDescription;
 
-    @Mock private BulkScanInfo mockBulkScanInfo;
+    private BulkScanInfo testBulkScanInfo;
 
-    @Mock private ScanTarget mockScanTarget;
+    private ScanTarget testScanTarget;
+
+    private BulkScan testBulkScan;
 
     private Document testDocument;
 
+    // Test implementation of ScanConfig
+    private static class TestScanConfig extends ScanConfig {
+        public TestScanConfig() {
+            super(de.rub.nds.scanner.core.config.ScannerDetail.NORMAL, 1, 1000);
+        }
+
+        @Override
+        public de.rub.nds.crawler.core.BulkScanWorker<? extends ScanConfig> createWorker(
+                String bulkScanID, int parallelConnectionThreads, int parallelScanThreads) {
+            return null;
+        }
+    }
+
     @BeforeEach
     void setUp() {
-        when(mockScanJobDescription.getBulkScanInfo()).thenReturn(mockBulkScanInfo);
-        when(mockBulkScanInfo.getBulkScanId()).thenReturn("bulk-scan-123");
-        when(mockScanJobDescription.getScanTarget()).thenReturn(mockScanTarget);
-        when(mockScanJobDescription.getStatus()).thenReturn(JobStatus.SUCCESS);
+        // Create test ScanTarget
+        testScanTarget = new ScanTarget();
+        testScanTarget.setIp("192.168.1.100");
+        testScanTarget.setPort(443);
+
+        // Create test BulkScan
+        testBulkScan =
+                new BulkScan(
+                        ScanResultTest.class,
+                        ScanResultTest.class,
+                        "TestScan",
+                        new TestScanConfig(),
+                        System.currentTimeMillis(),
+                        true,
+                        null);
+        testBulkScan.set_id("bulk-scan-123");
+
+        // Create test BulkScanInfo
+        testBulkScanInfo = new BulkScanInfo(testBulkScan);
+
+        // Create test ScanJobDescription
+        testScanJobDescription =
+                new ScanJobDescription(
+                        testScanTarget,
+                        testBulkScanInfo,
+                        "test_db",
+                        "test_collection",
+                        JobStatus.SUCCESS);
 
         testDocument = new Document();
         testDocument.put("key", "value");
@@ -45,7 +79,7 @@ class ScanResultTest {
 
     @Test
     void testConstructorWithScanJobDescription() {
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, testDocument);
+        ScanResult scanResult = new ScanResult(testScanJobDescription, testDocument);
 
         assertNotNull(scanResult);
         assertNotNull(scanResult.getId());
@@ -54,19 +88,26 @@ class ScanResultTest {
                         .getId()
                         .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"));
         assertEquals("bulk-scan-123", scanResult.getBulkScan());
-        assertEquals(mockScanTarget, scanResult.getScanTarget());
+        assertEquals(testScanTarget, scanResult.getScanTarget());
         assertEquals(JobStatus.SUCCESS, scanResult.getResultStatus());
         assertEquals(testDocument, scanResult.getResult());
     }
 
     @Test
     void testConstructorWithToBeExecutedStatusThrowsException() {
-        when(mockScanJobDescription.getStatus()).thenReturn(JobStatus.TO_BE_EXECUTED);
+        // Create a new ScanJobDescription with TO_BE_EXECUTED status
+        ScanJobDescription toBeExecutedJob =
+                new ScanJobDescription(
+                        testScanTarget,
+                        testBulkScanInfo,
+                        "test_db",
+                        "test_collection",
+                        JobStatus.TO_BE_EXECUTED);
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    new ScanResult(mockScanJobDescription, testDocument);
+                    new ScanResult(toBeExecutedJob, testDocument);
                 });
     }
 
@@ -87,23 +128,31 @@ class ScanResultTest {
         };
 
         for (JobStatus status : validStatuses) {
-            when(mockScanJobDescription.getStatus()).thenReturn(status);
-            ScanResult result = new ScanResult(mockScanJobDescription, testDocument);
+            ScanJobDescription jobWithStatus =
+                    new ScanJobDescription(
+                            testScanTarget, testBulkScanInfo, "test_db", "test_collection", status);
+            ScanResult result = new ScanResult(jobWithStatus, testDocument);
             assertEquals(status, result.getResultStatus());
         }
     }
 
     @Test
     void testFromExceptionWithErrorStatus() {
-        when(mockScanJobDescription.getStatus()).thenReturn(JobStatus.ERROR);
+        ScanJobDescription errorJob =
+                new ScanJobDescription(
+                        testScanTarget,
+                        testBulkScanInfo,
+                        "test_db",
+                        "test_collection",
+                        JobStatus.ERROR);
         Exception testException = new RuntimeException("Test error message");
 
-        ScanResult errorResult = ScanResult.fromException(mockScanJobDescription, testException);
+        ScanResult errorResult = ScanResult.fromException(errorJob, testException);
 
         assertNotNull(errorResult);
         assertNotNull(errorResult.getId());
         assertEquals("bulk-scan-123", errorResult.getBulkScan());
-        assertEquals(mockScanTarget, errorResult.getScanTarget());
+        assertEquals(testScanTarget, errorResult.getScanTarget());
         assertEquals(JobStatus.ERROR, errorResult.getResultStatus());
 
         Document resultDoc = errorResult.getResult();
@@ -113,13 +162,13 @@ class ScanResultTest {
 
     @Test
     void testFromExceptionWithNonErrorStatusThrowsException() {
-        when(mockScanJobDescription.getStatus()).thenReturn(JobStatus.SUCCESS);
+        // testScanJobDescription already has SUCCESS status from setUp
         Exception testException = new RuntimeException("Test error");
 
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    ScanResult.fromException(mockScanJobDescription, testException);
+                    ScanResult.fromException(testScanJobDescription, testException);
                 });
     }
 
@@ -129,8 +178,14 @@ class ScanResultTest {
 
         for (JobStatus status : JobStatus.values()) {
             if (status.isError()) {
-                when(mockScanJobDescription.getStatus()).thenReturn(status);
-                ScanResult result = ScanResult.fromException(mockScanJobDescription, testException);
+                ScanJobDescription errorJob =
+                        new ScanJobDescription(
+                                testScanTarget,
+                                testBulkScanInfo,
+                                "test_db",
+                                "test_collection",
+                                status);
+                ScanResult result = ScanResult.fromException(errorJob, testException);
                 assertEquals(status, result.getResultStatus());
                 assertEquals(testException, result.getResult().get("exception"));
             }
@@ -139,7 +194,7 @@ class ScanResultTest {
 
     @Test
     void testGetAndSetId() {
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, testDocument);
+        ScanResult scanResult = new ScanResult(testScanJobDescription, testDocument);
 
         String originalId = scanResult.getId();
         assertNotNull(originalId);
@@ -151,19 +206,19 @@ class ScanResultTest {
 
     @Test
     void testGetBulkScan() {
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, testDocument);
+        ScanResult scanResult = new ScanResult(testScanJobDescription, testDocument);
         assertEquals("bulk-scan-123", scanResult.getBulkScan());
     }
 
     @Test
     void testGetScanTarget() {
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, testDocument);
-        assertEquals(mockScanTarget, scanResult.getScanTarget());
+        ScanResult scanResult = new ScanResult(testScanJobDescription, testDocument);
+        assertEquals(testScanTarget, scanResult.getScanTarget());
     }
 
     @Test
     void testGetResult() {
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, testDocument);
+        ScanResult scanResult = new ScanResult(testScanJobDescription, testDocument);
         assertEquals(testDocument, scanResult.getResult());
         assertEquals("value", scanResult.getResult().get("key"));
         assertEquals(42, scanResult.getResult().get("number"));
@@ -171,14 +226,20 @@ class ScanResultTest {
 
     @Test
     void testGetResultStatus() {
-        when(mockScanJobDescription.getStatus()).thenReturn(JobStatus.EMPTY);
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, testDocument);
+        ScanJobDescription emptyJob =
+                new ScanJobDescription(
+                        testScanTarget,
+                        testBulkScanInfo,
+                        "test_db",
+                        "test_collection",
+                        JobStatus.EMPTY);
+        ScanResult scanResult = new ScanResult(emptyJob, testDocument);
         assertEquals(JobStatus.EMPTY, scanResult.getResultStatus());
     }
 
     @Test
     void testSerializable() {
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, testDocument);
+        ScanResult scanResult = new ScanResult(testScanJobDescription, testDocument);
         assertTrue(Serializable.class.isAssignableFrom(scanResult.getClass()));
     }
 
@@ -206,14 +267,14 @@ class ScanResultTest {
 
     @Test
     void testNullDocument() {
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, null);
+        ScanResult scanResult = new ScanResult(testScanJobDescription, null);
         assertNull(scanResult.getResult());
     }
 
     @Test
     void testEmptyDocument() {
         Document emptyDoc = new Document();
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, emptyDoc);
+        ScanResult scanResult = new ScanResult(testScanJobDescription, emptyDoc);
         assertNotNull(scanResult.getResult());
         assertTrue(scanResult.getResult().isEmpty());
     }
@@ -225,7 +286,7 @@ class ScanResultTest {
             largeDoc.put("key" + i, "value" + i);
         }
 
-        ScanResult scanResult = new ScanResult(mockScanJobDescription, largeDoc);
+        ScanResult scanResult = new ScanResult(testScanJobDescription, largeDoc);
         assertEquals(largeDoc, scanResult.getResult());
         assertEquals(1000, scanResult.getResult().size());
     }
@@ -233,9 +294,9 @@ class ScanResultTest {
     @Test
     void testUniqueIdGeneration() {
         // Create multiple ScanResults and verify unique IDs
-        ScanResult result1 = new ScanResult(mockScanJobDescription, testDocument);
-        ScanResult result2 = new ScanResult(mockScanJobDescription, testDocument);
-        ScanResult result3 = new ScanResult(mockScanJobDescription, testDocument);
+        ScanResult result1 = new ScanResult(testScanJobDescription, testDocument);
+        ScanResult result2 = new ScanResult(testScanJobDescription, testDocument);
+        ScanResult result3 = new ScanResult(testScanJobDescription, testDocument);
 
         assertNotEquals(result1.getId(), result2.getId());
         assertNotEquals(result1.getId(), result3.getId());
@@ -244,9 +305,15 @@ class ScanResultTest {
 
     @Test
     void testFromExceptionWithNullException() {
-        when(mockScanJobDescription.getStatus()).thenReturn(JobStatus.ERROR);
+        ScanJobDescription errorJob =
+                new ScanJobDescription(
+                        testScanTarget,
+                        testBulkScanInfo,
+                        "test_db",
+                        "test_collection",
+                        JobStatus.ERROR);
 
-        ScanResult errorResult = ScanResult.fromException(mockScanJobDescription, null);
+        ScanResult errorResult = ScanResult.fromException(errorJob, null);
 
         assertNotNull(errorResult);
         assertNull(errorResult.getResult().get("exception"));

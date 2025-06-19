@@ -9,7 +9,6 @@
 package de.rub.nds.crawler.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 import de.rub.nds.crawler.constant.JobStatus;
 import java.io.Serializable;
@@ -21,14 +20,10 @@ import java.util.Map;
 import javax.persistence.Id;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class BulkScanTest {
 
-    @Mock private ScanConfig mockScanConfig;
+    private ScanConfig testScanConfig;
 
     private BulkScan bulkScan;
     private static final long TEST_START_TIME = 1640995200000L; // 2022-01-01 00:00:00 UTC
@@ -44,15 +39,30 @@ class BulkScanTest {
         // Mock crawler class
     }
 
+    // Test implementation of ScanConfig
+    private static class TestScanConfig extends ScanConfig {
+        public TestScanConfig() {
+            super(de.rub.nds.scanner.core.config.ScannerDetail.NORMAL, 1, 1000);
+        }
+
+        @Override
+        public de.rub.nds.crawler.core.BulkScanWorker<? extends ScanConfig> createWorker(
+                String bulkScanID, int parallelConnectionThreads, int parallelScanThreads) {
+            return null;
+        }
+    }
+
     @BeforeEach
     void setUp() {
+        testScanConfig = new TestScanConfig();
+
         // Create a bulkScan with the main constructor
         bulkScan =
                 new BulkScan(
                         TestScannerClass.class,
                         TestCrawlerClass.class,
                         TEST_NAME,
-                        mockScanConfig,
+                        testScanConfig,
                         TEST_START_TIME,
                         true,
                         TEST_NOTIFY_URL);
@@ -62,7 +72,7 @@ class BulkScanTest {
     void testMainConstructor() {
         assertNotNull(bulkScan);
         assertEquals(TEST_NAME, bulkScan.getName());
-        assertEquals(mockScanConfig, bulkScan.getScanConfig());
+        assertEquals(testScanConfig, bulkScan.getScanConfig());
         assertEquals(TEST_START_TIME, bulkScan.getStartTime());
         assertTrue(bulkScan.isMonitored());
         assertFalse(bulkScan.isFinished());
@@ -92,7 +102,7 @@ class BulkScanTest {
                         TestScannerClass.class,
                         TestCrawlerClass.class,
                         "Scan1",
-                        mockScanConfig,
+                        testScanConfig,
                         timestamp1,
                         false,
                         null);
@@ -102,7 +112,7 @@ class BulkScanTest {
                         TestScannerClass.class,
                         TestCrawlerClass.class,
                         "Scan2",
-                        mockScanConfig,
+                        testScanConfig,
                         timestamp2,
                         false,
                         null);
@@ -140,9 +150,9 @@ class BulkScanTest {
 
     @Test
     void testGetAndSetScanConfig() {
-        assertEquals(mockScanConfig, bulkScan.getScanConfig());
+        assertEquals(testScanConfig, bulkScan.getScanConfig());
 
-        ScanConfig newConfig = mock(ScanConfig.class);
+        ScanConfig newConfig = new TestScanConfig();
         bulkScan.setScanConfig(newConfig);
         assertEquals(newConfig, bulkScan.getScanConfig());
     }
@@ -356,7 +366,7 @@ class BulkScanTest {
                         TestScannerClass.class,
                         TestCrawlerClass.class,
                         "Test",
-                        mockScanConfig,
+                        testScanConfig,
                         TEST_START_TIME,
                         false,
                         null);
