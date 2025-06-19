@@ -54,6 +54,14 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
 
     private Set<String> declaredQueues = new HashSet<>();
 
+    /**
+     * Constructs a new RabbitMqOrchestrationProvider with the specified configuration. Establishes
+     * connection to RabbitMQ server and declares the scan job queue.
+     *
+     * @param rabbitMqDelegate configuration for RabbitMQ connection including host, port,
+     *     credentials, and TLS settings
+     * @throws RuntimeException if connection to RabbitMQ fails
+     */
     public RabbitMqOrchestrationProvider(RabbitMqDelegate rabbitMqDelegate) {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(rabbitMqDelegate.getRabbitMqHost());
@@ -106,6 +114,11 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         return queueName;
     }
 
+    /**
+     * Submits a scan job to the RabbitMQ work queue for processing by workers.
+     *
+     * @param scanJobDescription the scan job to submit, containing target and configuration
+     */
     @Override
     public void submitScanJob(ScanJobDescription scanJobDescription) {
         try {
@@ -116,6 +129,12 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         }
     }
 
+    /**
+     * Registers a consumer to process scan jobs from the work queue.
+     *
+     * @param scanJobConsumer the consumer callback to process scan jobs
+     * @param prefetchCount the number of unacknowledged messages to prefetch (QoS setting)
+     */
     @Override
     public void registerScanJobConsumer(ScanJobConsumer scanJobConsumer, int prefetchCount) {
         DeliverCallback deliverCallback =
@@ -151,6 +170,13 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         }
     }
 
+    /**
+     * Registers a consumer to receive notifications when scan jobs complete. Creates a dedicated
+     * queue for the bulk scan if it doesn't exist.
+     *
+     * @param bulkScan the bulk scan to monitor for completions
+     * @param doneNotificationConsumer the consumer callback for completion notifications
+     */
     @Override
     public void registerDoneNotificationConsumer(
             BulkScan bulkScan, DoneNotificationConsumer doneNotificationConsumer) {
@@ -170,6 +196,12 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         }
     }
 
+    /**
+     * Sends a notification that a scan job has completed and acknowledges the message. Only sends
+     * notifications for monitored bulk scans.
+     *
+     * @param scanJobDescription the completed scan job description
+     */
     @Override
     public void notifyOfDoneScanJob(ScanJobDescription scanJobDescription) {
         sendAck(scanJobDescription.getDeliveryTag());
@@ -186,6 +218,10 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         }
     }
 
+    /**
+     * Closes the RabbitMQ channel and connection gracefully. Logs any errors that occur during
+     * shutdown.
+     */
     @Override
     public void closeConnection() {
         try {

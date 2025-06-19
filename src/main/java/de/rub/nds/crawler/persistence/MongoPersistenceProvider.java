@@ -55,6 +55,13 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private static final Object registrationLock = new Object();
     private static volatile boolean registrationClosed = false;
 
+    /**
+     * Registers a custom Jackson JSON serializer for use with MongoDB persistence. Must be called
+     * before any MongoPersistenceProvider instances are created.
+     *
+     * @param serializer the JSON serializer to register
+     * @throws RuntimeException if called after provider initialization
+     */
     public static void registerSerializer(JsonSerializer<?> serializer) {
         synchronized (registrationLock) {
             if (registrationClosed) {
@@ -64,12 +71,26 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         }
     }
 
+    /**
+     * Registers multiple custom Jackson JSON serializers for use with MongoDB persistence. Must be
+     * called before any MongoPersistenceProvider instances are created.
+     *
+     * @param serializers the JSON serializers to register
+     * @throws RuntimeException if called after provider initialization
+     */
     public static void registerSerializer(JsonSerializer<?>... serializers) {
         for (JsonSerializer<?> serializer : serializers) {
             registerSerializer(serializer);
         }
     }
 
+    /**
+     * Registers a custom Jackson module for use with MongoDB persistence. Must be called before any
+     * MongoPersistenceProvider instances are created.
+     *
+     * @param module the Jackson module to register
+     * @throws RuntimeException if called after provider initialization
+     */
     public static void registerModule(Module module) {
         synchronized (registrationLock) {
             if (registrationClosed) {
@@ -79,6 +100,13 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         }
     }
 
+    /**
+     * Registers multiple custom Jackson modules for use with MongoDB persistence. Must be called
+     * before any MongoPersistenceProvider instances are created.
+     *
+     * @param modules the Jackson modules to register
+     * @throws RuntimeException if called after provider initialization
+     */
     public static void registerModule(Module... modules) {
         for (Module module : modules) {
             registerModule(module);
@@ -148,9 +176,12 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     }
 
     /**
-     * Initialize connection to mongodb and setup MongoJack PojoToBson mapper.
+     * Constructs a new MongoPersistenceProvider and establishes connection to MongoDB. Initializes
+     * Jackson object mapper with registered serializers and modules. Sets up database and
+     * collection caches for efficient access.
      *
-     * @param mongoDbDelegate Mongodb command line configuration parameters
+     * @param mongoDbDelegate MongoDB connection configuration including host, port, and credentials
+     * @throws RuntimeException if connection to MongoDB fails
      */
     public MongoPersistenceProvider(MongoDbDelegate mongoDbDelegate) {
         synchronized (registrationLock) {
@@ -220,11 +251,22 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         return this.bulkScanCollection;
     }
 
+    /**
+     * Inserts a new bulk scan record into the database.
+     *
+     * @param bulkScan the bulk scan to insert (must not be null)
+     */
     @Override
     public void insertBulkScan(@NonNull BulkScan bulkScan) {
         this.getBulkScanCollection(bulkScan.getName()).insertOne(bulkScan);
     }
 
+    /**
+     * Updates an existing bulk scan record in the database. Performs a delete and re-insert
+     * operation.
+     *
+     * @param bulkScan the bulk scan to update (must not be null and must have an ID)
+     */
     @Override
     public void updateBulkScan(@NonNull BulkScan bulkScan) {
         this.getBulkScanCollection(bulkScan.getName()).removeById(bulkScan.get_id());
@@ -241,6 +283,14 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         resultCollectionCache.getUnchecked(Pair.of(dbName, collectionName)).insertOne(scanResult);
     }
 
+    /**
+     * Inserts a scan result into the appropriate database collection. Handles serialization errors
+     * by creating error results.
+     *
+     * @param scanResult the scan result to insert
+     * @param scanJobDescription the job description containing database and collection information
+     * @throws IllegalArgumentException if result status doesn't match job status
+     */
     @Override
     public void insertScanResult(ScanResult scanResult, ScanJobDescription scanJobDescription) {
         if (scanResult.getResultStatus() != scanJobDescription.getStatus()) {

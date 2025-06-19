@@ -57,6 +57,17 @@ public class BulkScan implements Serializable {
     @SuppressWarnings("unused")
     private BulkScan() {}
 
+    /**
+     * Constructs a new BulkScan instance representing a large-scale scanning operation.
+     *
+     * @param scannerClass the scanner implementation class (used to determine version)
+     * @param crawlerClass the crawler implementation class (used to determine version)
+     * @param name the name of this bulk scan
+     * @param scanConfig the configuration settings for scan execution
+     * @param startTime the timestamp when this bulk scan was started (epoch milliseconds)
+     * @param monitored whether progress monitoring is enabled for this bulk scan
+     * @param notifyUrl optional URL to receive HTTP notification when scan completes
+     */
     public BulkScan(
             Class<?> scannerClass,
             Class<?> crawlerClass,
@@ -76,11 +87,22 @@ public class BulkScan implements Serializable {
         this.notifyUrl = notifyUrl;
     }
 
+    /**
+     * Gets the unique identifier for this bulk scan. Note: The underscore prefix is required for
+     * MongoDB/Jackson serialization.
+     *
+     * @return the unique bulk scan identifier
+     */
     // Getter naming important for correct serialization, do not change!
     public String get_id() {
         return _id;
     }
 
+    /**
+     * Gets the name of this bulk scan.
+     *
+     * @return the bulk scan name
+     */
     public String getName() {
         return this.name;
     }
@@ -97,6 +119,11 @@ public class BulkScan implements Serializable {
         return this.monitored;
     }
 
+    /**
+     * Checks whether this bulk scan has completed execution.
+     *
+     * @return true if the bulk scan is finished, false otherwise
+     */
     public boolean isFinished() {
         return this.finished;
     }
@@ -113,6 +140,11 @@ public class BulkScan implements Serializable {
         return this.targetsGiven;
     }
 
+    /**
+     * Gets the number of scan jobs successfully published to the work queue.
+     *
+     * @return the count of published scan jobs
+     */
     public long getScanJobsPublished() {
         return this.scanJobsPublished;
     }
@@ -133,6 +165,12 @@ public class BulkScan implements Serializable {
         return this.crawlerVersion;
     }
 
+    /**
+     * Sets the unique identifier for this bulk scan. Note: The underscore prefix is required for
+     * MongoDB/Jackson serialization.
+     *
+     * @param _id the unique bulk scan identifier
+     */
     // Setter naming important for correct serialization, do not change!
     public void set_id(String _id) {
         this._id = _id;
@@ -154,6 +192,11 @@ public class BulkScan implements Serializable {
         this.monitored = monitored;
     }
 
+    /**
+     * Sets whether this bulk scan has completed execution.
+     *
+     * @param finished true if the bulk scan is finished, false otherwise
+     */
     public void setFinished(boolean finished) {
         this.finished = finished;
     }
@@ -166,10 +209,20 @@ public class BulkScan implements Serializable {
         this.endTime = endTime;
     }
 
+    /**
+     * Sets the total number of targets provided for this bulk scan.
+     *
+     * @param targetsGiven the total target count
+     */
     public void setTargetsGiven(int targetsGiven) {
         this.targetsGiven = targetsGiven;
     }
 
+    /**
+     * Sets the number of scan jobs successfully published to the work queue.
+     *
+     * @param scanJobsPublished the count of published scan jobs
+     */
     public void setScanJobsPublished(long scanJobsPublished) {
         this.scanJobsPublished = scanJobsPublished;
     }

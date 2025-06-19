@@ -30,6 +30,13 @@ public class PublishBulkScanJob implements Job {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /**
+     * Executes the bulk scan publishing job. Creates a new bulk scan, filters targets, submits scan
+     * jobs to the orchestration provider, and monitors progress.
+     *
+     * @param context the Quartz job execution context containing job data
+     * @throws JobExecutionException if an error occurs during job execution
+     */
     public void execute(JobExecutionContext context) throws JobExecutionException {
         try {
             JobDataMap data = context.getMergedJobDataMap();
@@ -109,6 +116,15 @@ public class PublishBulkScanJob implements Job {
         private final BulkScan bulkScan;
         private final int defaultPort;
 
+        /**
+         * Constructs a new JobSubmitter for processing target strings into scan jobs.
+         *
+         * @param orchestrationProvider the provider for submitting scan jobs to the queue
+         * @param persistenceProvider the provider for persisting error results
+         * @param denylistProvider the provider for checking if hosts are denylisted
+         * @param bulkScan the bulk scan context for the jobs
+         * @param defaultPort the default port to use if not specified in the target string
+         */
         public JobSubmitter(
                 IOrchestrationProvider orchestrationProvider,
                 IPersistenceProvider persistenceProvider,
@@ -122,6 +138,14 @@ public class PublishBulkScanJob implements Job {
             this.defaultPort = defaultPort;
         }
 
+        /**
+         * Processes a target string into a scan job. Parses the target, checks denylist status, and
+         * either submits the job for execution or persists an error result.
+         *
+         * @param targetString the target string to process (may include hostname, IP, port, or
+         *     rank)
+         * @return the job status indicating whether the job was submitted or why it failed
+         */
         @Override
         public JobStatus apply(String targetString) {
             ScanJobDescription jobDescription;

@@ -35,6 +35,13 @@ public class ScanResult implements Serializable {
         this.result = result;
     }
 
+    /**
+     * Constructs a new ScanResult from a completed scan job.
+     *
+     * @param scanJobDescription the scan job description containing target and status information
+     * @param result the scan result document (may be null for error states)
+     * @throws IllegalArgumentException if the scan job is still in TO_BE_EXECUTED state
+     */
     public ScanResult(ScanJobDescription scanJobDescription, Document result) {
         this(
                 scanJobDescription.getBulkScanInfo().getBulkScanId(),
@@ -47,6 +54,14 @@ public class ScanResult implements Serializable {
         }
     }
 
+    /**
+     * Creates a ScanResult from an exception that occurred during scanning.
+     *
+     * @param scanJobDescription the scan job description with an error status
+     * @param e the exception that occurred
+     * @return a new ScanResult containing the exception information
+     * @throws IllegalArgumentException if the scan job is not in an error state
+     */
     public static ScanResult fromException(ScanJobDescription scanJobDescription, Exception e) {
         if (!scanJobDescription.getStatus().isError()) {
             throw new IllegalArgumentException("ScanJobDescription must be in an error state");
@@ -56,28 +71,58 @@ public class ScanResult implements Serializable {
         return new ScanResult(scanJobDescription, errorDocument);
     }
 
+    /**
+     * Gets the unique identifier for this scan result.
+     *
+     * @return the unique result identifier
+     */
     @JsonProperty("_id")
     public String getId() {
         return this.id;
     }
 
+    /**
+     * Sets the unique identifier for this scan result.
+     *
+     * @param id the unique result identifier to set
+     */
     @JsonProperty("_id")
     public void setId(String id) {
         this.id = id;
     }
 
+    /**
+     * Gets the bulk scan identifier this result belongs to.
+     *
+     * @return the parent bulk scan ID
+     */
     public String getBulkScan() {
         return this.bulkScan;
     }
 
+    /**
+     * Gets the scan target information for this result.
+     *
+     * @return the scan target containing host and port information
+     */
     public ScanTarget getScanTarget() {
         return this.scanTarget;
     }
 
+    /**
+     * Gets the scan result document containing the actual scan data or error information.
+     *
+     * @return the result document, may be null for certain error states
+     */
     public Document getResult() {
         return this.result;
     }
 
+    /**
+     * Gets the job status indicating the outcome of the scan.
+     *
+     * @return the job status (SUCCESS, ERROR, TIMEOUT, etc.)
+     */
     public JobStatus getResultStatus() {
         return jobStatus;
     }
