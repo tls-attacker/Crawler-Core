@@ -55,6 +55,13 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private static final Object registrationLock = new Object();
     private static volatile boolean registrationClosed = false;
 
+    /**
+     * Registers a custom JSON serializer to be used for MongoDB serialization. Must be called
+     * before the first MongoPersistenceProvider instance is created.
+     *
+     * @param serializer The JSON serializer to register
+     * @throws RuntimeException if called after initialization
+     */
     public static void registerSerializer(JsonSerializer<?> serializer) {
         synchronized (registrationLock) {
             if (registrationClosed) {
@@ -64,12 +71,26 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         }
     }
 
+    /**
+     * Registers multiple custom JSON serializers to be used for MongoDB serialization. Must be
+     * called before the first MongoPersistenceProvider instance is created.
+     *
+     * @param serializers The JSON serializers to register
+     * @throws RuntimeException if called after initialization
+     */
     public static void registerSerializer(JsonSerializer<?>... serializers) {
         for (JsonSerializer<?> serializer : serializers) {
             registerSerializer(serializer);
         }
     }
 
+    /**
+     * Registers a Jackson module to be used for MongoDB serialization. Must be called before the
+     * first MongoPersistenceProvider instance is created.
+     *
+     * @param module The Jackson module to register
+     * @throws RuntimeException if called after initialization
+     */
     public static void registerModule(Module module) {
         synchronized (registrationLock) {
             if (registrationClosed) {
@@ -79,6 +100,13 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         }
     }
 
+    /**
+     * Registers multiple Jackson modules to be used for MongoDB serialization. Must be called
+     * before the first MongoPersistenceProvider instance is created.
+     *
+     * @param modules The Jackson modules to register
+     * @throws RuntimeException if called after initialization
+     */
     public static void registerModule(Module... modules) {
         for (Module module : modules) {
             registerModule(module);
@@ -151,6 +179,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
      * Initialize connection to mongodb and setup MongoJack PojoToBson mapper.
      *
      * @param mongoDbDelegate Mongodb command line configuration parameters
+     * @throws RuntimeException if connection to MongoDB fails
      */
     public MongoPersistenceProvider(MongoDbDelegate mongoDbDelegate) {
         synchronized (registrationLock) {
@@ -220,11 +249,13 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         return this.bulkScanCollection;
     }
 
+    /** {@inheritDoc} */
     @Override
     public void insertBulkScan(@NonNull BulkScan bulkScan) {
         this.getBulkScanCollection(bulkScan.getName()).insertOne(bulkScan);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void updateBulkScan(@NonNull BulkScan bulkScan) {
         this.getBulkScanCollection(bulkScan.getName()).removeById(bulkScan.get_id());
@@ -241,6 +272,12 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         resultCollectionCache.getUnchecked(Pair.of(dbName, collectionName)).insertOne(scanResult);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws IllegalArgumentException if the ScanResult status does not match the
+     *     ScanJobDescription status
+     */
     @Override
     public void insertScanResult(ScanResult scanResult, ScanJobDescription scanJobDescription) {
         if (scanResult.getResultStatus() != scanJobDescription.getStatus()) {
