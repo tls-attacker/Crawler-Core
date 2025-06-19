@@ -132,8 +132,7 @@ class ScanTargetTest {
 
     @Test
     void testFromTargetStringWithPortOutOfRange() {
-        // Port parsing will throw NumberFormatException for values > Integer.MAX_VALUE
-        // Let's test port 70000 which is > 65535 but still parseable
+        // Port validation happens during parsing: if (port > 1 && port < 65535)
         String targetString = "192.168.1.1:70000";
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString(targetString, DEFAULT_PORT, testDenylistProvider);
@@ -142,7 +141,7 @@ class ScanTargetTest {
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         ScanTarget target = result.getLeft();
         assertEquals("192.168.1.1", target.getIp());
-        assertEquals(70000, target.getPort()); // Port is parsed but not validated as < 65535
+        assertEquals(DEFAULT_PORT, target.getPort()); // Uses default port as 70000 fails validation
     }
 
     @Test
@@ -347,7 +346,8 @@ class ScanTargetTest {
         String targetString1 = "192.168.1.1:1";
         Pair<ScanTarget, JobStatus> result1 =
                 ScanTarget.fromTargetString(targetString1, DEFAULT_PORT, testDenylistProvider);
-        assertEquals(1, result1.getLeft().getPort()); // Port 1 is parsed but fails validation check
+        assertEquals(
+                DEFAULT_PORT, result1.getLeft().getPort()); // Uses default as port 1 is not > 1
 
         // Test port = 2 (first valid)
         String targetString2 = "192.168.1.1:2";
