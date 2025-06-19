@@ -24,11 +24,15 @@ import org.bson.Document;
 
 public class BulkScanWorkerManager {
     private static final Logger LOGGER = LogManager.getLogger();
-    private static BulkScanWorkerManager instance;
+    private static volatile BulkScanWorkerManager instance;
 
     public static BulkScanWorkerManager getInstance() {
         if (instance == null) {
-            instance = new BulkScanWorkerManager();
+            synchronized (BulkScanWorkerManager.class) {
+                if (instance == null) {
+                    instance = new BulkScanWorkerManager();
+                }
+            }
         }
         return instance;
     }
