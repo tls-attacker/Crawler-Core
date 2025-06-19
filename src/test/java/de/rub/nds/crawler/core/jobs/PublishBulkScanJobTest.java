@@ -51,9 +51,17 @@ class PublishBulkScanJobTest {
         denylistProvider = new TestDenylistProvider();
         progressMonitor = new TestProgressMonitor();
 
-        bulkScan = new BulkScan();
+        // Create BulkScan using the constructor
+        bulkScan =
+                new BulkScan(
+                        Object.class, // scanner class
+                        Object.class, // crawler class
+                        "test-scan",
+                        new TestScanConfig(),
+                        System.currentTimeMillis(),
+                        false, // monitored
+                        null); // notifyUrl
         bulkScan.set_id("bulk-scan-id-123");
-        bulkScan.setDbName("test-db");
         controllerConfig.setBulkScan(bulkScan);
         controllerConfig.setPort(443);
 
@@ -93,14 +101,11 @@ class PublishBulkScanJobTest {
     void testExecuteThrowsJobExecutionExceptionOnError() {
         // Simulate an error in target list provider
         targetListProvider =
-                new ITargetListProvider() {
+                new TestTargetListProvider() {
                     @Override
                     public List<String> getTargetList() {
                         throw new RuntimeException("Target list error");
                     }
-
-                    @Override
-                    public void close() {}
                 };
         jobDataMap.put("targetListProvider", targetListProvider);
 
@@ -108,7 +113,7 @@ class PublishBulkScanJobTest {
                 assertThrows(
                         JobExecutionException.class, () -> publishBulkScanJob.execute(context));
 
-        assertTrue(exception.unscheduleFiringTrigger());
+        assertTrue(exception.unscheduleAllTriggers());
         assertEquals("Target list error", exception.getCause().getMessage());
     }
 
@@ -116,7 +121,11 @@ class PublishBulkScanJobTest {
     void testExecuteWithNullJobDataMapValues() {
         jobDataMap.put("persistenceProvider", null);
 
-        assertThrows(NullPointerException.class, () -> publishBulkScanJob.execute(context));
+        // Wraps NullPointerException in JobExecutionException
+        JobExecutionException exception =
+                assertThrows(
+                        JobExecutionException.class, () -> publishBulkScanJob.execute(context));
+        assertTrue(exception.getCause() instanceof NullPointerException);
     }
 
     @Test
@@ -193,7 +202,6 @@ class PublishBulkScanJobTest {
             return 0;
         }
 
-        @Override
         public JobDataMap getJobDataMap() {
             return jobDataMap;
         }
@@ -260,6 +268,10 @@ class PublishBulkScanJobTest {
         private boolean monitored = false;
         private int port = 443;
 
+        TestControllerCommandConfig() {
+            // Default constructor
+        }
+
         void setBulkScan(BulkScan bulkScan) {
             this.bulkScan = bulkScan;
         }
@@ -274,7 +286,7 @@ class PublishBulkScanJobTest {
             return monitored;
         }
 
-        void setMonitored(boolean monitored) {
+        public void setMonitored(boolean monitored) {
             this.monitored = monitored;
         }
 
@@ -283,8 +295,18 @@ class PublishBulkScanJobTest {
             return port;
         }
 
-        void setPort(int port) {
+        public void setPort(int port) {
             this.port = port;
+        }
+
+        @Override
+        public Class<?> getScannerClassForVersion() {
+            return Object.class; // Dummy implementation
+        }
+
+        @Override
+        public de.rub.nds.crawler.data.ScanConfig getScanConfig() {
+            return new TestScanConfig();
         }
     }
 
@@ -305,7 +327,19 @@ class PublishBulkScanJobTest {
         }
 
         @Override
-        public void close() {}
+        public void closeConnection() {}
+
+        @Override
+        public void registerScanJobConsumer(
+                de.rub.nds.crawler.orchestration.ScanJobConsumer consumer, int prefetchCount) {}
+
+        @Override
+        public void registerDoneNotificationConsumer(
+                BulkScan bulkScan,
+                de.rub.nds.crawler.orchestration.DoneNotificationConsumer consumer) {}
+
+        @Override
+        public void notifyOfDoneScanJob(ScanJobDescription job) {}
     }
 
     static class TestPersistenceProvider implements IPersistenceProvider {
@@ -340,14 +374,7 @@ class PublishBulkScanJobTest {
             return updateBulkScanCount;
         }
 
-        // Other methods not used in tests
-        @Override
-        public BulkScan getBulkScan(String id) {
-            return null;
-        }
-
-        @Override
-        public void close() {}
+        // No other methods in IPersistenceProvider
     }
 
     static class TestTargetListProvider implements ITargetListProvider {
@@ -361,9 +388,6 @@ class PublishBulkScanJobTest {
         public List<String> getTargetList() {
             return targetList;
         }
-
-        @Override
-        public void close() {}
     }
 
     static class TestDenylistProvider implements IDenylistProvider {
@@ -374,12 +398,11 @@ class PublishBulkScanJobTest {
         }
 
         @Override
-        public boolean isDenylisted(String host) {
-            return denylist.contains(host);
+        public boolean isDenylisted(de.rub.nds.crawler.data.ScanTarget target) {
+            String identifier =
+                    target.getHostname() != null ? target.getHostname() : target.getIp();
+            return denylist.contains(identifier);
         }
-
-        @Override
-        public void close() {}
     }
 
     static class TestProgressMonitor extends ProgressMonitor {
@@ -387,7 +410,7 @@ class PublishBulkScanJobTest {
         private final List<String> stoppedScans = new ArrayList<>();
 
         TestProgressMonitor() {
-            super(null, null);
+            super(null, null, null);
         }
 
         @Override
@@ -406,6 +429,19 @@ class PublishBulkScanJobTest {
 
         boolean wasStopMonitoringCalled(String scanId) {
             return stoppedScans.contains(scanId);
+        }
+    }
+
+    static class TestScanConfig extends de.rub.nds.crawler.data.ScanConfig {
+        TestScanConfig() {
+            super(de.rub.nds.scanner.core.config.ScannerDetail.NORMAL, 3, 2000);
+        }
+
+        @Override
+        public de.rub.nds.crawler.core.BulkScanWorker<? extends de.rub.nds.crawler.data.ScanConfig>
+                createWorker(
+                        String bulkScanID, int parallelConnectionThreads, int parallelScanThreads) {
+            return null; // Not used in tests
         }
     }
 }
