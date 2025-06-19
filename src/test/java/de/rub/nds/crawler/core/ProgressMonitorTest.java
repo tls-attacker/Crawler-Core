@@ -18,7 +18,7 @@ import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
-import de.rub.nds.scanner.core.constants.ScannerDetail;
+import de.rub.nds.scanner.core.config.ScannerDetail;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;

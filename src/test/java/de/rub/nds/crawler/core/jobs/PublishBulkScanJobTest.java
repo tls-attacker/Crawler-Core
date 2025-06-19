@@ -20,7 +20,7 @@ import de.rub.nds.crawler.denylist.IDenylistProvider;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.crawler.targetlist.ITargetListProvider;
-import de.rub.nds.scanner.core.constants.ScannerDetail;
+import de.rub.nds.scanner.core.config.ScannerDetail;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;

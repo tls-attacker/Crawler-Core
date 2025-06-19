@@ -22,7 +22,7 @@ import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.orchestration.ScanJobConsumer;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
-import de.rub.nds.scanner.core.constants.ScannerDetail;
+import de.rub.nds.scanner.core.config.ScannerDetail;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
