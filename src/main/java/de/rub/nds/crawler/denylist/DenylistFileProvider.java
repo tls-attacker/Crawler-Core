@@ -72,6 +72,12 @@ public class DenylistFileProvider implements IDenylistProvider {
         }
     }
 
+    /**
+     * Checks if a given scan target is on the denylist.
+     *
+     * @param target the scan target to check
+     * @return true if the target is denylisted, false otherwise
+     */
     @Override
     public synchronized boolean isDenylisted(ScanTarget target) {
         return domainDenylistSet.contains(target.getHostname())
