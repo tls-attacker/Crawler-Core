@@ -10,12 +10,9 @@ package de.rub.nds.crawler.test;
 
 import de.rub.nds.crawler.core.BulkScanWorker;
 import de.rub.nds.crawler.data.ScanConfig;
-import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.scanner.core.config.ScannerDetail;
-import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import org.bson.Document;
 
 public class TestScanConfig extends ScanConfig {
 
@@ -31,14 +28,26 @@ public class TestScanConfig extends ScanConfig {
 
     private static class TestBulkScanWorker extends BulkScanWorker<TestScanConfig> {
         public TestBulkScanWorker(String bulkScanId) {
-            super(null); // We'll create a simple test worker
+            super(bulkScanId, new TestScanConfig(ScannerDetail.ALL, 1, 5000), 4);
         }
 
         @Override
-        protected ScanResult performScan(ScanTarget scanTarget) {
-            Map<String, Object> details = new HashMap<>();
-            details.put("test", true);
-            return new ScanResult(scanTarget, ZonedDateTime.now(), null, details);
+        public Document scan(ScanTarget scanTarget) {
+            Document doc = new Document();
+            doc.put("test", true);
+            doc.put("hostname", scanTarget.getHostname());
+            doc.put("port", scanTarget.getPort());
+            return doc;
+        }
+
+        @Override
+        protected void initInternal() {
+            // No initialization needed for test
+        }
+
+        @Override
+        protected void cleanupInternal() {
+            // No cleanup needed for test
         }
     }
 }
