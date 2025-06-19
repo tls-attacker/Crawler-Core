@@ -22,6 +22,11 @@ public class TrancoListProvider extends ZipFileProvider {
     private static final String ZIP_FILENAME = "tranco-1m.csv.zip";
     private static final String FILENAME = "tranco-1m.csv";
 
+    /**
+     * Creates a new TrancoListProvider that retrieves the specified number of top hosts.
+     *
+     * @param number the number of top hosts to retrieve from the Tranco list
+     */
     public TrancoListProvider(int number) {
         super(number, SOURCE, ZIP_FILENAME, FILENAME, "Tranco");
     }
