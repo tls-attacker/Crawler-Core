@@ -21,6 +21,14 @@ import org.apache.logging.log4j.Logger;
 public class CommonMain {
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /**
+     * Main entry point for the TLS-Crawler application supporting both controller and worker modes.
+     *
+     * @param args Command line arguments specifying the mode (controller or worker) and
+     *     configuration
+     * @param controllerCommandConfig Configuration for controller mode operations
+     * @param workerCommandConfig Configuration for worker mode operations
+     */
     public static void main(
             String[] args,
             ControllerCommandConfig controllerCommandConfig,
@@ -71,6 +79,12 @@ public class CommonMain {
         }
     }
 
+    /**
+     * Convenience method for running the application with controller configuration only.
+     *
+     * @param args Command line arguments
+     * @param controllerConfig Configuration for controller mode
+     */
     public static void main(String[] args, ControllerCommandConfig controllerConfig) {
         main(args, controllerConfig, new WorkerCommandConfig());
     }
