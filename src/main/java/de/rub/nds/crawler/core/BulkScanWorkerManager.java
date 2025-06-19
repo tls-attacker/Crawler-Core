@@ -26,6 +26,13 @@ public class BulkScanWorkerManager {
     private static final Logger LOGGER = LogManager.getLogger();
     private static volatile BulkScanWorkerManager instance;
 
+    /**
+     * Returns the singleton instance of BulkScanWorkerManager, creating it if it doesn't exist yet.
+     * This method is thread-safe and uses double-checked locking to ensure exactly one instance is
+     * created.
+     *
+     * @return The singleton BulkScanWorkerManager instance
+     */
     public static BulkScanWorkerManager getInstance() {
         if (instance == null) {
             synchronized (BulkScanWorkerManager.class) {
@@ -37,6 +44,15 @@ public class BulkScanWorkerManager {
         return instance;
     }
 
+    /**
+     * Static convenience method to handle a scan job using the singleton instance. This method
+     * retrieves the appropriate bulk scan worker for the job and delegates the scan to it.
+     *
+     * @param scanJobDescription The scan job containing bulk scan info and target details
+     * @param parallelConnectionThreads Number of parallel threads for connections
+     * @param parallelScanThreads Number of parallel threads for scanning
+     * @return A Future containing the scan result as a Document
+     */
     public static Future<Document> handleStatic(
             ScanJobDescription scanJobDescription,
             int parallelConnectionThreads,
@@ -62,6 +78,18 @@ public class BulkScanWorkerManager {
                         .build();
     }
 
+    /**
+     * Retrieves or creates a BulkScanWorker for the specified bulk scan. Workers are cached and
+     * reused for the same bulkScanId to improve performance. Cached workers expire after 30 minutes
+     * of inactivity and are automatically cleaned up.
+     *
+     * @param bulkScanId Unique identifier for the bulk scan
+     * @param scanConfig Configuration for the scan type
+     * @param parallelConnectionThreads Number of parallel threads for connections
+     * @param parallelScanThreads Number of parallel threads for scanning
+     * @return The BulkScanWorker instance for this bulk scan
+     * @throws UncheckedException if worker creation fails
+     */
     public BulkScanWorker<?> getBulkScanWorker(
             String bulkScanId,
             ScanConfig scanConfig,
@@ -83,6 +111,16 @@ public class BulkScanWorkerManager {
         }
     }
 
+    /**
+     * Handles a scan job by retrieving the appropriate worker and delegating the scan to it. This
+     * method extracts the bulk scan information from the job description and uses it to get or
+     * create the correct worker.
+     *
+     * @param scanJobDescription The scan job containing bulk scan info and target details
+     * @param parallelConnectionThreads Number of parallel threads for connections
+     * @param parallelScanThreads Number of parallel threads for scanning
+     * @return A Future containing the scan result as a Document
+     */
     public Future<Document> handle(
             ScanJobDescription scanJobDescription,
             int parallelConnectionThreads,

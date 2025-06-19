@@ -99,41 +99,88 @@ public class ScanTarget implements Serializable {
 
     private int trancoRank;
 
+    /** Constructs an empty ScanTarget instance. */
     public ScanTarget() {}
 
+    /**
+     * Returns a string representation of this scan target. Prefers hostname over IP address if both
+     * are available.
+     *
+     * @return the hostname if available, otherwise the IP address
+     */
     @Override
     public String toString() {
         return hostname != null ? hostname : ip;
     }
 
+    /**
+     * Gets the IP address of this scan target.
+     *
+     * @return the IP address, or null if not resolved
+     */
     public String getIp() {
         return this.ip;
     }
 
+    /**
+     * Gets the hostname of this scan target.
+     *
+     * @return the hostname, or null if the target is an IP address
+     */
     public String getHostname() {
         return this.hostname;
     }
 
+    /**
+     * Gets the port number for this scan target.
+     *
+     * @return the port number
+     */
     public int getPort() {
         return this.port;
     }
 
+    /**
+     * Gets the Tranco ranking of this scan target.
+     *
+     * @return the Tranco rank, or 0 if not ranked
+     */
     public int getTrancoRank() {
         return this.trancoRank;
     }
 
+    /**
+     * Sets the IP address of this scan target.
+     *
+     * @param ip the IP address to set
+     */
     public void setIp(String ip) {
         this.ip = ip;
     }
 
+    /**
+     * Sets the hostname of this scan target.
+     *
+     * @param hostname the hostname to set
+     */
     public void setHostname(String hostname) {
         this.hostname = hostname;
     }
 
+    /**
+     * Sets the port number for this scan target.
+     *
+     * @param port the port number to set (should be between 1 and 65535)
+     */
     public void setPort(int port) {
         this.port = port;
     }
 
+    /**
+     * Sets the Tranco ranking of this scan target.
+     *
+     * @param trancoRank the Tranco rank to set
+     */
     public void setTrancoRank(int trancoRank) {
         this.trancoRank = trancoRank;
     }
