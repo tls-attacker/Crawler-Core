@@ -23,6 +23,11 @@ public class TargetFileProvider implements ITargetListProvider {
 
     private String filename;
 
+    /**
+     * Constructs a TargetFileProvider with the specified file.
+     *
+     * @param filename Path to the file containing target hosts
+     */
     public TargetFileProvider(String filename) {
         this.filename = filename;
     }
