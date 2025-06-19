@@ -177,10 +177,16 @@ class BulkScanWorkerTest {
     }
 
     private BulkScan createTestBulkScan() {
-        BulkScan bulkScan = new BulkScan();
-        bulkScan.setId("test-bulk-scan");
-        bulkScan.setScanConfig(new ScanConfig(ScannerDetail.NORMAL, 5, 5));
-        bulkScan.setStartTime(ZonedDateTime.now());
+        BulkScan bulkScan =
+                new BulkScan(
+                        getClass(),
+                        getClass(),
+                        "test-scan",
+                        new ScanConfig(ScannerDetail.NORMAL, 5, 5),
+                        System.currentTimeMillis(),
+                        false,
+                        null);
+        bulkScan.set_id("test-bulk-scan");
         return bulkScan;
     }
 

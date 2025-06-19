@@ -50,9 +50,9 @@ class BulkScanWorkerManagerTest {
     void testGetBulkScanWorkerDifferentBulkScans() {
         BulkScanWorkerManager manager = BulkScanWorkerManager.getInstance();
         BulkScan bulkScan1 = createTestBulkScan();
-        bulkScan1.setId("scan1");
+        bulkScan1.set_id("scan1");
         BulkScan bulkScan2 = createTestBulkScan();
-        bulkScan2.setId("scan2");
+        bulkScan2.set_id("scan2");
 
         BulkScanWorker worker1 = manager.getBulkScanWorker(bulkScan1);
         BulkScanWorker worker2 = manager.getBulkScanWorker(bulkScan2);
@@ -80,7 +80,7 @@ class BulkScanWorkerManagerTest {
     void testWorkerCleanupOnExpiration() throws InterruptedException {
         BulkScanWorkerManager manager = BulkScanWorkerManager.getInstance();
         BulkScan bulkScan = createTestBulkScan();
-        bulkScan.setId("expiring-scan");
+        bulkScan.set_id("expiring-scan");
 
         BulkScanWorker worker = manager.getBulkScanWorker(bulkScan);
         assertNotNull(worker);
@@ -94,10 +94,16 @@ class BulkScanWorkerManagerTest {
     }
 
     private BulkScan createTestBulkScan() {
-        BulkScan bulkScan = new BulkScan();
-        bulkScan.setId("test-bulk-scan");
-        bulkScan.setScanConfig(createTestScanConfig());
-        bulkScan.setStartTime(ZonedDateTime.now());
+        BulkScan bulkScan =
+                new BulkScan(
+                        getClass(),
+                        getClass(),
+                        "test-scan",
+                        createTestScanConfig(),
+                        System.currentTimeMillis(),
+                        false,
+                        null);
+        bulkScan.set_id("test-bulk-scan");
         return bulkScan;
     }
 

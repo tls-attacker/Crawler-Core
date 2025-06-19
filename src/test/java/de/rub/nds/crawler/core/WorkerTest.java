@@ -105,7 +105,7 @@ class WorkerTest {
         verify(persistenceProvider).saveScanResult(resultCaptor.capture());
 
         ScanResult savedResult = resultCaptor.getValue();
-        assertEquals(JobStatus.TIMEOUT, savedResult.getStatus());
+        assertEquals(JobStatus.CANCELLED, savedResult.getStatus());
 
         verify(orchestrationProvider).ackJob("delivery-tag-123");
         verify(orchestrationProvider)
@@ -231,10 +231,16 @@ class WorkerTest {
     }
 
     private ScanJobDescription createTestScanJobDescription() {
-        BulkScan bulkScan = new BulkScan();
-        bulkScan.setId("test-bulk-scan");
-        bulkScan.setScanConfig(new ScanConfig(ScannerDetail.NORMAL, 1, 1));
-        bulkScan.setStartTime(ZonedDateTime.now());
+        BulkScan bulkScan =
+                new BulkScan(
+                        getClass(),
+                        getClass(),
+                        "test-scan",
+                        new ScanConfig(ScannerDetail.NORMAL, 1, 1),
+                        System.currentTimeMillis(),
+                        false,
+                        null);
+        bulkScan.set_id("test-bulk-scan");
 
         ScanTarget target = new ScanTarget("example.com", 443);
 
