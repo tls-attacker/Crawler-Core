@@ -37,6 +37,11 @@ public class DenylistFileProvider implements IDenylistProvider {
     private final List<SubnetUtils.SubnetInfo> cidrDenylist = new ArrayList<>();
     private final Set<String> domainDenylistSet = new HashSet<>();
 
+    /**
+     * Creates a new denylist provider from a file containing denylist entries.
+     *
+     * @param denylistFilename the path to the denylist file
+     */
     public DenylistFileProvider(String denylistFilename) {
         List<String> denylist = List.of();
         try (Stream<String> lines = Files.lines(Paths.get(denylistFilename))) {
