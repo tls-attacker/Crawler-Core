@@ -54,6 +54,11 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
 
     private Set<String> declaredQueues = new HashSet<>();
 
+    /**
+     * Constructs a new RabbitMQ orchestration provider with the specified configuration.
+     *
+     * @param rabbitMqDelegate The RabbitMQ configuration delegate containing connection parameters
+     */
     public RabbitMqOrchestrationProvider(RabbitMqDelegate rabbitMqDelegate) {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(rabbitMqDelegate.getRabbitMqHost());
