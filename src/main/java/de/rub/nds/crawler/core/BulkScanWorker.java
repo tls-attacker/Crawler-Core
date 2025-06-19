@@ -82,7 +82,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         // synchronize such that init and cleanup do not run simultaneously
         // but only synchronize if already initialized
         if (initialized.get()) {
-            synchronized (initialized) {
+            synchronized (initializationLock) {
                 if (activeJobs.get() > 0) {
                     shouldCleanupSelf.set(true);
                     LOGGER.warn(
