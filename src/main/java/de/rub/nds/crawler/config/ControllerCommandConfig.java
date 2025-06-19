@@ -95,6 +95,11 @@ public abstract class ControllerCommandConfig {
         mongoDbDelegate = new MongoDbDelegate();
     }
 
+    /**
+     * Validates the configuration parameters.
+     *
+     * @throws ParameterException if the configuration is invalid
+     */
     public void validate() {
         if (hostFile == null && tranco == 0 && trancoEmail == 0 && crux == null) {
             throw new ParameterException(
@@ -113,6 +118,13 @@ public abstract class ControllerCommandConfig {
     }
 
     public static class PositiveInteger implements IParameterValidator {
+        /**
+         * Validates that the parameter value is a positive integer.
+         *
+         * @param name the parameter name
+         * @param value the parameter value to validate
+         * @throws ParameterException if the value is not a positive integer
+         */
         public void validate(String name, String value) throws ParameterException {
             int n = Integer.parseInt(value);
             if (n < 0) {
@@ -123,79 +135,176 @@ public abstract class ControllerCommandConfig {
     }
 
     public static class CronSyntax implements IParameterValidator {
+        /**
+         * Validates that the parameter value is a valid cron expression.
+         *
+         * @param name the parameter name
+         * @param value the parameter value to validate
+         * @throws ParameterException if the value is not a valid cron expression
+         */
         public void validate(String name, String value) throws ParameterException {
             CronScheduleBuilder.cronSchedule(value);
         }
     }
 
+    /**
+     * Gets the RabbitMQ delegate configuration.
+     *
+     * @return the RabbitMQ delegate
+     */
     public RabbitMqDelegate getRabbitMqDelegate() {
         return rabbitMqDelegate;
     }
 
+    /**
+     * Gets the MongoDB delegate configuration.
+     *
+     * @return the MongoDB delegate
+     */
     public MongoDbDelegate getMongoDbDelegate() {
         return mongoDbDelegate;
     }
 
+    /**
+     * Gets the port to be scanned.
+     *
+     * @return the port number
+     */
     public int getPort() {
         return port;
     }
 
+    /**
+     * Sets the port to be scanned.
+     *
+     * @param port the port number
+     */
     public void setPort(int port) {
         this.port = port;
     }
 
+    /**
+     * Gets the scanner detail level.
+     *
+     * @return the scanner detail level
+     */
     public ScannerDetail getScanDetail() {
         return scanDetail;
     }
 
+    /**
+     * Gets the scanner timeout value.
+     *
+     * @return the timeout value in milliseconds
+     */
     public int getScannerTimeout() {
         return scannerTimeout;
     }
 
+    /**
+     * Gets the number of reexecutions.
+     *
+     * @return the number of reexecutions
+     */
     public int getReexecutions() {
         return reexecutions;
     }
 
+    /**
+     * Gets the cron expression for scan intervals.
+     *
+     * @return the cron expression or null if not set
+     */
     public String getScanCronInterval() {
         return scanCronInterval;
     }
 
+    /**
+     * Gets the scan name.
+     *
+     * @return the scan name
+     */
     public String getScanName() {
         return scanName;
     }
 
+    /**
+     * Gets the path to the host file.
+     *
+     * @return the host file path
+     */
     public String getHostFile() {
         return hostFile;
     }
 
+    /**
+     * Sets the path to the host file.
+     *
+     * @param hostFile the host file path
+     */
     public void setHostFile(String hostFile) {
         this.hostFile = hostFile;
     }
 
+    /**
+     * Gets the path to the denylist file.
+     *
+     * @return the denylist file path
+     */
     public String getDenylistFile() {
         return denylistFile;
     }
 
+    /**
+     * Checks if the scan should be monitored.
+     *
+     * @return true if monitoring is enabled, false otherwise
+     */
     public boolean isMonitored() {
         return monitored;
     }
 
+    /**
+     * Gets the notification URL.
+     *
+     * @return the notification URL
+     */
     public String getNotifyUrl() {
         return notifyUrl;
     }
 
+    /**
+     * Gets the number of top Tranco hosts to scan.
+     *
+     * @return the number of Tranco hosts
+     */
     public int getTranco() {
         return tranco;
     }
 
+    /**
+     * Gets the CrUX list number.
+     *
+     * @return the CrUX list number
+     */
     public CruxListNumber getCrux() {
         return crux;
     }
 
+    /**
+     * Gets the number of top Tranco email hosts to scan.
+     *
+     * @return the number of Tranco email hosts
+     */
     public int getTrancoEmail() {
         return trancoEmail;
     }
 
+    /**
+     * Gets the appropriate target list provider based on configuration.
+     *
+     * @return the target list provider
+     */
     public ITargetListProvider getTargetListProvider() {
         if (getHostFile() != null) {
             return new TargetFileProvider(getHostFile());
@@ -209,8 +318,18 @@ public abstract class ControllerCommandConfig {
         return new TrancoListProvider(getTranco());
     }
 
+    /**
+     * Gets the scan configuration.
+     *
+     * @return the scan configuration
+     */
     public abstract ScanConfig getScanConfig();
 
+    /**
+     * Creates a new bulk scan object.
+     *
+     * @return the created bulk scan
+     */
     public BulkScan createBulkScan() {
         return new BulkScan(
                 getScannerClassForVersion(),
@@ -222,52 +341,117 @@ public abstract class ControllerCommandConfig {
                 getNotifyUrl());
     }
 
+    /**
+     * Gets the crawler class for versioning.
+     *
+     * @return the crawler class
+     */
     public Class<?> getCrawlerClassForVersion() {
         return this.getClass();
     }
 
+    /**
+     * Gets the scanner class for versioning.
+     *
+     * @return the scanner class
+     */
     public abstract Class<?> getScannerClassForVersion();
 
+    /**
+     * Sets the scanner detail level.
+     *
+     * @param scanDetail the scanner detail level
+     */
     public void setScanDetail(ScannerDetail scanDetail) {
         this.scanDetail = scanDetail;
     }
 
+    /**
+     * Sets the scanner timeout value.
+     *
+     * @param scannerTimeout the timeout value in milliseconds
+     */
     public void setScannerTimeout(int scannerTimeout) {
         this.scannerTimeout = scannerTimeout;
     }
 
+    /**
+     * Sets the number of reexecutions.
+     *
+     * @param reexecutions the number of reexecutions
+     */
     public void setReexecutions(int reexecutions) {
         this.reexecutions = reexecutions;
     }
 
+    /**
+     * Sets the cron expression for scan intervals.
+     *
+     * @param scanCronInterval the cron expression
+     */
     public void setScanCronInterval(String scanCronInterval) {
         this.scanCronInterval = scanCronInterval;
     }
 
+    /**
+     * Sets the scan name.
+     *
+     * @param scanName the scan name
+     */
     public void setScanName(String scanName) {
         this.scanName = scanName;
     }
 
+    /**
+     * Sets the path to the denylist file.
+     *
+     * @param denylistFile the denylist file path
+     */
     public void setDenylistFile(String denylistFile) {
         this.denylistFile = denylistFile;
     }
 
+    /**
+     * Sets whether the scan should be monitored.
+     *
+     * @param monitored true to enable monitoring, false otherwise
+     */
     public void setMonitored(boolean monitored) {
         this.monitored = monitored;
     }
 
+    /**
+     * Sets the notification URL.
+     *
+     * @param notifyUrl the notification URL
+     */
     public void setNotifyUrl(String notifyUrl) {
         this.notifyUrl = notifyUrl;
     }
 
+    /**
+     * Sets the number of top Tranco hosts to scan.
+     *
+     * @param tranco the number of Tranco hosts
+     */
     public void setTranco(int tranco) {
         this.tranco = tranco;
     }
 
+    /**
+     * Sets the CrUX list number.
+     *
+     * @param crux the CrUX list number
+     */
     public void setCrux(CruxListNumber crux) {
         this.crux = crux;
     }
 
+    /**
+     * Sets the number of top Tranco email hosts to scan.
+     *
+     * @param trancoEmail the number of Tranco email hosts
+     */
     public void setTrancoEmail(int trancoEmail) {
         this.trancoEmail = trancoEmail;
     }
