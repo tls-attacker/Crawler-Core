@@ -14,7 +14,7 @@ import java.io.Serializable;
 import java.util.UUID;
 import org.bson.Document;
 
-public class ScanResult implements Serializable {
+public final class ScanResult implements Serializable {
 
     private String id;
 
