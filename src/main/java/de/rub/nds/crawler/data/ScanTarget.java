@@ -76,19 +76,56 @@ public class ScanTarget implements Serializable {
             } catch (UnknownHostException e) {
                 LOGGER.error(
                         "Host {} is unknown or can not be reached with error {}.", targetString, e);
-                // TODO in the current design we discard the exception info; maybe we want to keep
-                // this in the future
+                // Store the exception information for diagnostic purposes
+                target.setUnresolvedReason(e.getMessage());
                 return Pair.of(target, JobStatus.UNRESOLVABLE);
             }
         }
         if (denylistProvider != null && denylistProvider.isDenylisted(target)) {
             LOGGER.error("Host {} is denylisted and will not be scanned.", targetString);
-            // TODO similar to the unknownHostException, we do not keep any information as to why
-            // the target is blocklisted it may be nice to distinguish cases where the domain is
-            // blocked or where the IP is blocked
+            // Store information about why the target was denylisted
+            String denylistReason = determineDenylistReason(target, denylistProvider);
+            target.setDenylistReason(denylistReason);
             return Pair.of(target, JobStatus.DENYLISTED);
         }
         return Pair.of(target, JobStatus.TO_BE_EXECUTED);
+    }
+
+    /**
+     * Determines the reason why a target is denylisted by checking both the hostname and IP.
+     *
+     * @param target the ScanTarget to check
+     * @param denylistProvider the provider to check against
+     * @return a string describing why the target is denylisted
+     */
+    private static String determineDenylistReason(
+            ScanTarget target, IDenylistProvider denylistProvider) {
+        boolean domainBlocked = false;
+        boolean ipBlocked = false;
+
+        // Check if the hostname is denylisted
+        if (target.getHostname() != null) {
+            ScanTarget hostOnlyTarget = new ScanTarget();
+            hostOnlyTarget.setHostname(target.getHostname());
+            domainBlocked = denylistProvider.isDenylisted(hostOnlyTarget);
+        }
+
+        // Check if the IP is denylisted
+        if (target.getIp() != null) {
+            ScanTarget ipOnlyTarget = new ScanTarget();
+            ipOnlyTarget.setIp(target.getIp());
+            ipBlocked = denylistProvider.isDenylisted(ipOnlyTarget);
+        }
+
+        if (domainBlocked && ipBlocked) {
+            return "Both domain and IP are denylisted";
+        } else if (domainBlocked) {
+            return "Domain is denylisted";
+        } else if (ipBlocked) {
+            return "IP is denylisted";
+        } else {
+            return "Target is denylisted";
+        }
     }
 
     private String ip;
@@ -98,6 +135,10 @@ public class ScanTarget implements Serializable {
     private int port;
 
     private int trancoRank;
+
+    private String unresolvedReason;
+
+    private String denylistReason;
 
     public ScanTarget() {}
 
@@ -136,5 +177,21 @@ public class ScanTarget implements Serializable {
 
     public void setTrancoRank(int trancoRank) {
         this.trancoRank = trancoRank;
+    }
+
+    public String getUnresolvedReason() {
+        return this.unresolvedReason;
+    }
+
+    public void setUnresolvedReason(String unresolvedReason) {
+        this.unresolvedReason = unresolvedReason;
+    }
+
+    public String getDenylistReason() {
+        return this.denylistReason;
+    }
+
+    public void setDenylistReason(String denylistReason) {
+        this.denylistReason = denylistReason;
     }
 }
