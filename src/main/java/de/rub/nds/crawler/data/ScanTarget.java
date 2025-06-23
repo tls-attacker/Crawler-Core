@@ -13,6 +13,9 @@ import de.rub.nds.crawler.denylist.IDenylistProvider;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.logging.log4j.LogManager;
@@ -67,12 +70,21 @@ public class ScanTarget implements Serializable {
 
         if (InetAddressValidator.getInstance().isValid(targetString)) {
             target.setIp(targetString);
+            target.setIps(Collections.singletonList(targetString));
         } else {
             target.setHostname(targetString);
             try {
-                // TODO this only allows one IP per hostname; it may be interesting to scan all IPs
-                // for a domain, or at least one v4 and one v6
-                target.setIp(InetAddress.getByName(targetString).getHostAddress());
+                // Resolve all IP addresses for the hostname
+                InetAddress[] addresses = InetAddress.getAllByName(targetString);
+                List<String> resolvedIps = new ArrayList<>();
+                for (InetAddress address : addresses) {
+                    resolvedIps.add(address.getHostAddress());
+                }
+                target.setIps(resolvedIps);
+                // Set the first IP for backward compatibility
+                if (!resolvedIps.isEmpty()) {
+                    target.setIp(resolvedIps.get(0));
+                }
             } catch (UnknownHostException e) {
                 LOGGER.error(
                         "Host {} is unknown or can not be reached with error {}.", targetString, e);
@@ -93,21 +105,45 @@ public class ScanTarget implements Serializable {
 
     private String ip;
 
+    private List<String> ips;
+
     private String hostname;
 
     private int port;
 
     private int trancoRank;
 
-    public ScanTarget() {}
+    public ScanTarget() {
+        this.ips = new ArrayList<>();
+    }
 
     @Override
     public String toString() {
-        return hostname != null ? hostname : ip;
+        if (hostname != null) {
+            return hostname;
+        } else if (!ips.isEmpty()) {
+            // If multiple IPs, show all
+            if (ips.size() > 1) {
+                return "[" + String.join(", ", ips) + "]";
+            } else {
+                return ips.get(0);
+            }
+        } else {
+            return ip;
+        }
     }
 
+    /**
+     * @deprecated Use {@link #getIps()} instead to get all IP addresses. This method returns only
+     *     the first IP for backward compatibility.
+     */
+    @Deprecated
     public String getIp() {
         return this.ip;
+    }
+
+    public List<String> getIps() {
+        return new ArrayList<>(this.ips);
     }
 
     public String getHostname() {
@@ -122,8 +158,25 @@ public class ScanTarget implements Serializable {
         return this.trancoRank;
     }
 
+    /**
+     * @deprecated Use {@link #setIps(List)} instead to set all IP addresses. This method is kept
+     *     for backward compatibility.
+     */
+    @Deprecated
     public void setIp(String ip) {
         this.ip = ip;
+        if (this.ips.isEmpty() || !this.ips.get(0).equals(ip)) {
+            this.ips = new ArrayList<>();
+            this.ips.add(ip);
+        }
+    }
+
+    public void setIps(List<String> ips) {
+        this.ips = new ArrayList<>(ips);
+        // Set the first IP for backward compatibility
+        if (!ips.isEmpty()) {
+            this.ip = ips.get(0);
+        }
     }
 
     public void setHostname(String hostname) {

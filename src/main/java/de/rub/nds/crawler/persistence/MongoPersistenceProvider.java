@@ -192,7 +192,9 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                                 ScanResult.class,
                                 UuidRepresentation.STANDARD);
         // createIndex is idempotent, hence we do not need to check if an index exists
-        collection.createIndex(Indexes.ascending("scanTarget.ip"));
+        collection.createIndex(
+                Indexes.ascending("scanTarget.ip")); // Keep for backward compatibility
+        collection.createIndex(Indexes.ascending("scanTarget.ips")); // Index for multiple IPs
         collection.createIndex(Indexes.ascending("scanTarget.hostname"));
         collection.createIndex(Indexes.ascending("scanTarget.trancoRank"));
         collection.createIndex(Indexes.ascending("scanTarget.resultStatus"));
