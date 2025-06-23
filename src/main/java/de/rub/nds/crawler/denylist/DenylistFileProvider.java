@@ -69,9 +69,19 @@ public class DenylistFileProvider implements IDenylistProvider {
 
     @Override
     public synchronized boolean isDenylisted(ScanTarget target) {
-        return domainDenylistSet.contains(target.getHostname())
-                || ipDenylistSet.contains(target.getIp())
-                || cidrDenylist.stream()
-                        .anyMatch(subnetInfo -> isInSubnet(target.getIp(), subnetInfo));
+        // Check if hostname is denylisted
+        if (domainDenylistSet.contains(target.getHostname())) {
+            return true;
+        }
+
+        // Check if any of the IPs are denylisted
+        for (String ip : target.getIps()) {
+            if (ipDenylistSet.contains(ip)
+                    || cidrDenylist.stream().anyMatch(subnetInfo -> isInSubnet(ip, subnetInfo))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
