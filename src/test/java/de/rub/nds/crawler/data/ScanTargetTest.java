@@ -14,10 +14,10 @@ import de.rub.nds.crawler.constant.JobStatus;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
-public class ScanTargetTest {
+class ScanTargetTest {
 
     @Test
-    public void testIPv4WithPort() {
+    void testIPv4WithPort() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("192.168.1.1:8080", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
@@ -27,7 +27,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testIPv4WithoutPort() {
+    void testIPv4WithoutPort() {
         Pair<ScanTarget, JobStatus> result = ScanTarget.fromTargetString("192.168.1.1", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         assertEquals("192.168.1.1", result.getLeft().getIp());
@@ -36,7 +36,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testIPv6WithPort() {
+    void testIPv6WithPort() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("[2001:db8::1]:8080", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
@@ -46,7 +46,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testIPv6WithoutPort() {
+    void testIPv6WithoutPort() {
         Pair<ScanTarget, JobStatus> result = ScanTarget.fromTargetString("2001:db8::1", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         assertEquals("2001:db8::1", result.getLeft().getIp());
@@ -55,7 +55,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testIPv6FullAddressWithPort() {
+    void testIPv6FullAddressWithPort() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString(
                         "[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:8443", 443, null);
@@ -66,7 +66,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testIPv6CompressedAddress() {
+    void testIPv6CompressedAddress() {
         Pair<ScanTarget, JobStatus> result = ScanTarget.fromTargetString("::1", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         assertEquals("::1", result.getLeft().getIp());
@@ -75,7 +75,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testHostnameWithPort() {
+    void testHostnameWithPort() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("example.com:8080", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
@@ -86,7 +86,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testHostnameWithoutPort() {
+    void testHostnameWithoutPort() {
         Pair<ScanTarget, JobStatus> result = ScanTarget.fromTargetString("example.com", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         assertEquals("example.com", result.getLeft().getHostname());
@@ -95,7 +95,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testInvalidPortRangeHigh() {
+    void testInvalidPortRangeHigh() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("192.168.1.1:70000", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
@@ -104,7 +104,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testInvalidPortRangeLow() {
+    void testInvalidPortRangeLow() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("192.168.1.1:0", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
@@ -113,7 +113,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testInvalidPortFormat() {
+    void testInvalidPortFormat() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("[2001:db8::1]:abc", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
@@ -122,7 +122,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testTrancoRankWithIPv4() {
+    void testTrancoRankWithIPv4() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("100,192.168.1.1:8080", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
@@ -132,7 +132,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testTrancoRankWithIPv6() {
+    void testTrancoRankWithIPv6() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("200,[2001:db8::1]:8080", 443, null);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
@@ -142,7 +142,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testUnknownHost() {
+    void testUnknownHost() {
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("this-host-should-not-exist-12345.com", 443, null);
         assertEquals(JobStatus.UNRESOLVABLE, result.getRight());
@@ -151,7 +151,7 @@ public class ScanTargetTest {
     }
 
     @Test
-    public void testMalformedIPv6Bracket() {
+    void testMalformedIPv6Bracket() {
         // Missing closing bracket - should result in UNRESOLVABLE
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("[2001:db8::1:8080", 443, null);
