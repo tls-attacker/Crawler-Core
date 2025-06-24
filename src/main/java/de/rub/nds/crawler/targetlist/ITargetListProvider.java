@@ -12,5 +12,10 @@ import java.util.List;
 
 public interface ITargetListProvider {
 
+    /**
+     * Retrieves the list of target hosts to scan.
+     *
+     * @return A list of target host names
+     */
     List<String> getTargetList();
 }

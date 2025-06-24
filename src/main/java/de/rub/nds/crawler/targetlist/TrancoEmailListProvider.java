@@ -29,6 +29,11 @@ public class TrancoEmailListProvider implements ITargetListProvider {
 
     private final ITargetListProvider trancoList;
 
+    /**
+     * Constructs a TrancoEmailListProvider with the specified Tranco list provider.
+     *
+     * @param trancoList The Tranco list provider to extract email servers from
+     */
     public TrancoEmailListProvider(ITargetListProvider trancoList) {
         this.trancoList = trancoList;
     }
