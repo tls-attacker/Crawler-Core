@@ -17,12 +17,21 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Target list provider that reads targets from a local file. Supports reading text files with one
+ * target per line, ignoring comments and empty lines.
+ */
 public class TargetFileProvider implements ITargetListProvider {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
     private String filename;
 
+    /**
+     * Creates a new TargetFileProvider for the specified file.
+     *
+     * @param filename the path to the file containing the target list
+     */
     public TargetFileProvider(String filename) {
         this.filename = filename;
     }

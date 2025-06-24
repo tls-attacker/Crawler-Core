@@ -33,6 +33,15 @@ public class Controller {
     private final ControllerCommandConfig config;
     private IDenylistProvider denylistProvider;
 
+    /**
+     * Constructs a new Controller with the specified configuration and providers. Initializes the
+     * controller with orchestration and persistence capabilities, and optionally sets up a denylist
+     * provider if specified in the configuration.
+     *
+     * @param config The controller configuration containing scan parameters and settings
+     * @param orchestrationProvider Provider for job orchestration and coordination
+     * @param persistenceProvider Provider for data persistence operations
+     */
     public Controller(
             ControllerCommandConfig config,
             IOrchestrationProvider orchestrationProvider,
@@ -45,6 +54,14 @@ public class Controller {
         }
     }
 
+    /**
+     * Starts the controller by initializing the scheduler and scheduling bulk scan jobs. Sets up a
+     * Quartz scheduler with the configured schedule (either cron-based or simple), registers
+     * necessary listeners, and optionally starts a progress monitor. The scheduler will publish
+     * bulk scan jobs according to the specified timing.
+     *
+     * @throws RuntimeException if scheduler initialization fails
+     */
     public void start() {
         ITargetListProvider targetListProvider = config.getTargetListProvider();
 
@@ -91,6 +108,13 @@ public class Controller {
         }
     }
 
+    /**
+     * Shuts down the scheduler if all triggers have completed and will not fire again. This method
+     * checks all triggers in the scheduler to determine if any are still active or may fire in the
+     * future. If all triggers are finalized, the scheduler is shut down gracefully.
+     *
+     * @param scheduler The Quartz scheduler to potentially shut down
+     */
     public static void shutdownSchedulerIfAllTriggersFinalized(Scheduler scheduler) {
         try {
             boolean allTriggersFinalized =

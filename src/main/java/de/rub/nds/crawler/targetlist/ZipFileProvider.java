@@ -23,6 +23,10 @@ import java.util.zip.ZipInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Abstract base class for target list providers that download and extract lists from zip files.
+ * Handles downloading, unzipping, and processing of compressed target lists from remote sources.
+ */
 public abstract class ZipFileProvider implements ITargetListProvider {
 
     protected static final Logger LOGGER = LogManager.getLogger();
@@ -32,6 +36,15 @@ public abstract class ZipFileProvider implements ITargetListProvider {
     private final String outputFile;
     private final String listName;
 
+    /**
+     * Creates a new ZipFileProvider with the specified configuration.
+     *
+     * @param number the number of targets to extract from the list
+     * @param sourceUrl the URL to download the compressed list from
+     * @param zipFilename the local filename to save the downloaded zip file
+     * @param outputFile the filename for the extracted content
+     * @param listName the name of the list for logging purposes
+     */
     protected ZipFileProvider(
             int number, String sourceUrl, String zipFilename, String outputFile, String listName) {
         this.number = number;
@@ -41,6 +54,14 @@ public abstract class ZipFileProvider implements ITargetListProvider {
         this.listName = listName;
     }
 
+    /**
+     * Downloads, extracts, and processes the target list. This method handles the complete workflow
+     * of downloading the compressed list, extracting it, reading the targets, and cleaning up
+     * temporary files.
+     *
+     * @return a list of target identifiers extracted from the downloaded list
+     * @throws RuntimeException if the file cannot be loaded or processed
+     */
     public List<String> getTargetList() {
         List<String> targetList;
         try {
@@ -99,5 +120,12 @@ public abstract class ZipFileProvider implements ITargetListProvider {
         }
     }
 
+    /**
+     * Processes the lines from the extracted file to create the target list. Subclasses must
+     * implement this method to handle their specific file format.
+     *
+     * @param lines a stream of lines from the extracted file
+     * @return a list of target identifiers parsed from the lines
+     */
     protected abstract List<String> getTargetListFromLines(Stream<String> lines);
 }

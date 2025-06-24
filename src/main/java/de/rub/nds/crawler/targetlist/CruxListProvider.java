@@ -24,6 +24,12 @@ public class CruxListProvider extends ZipFileProvider {
     private static final String ZIP_FILENAME = "current.csv.gz";
     private static final String FILENAME = "current.csv";
 
+    /**
+     * Creates a new CruxListProvider that retrieves hosts based on the specified Crux list number.
+     *
+     * @param cruxListNumber the Crux list number configuration specifying how many hosts to
+     *     retrieve
+     */
     public CruxListProvider(CruxListNumber cruxListNumber) {
         super(cruxListNumber.getNumber(), SOURCE, ZIP_FILENAME, FILENAME, "Crux");
     }

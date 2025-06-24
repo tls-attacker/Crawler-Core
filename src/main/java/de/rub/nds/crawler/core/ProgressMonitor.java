@@ -47,6 +47,13 @@ public class ProgressMonitor {
 
     private boolean listenerRegistered;
 
+    /**
+     * Constructs a new ProgressMonitor for tracking bulk scan execution progress.
+     *
+     * @param orchestrationProvider the provider for job orchestration and messaging
+     * @param persistenceProvider the provider for persisting scan results and bulk scan metadata
+     * @param scheduler the Quartz scheduler instance for managing scheduled tasks
+     */
     public ProgressMonitor(
             IOrchestrationProvider orchestrationProvider,
             IPersistenceProvider persistenceProvider,
@@ -64,6 +71,12 @@ public class ProgressMonitor {
         private double movingAverageDuration = -1;
         private long lastTime = System.currentTimeMillis();
 
+        /**
+         * Constructs a new BulkscanMonitor for tracking progress of a specific bulk scan.
+         *
+         * @param bulkScan the bulk scan being monitored
+         * @param counters the job counters tracking scan job statuses
+         */
         public BulkscanMonitor(BulkScan bulkScan, BulkScanJobCounters counters) {
             this.bulkScan = bulkScan;
             this.counters = counters;
@@ -93,6 +106,13 @@ public class ProgressMonitor {
             return String.format("%.1f d", days);
         }
 
+        /**
+         * Processes a done notification for a completed scan job. Updates progress counters,
+         * calculates ETAs, logs progress information, and determines if the bulk scan is complete.
+         *
+         * @param consumerTag the RabbitMQ consumer tag for this notification
+         * @param scanJob the completed scan job description containing status information
+         */
         @Override
         public void consumeDoneNotification(String consumerTag, ScanJobDescription scanJob) {
             try {

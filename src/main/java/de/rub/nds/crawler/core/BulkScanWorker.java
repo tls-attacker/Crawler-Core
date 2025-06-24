@@ -48,6 +48,14 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                         new NamedThreadFactory("crawler-worker: scan executor"));
     }
 
+    /**
+     * Handles a scan request for the given target by submitting it to the executor. Manages
+     * initialization and cleanup lifecycle of the worker, ensuring that initialization happens
+     * before the first scan and cleanup happens after the last active job completes.
+     *
+     * @param scanTarget The target to scan, containing connection details
+     * @return A Future containing the scan result as a Document
+     */
     public Future<Document> handle(ScanTarget scanTarget) {
         // if we initialized ourself, we also clean up ourself
         shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
@@ -62,8 +70,26 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                 });
     }
 
+    /**
+     * Performs the actual scan of the specified target. This method is called by the executor
+     * thread pool and should contain the core scanning logic. Implementations should handle all
+     * aspects of connecting to and analyzing the target according to the configured scan
+     * parameters.
+     *
+     * @param scanTarget The target to scan, containing connection details
+     * @return A Document containing the scan results, or null if the scan produced no results
+     */
     public abstract Document scan(ScanTarget scanTarget);
 
+    /**
+     * Initializes the bulk scan worker if it hasn't been initialized yet. This method is
+     * thread-safe and ensures that initialization happens exactly once, even when called
+     * concurrently from multiple threads. The actual initialization logic is delegated to the
+     * abstract initInternal() method.
+     *
+     * @return true if this call performed the initialization, false if the worker was already
+     *     initialized
+     */
     public final boolean init() {
         // synchronize such that no thread runs before being initialized
         // but only synchronize if not already initialized
@@ -78,6 +104,15 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         return false;
     }
 
+    /**
+     * Cleans up resources used by the bulk scan worker. This method is thread-safe and ensures
+     * cleanup happens exactly once. If there are still active jobs running, cleanup is deferred
+     * until all jobs complete. The actual cleanup logic is delegated to the abstract
+     * cleanupInternal() method.
+     *
+     * @return true if cleanup was performed immediately, false if cleanup was deferred due to
+     *     active jobs or if already cleaned up
+     */
     public final boolean cleanup() {
         // synchronize such that init and cleanup do not run simultaneously
         // but only synchronize if already initialized
