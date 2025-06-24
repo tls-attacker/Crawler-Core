@@ -43,34 +43,74 @@ public class WorkerCommandConfig {
         mongoDbDelegate = new MongoDbDelegate();
     }
 
+    /**
+     * Gets the RabbitMQ delegate configuration.
+     *
+     * @return the RabbitMQ delegate
+     */
     public RabbitMqDelegate getRabbitMqDelegate() {
         return rabbitMqDelegate;
     }
 
+    /**
+     * Gets the MongoDB delegate configuration.
+     *
+     * @return the MongoDB delegate
+     */
     public MongoDbDelegate getMongoDbDelegate() {
         return mongoDbDelegate;
     }
 
+    /**
+     * Gets the number of parallel scan threads.
+     *
+     * @return the number of parallel scan threads
+     */
     public int getParallelScanThreads() {
         return parallelScanThreads;
     }
 
+    /**
+     * Gets the number of parallel connection threads.
+     *
+     * @return the number of parallel connection threads
+     */
     public int getParallelConnectionThreads() {
         return parallelConnectionThreads;
     }
 
+    /**
+     * Gets the scan timeout value.
+     *
+     * @return the scan timeout in milliseconds
+     */
     public int getScanTimeout() {
         return scanTimeout;
     }
 
+    /**
+     * Sets the number of parallel scan threads.
+     *
+     * @param parallelScanThreads the number of parallel scan threads
+     */
     public void setParallelScanThreads(int parallelScanThreads) {
         this.parallelScanThreads = parallelScanThreads;
     }
 
+    /**
+     * Sets the number of parallel connection threads.
+     *
+     * @param parallelConnectionThreads the number of parallel connection threads
+     */
     public void setParallelConnectionThreads(int parallelConnectionThreads) {
         this.parallelConnectionThreads = parallelConnectionThreads;
     }
 
+    /**
+     * Sets the scan timeout value.
+     *
+     * @param scanTimeout the scan timeout in milliseconds
+     */
     public void setScanTimeout(int scanTimeout) {
         this.scanTimeout = scanTimeout;
     }
