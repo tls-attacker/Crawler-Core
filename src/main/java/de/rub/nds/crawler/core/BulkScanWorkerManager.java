@@ -26,6 +26,11 @@ public class BulkScanWorkerManager {
     private static final Logger LOGGER = LogManager.getLogger();
     private static volatile BulkScanWorkerManager instance;
 
+    /**
+     * Gets the singleton instance of BulkScanWorkerManager.
+     *
+     * @return the singleton instance
+     */
     public static BulkScanWorkerManager getInstance() {
         if (instance == null) {
             synchronized (BulkScanWorkerManager.class) {
@@ -37,6 +42,14 @@ public class BulkScanWorkerManager {
         return instance;
     }
 
+    /**
+     * Static method to handle a scan job using the singleton instance.
+     *
+     * @param scanJobDescription the scan job description
+     * @param parallelConnectionThreads number of parallel connection threads
+     * @param parallelScanThreads number of parallel scan threads
+     * @return a Future containing the scan result document
+     */
     public static Future<Document> handleStatic(
             ScanJobDescription scanJobDescription,
             int parallelConnectionThreads,
@@ -62,6 +75,16 @@ public class BulkScanWorkerManager {
                         .build();
     }
 
+    /**
+     * Gets or creates a BulkScanWorker for the given bulk scan ID.
+     *
+     * @param bulkScanId the unique identifier for the bulk scan
+     * @param scanConfig the scan configuration
+     * @param parallelConnectionThreads number of parallel connection threads
+     * @param parallelScanThreads number of parallel scan threads
+     * @return the BulkScanWorker instance
+     * @throws UncheckedException if worker creation fails
+     */
     public BulkScanWorker<?> getBulkScanWorker(
             String bulkScanId,
             ScanConfig scanConfig,
@@ -83,6 +106,14 @@ public class BulkScanWorkerManager {
         }
     }
 
+    /**
+     * Handles a scan job by delegating to the appropriate BulkScanWorker.
+     *
+     * @param scanJobDescription the scan job description
+     * @param parallelConnectionThreads number of parallel connection threads
+     * @param parallelScanThreads number of parallel scan threads
+     * @return a Future containing the scan result document
+     */
     public Future<Document> handle(
             ScanJobDescription scanJobDescription,
             int parallelConnectionThreads,

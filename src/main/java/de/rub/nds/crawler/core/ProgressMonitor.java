@@ -47,6 +47,13 @@ public class ProgressMonitor {
 
     private boolean listenerRegistered;
 
+    /**
+     * Creates a new ProgressMonitor instance.
+     *
+     * @param orchestrationProvider the orchestration provider for job management
+     * @param persistenceProvider the persistence provider for data storage
+     * @param scheduler the Quartz scheduler instance
+     */
     public ProgressMonitor(
             IOrchestrationProvider orchestrationProvider,
             IPersistenceProvider persistenceProvider,
