@@ -37,6 +37,11 @@ public class DenylistFileProvider implements IDenylistProvider {
     private final List<SubnetUtils.SubnetInfo> cidrDenylist = new ArrayList<>();
     private final Set<String> domainDenylistSet = new HashSet<>();
 
+    /**
+     * Creates a new denylist provider from a file containing denylist entries.
+     *
+     * @param denylistFilename the path to the denylist file
+     */
     public DenylistFileProvider(String denylistFilename) {
         List<String> denylist = List.of();
         try (Stream<String> lines = Files.lines(Paths.get(denylistFilename))) {
@@ -67,6 +72,12 @@ public class DenylistFileProvider implements IDenylistProvider {
         }
     }
 
+    /**
+     * Checks if a given scan target is on the denylist.
+     *
+     * @param target the scan target to check
+     * @return true if the target is denylisted, false otherwise
+     */
     @Override
     public synchronized boolean isDenylisted(ScanTarget target) {
         return domainDenylistSet.contains(target.getHostname())
