@@ -13,5 +13,11 @@ import de.rub.nds.crawler.data.ScanJobDescription;
 @FunctionalInterface
 public interface DoneNotificationConsumer {
 
+    /**
+     * Consumes a notification that a scan job has been completed.
+     *
+     * @param consumerTag The tag identifying the consumer
+     * @param scanJobDescription The completed scan job description
+     */
     void consumeDoneNotification(String consumerTag, ScanJobDescription scanJobDescription);
 }

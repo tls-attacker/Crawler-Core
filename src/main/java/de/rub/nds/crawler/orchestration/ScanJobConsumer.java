@@ -13,5 +13,10 @@ import de.rub.nds.crawler.data.ScanJobDescription;
 @FunctionalInterface
 public interface ScanJobConsumer {
 
+    /**
+     * Consumes a scan job for processing.
+     *
+     * @param scanJobDescription The scan job to be consumed and processed
+     */
     void consumeScanJob(ScanJobDescription scanJobDescription);
 }
