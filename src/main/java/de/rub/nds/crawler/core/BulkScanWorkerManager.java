@@ -41,8 +41,8 @@ public class BulkScanWorkerManager {
             ScanJobDescription scanJobDescription,
             int parallelConnectionThreads,
             int parallelScanThreads) {
-        BulkScanWorkerManager instance = getInstance();
-        return instance.handle(scanJobDescription, parallelConnectionThreads, parallelScanThreads);
+        BulkScanWorkerManager manager = getInstance();
+        return manager.handle(scanJobDescription, parallelConnectionThreads, parallelScanThreads);
     }
 
     private final Cache<String, BulkScanWorker<?>> bulkScanWorkers;
