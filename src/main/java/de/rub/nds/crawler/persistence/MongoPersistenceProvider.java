@@ -64,8 +64,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         }
     }
 
-    public static void registerSerializer(JsonSerializer<?>... serializers) {
-        for (JsonSerializer<?> serializer : serializers) {
+    public static void registerSerializer(JsonSerializer<?>... serializersToRegister) {
+        for (JsonSerializer<?> serializer : serializersToRegister) {
             registerSerializer(serializer);
         }
     }
@@ -79,8 +79,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         }
     }
 
-    public static void registerModule(Module... modules) {
-        for (Module module : modules) {
+    public static void registerModule(Module... modulesToRegister) {
+        for (Module module : modulesToRegister) {
             registerModule(module);
         }
     }
