@@ -44,12 +44,10 @@ public abstract class ZipFileProvider implements ITargetListProvider {
 
     public List<String> getTargetList() {
         List<String> targetList;
-        try {
-            ReadableByteChannel readableByteChannel =
-                    Channels.newChannel(URL.of(URI.create(sourceUrl), null).openStream());
-            FileOutputStream fileOutputStream = new FileOutputStream(zipFilename);
+        try (ReadableByteChannel readableByteChannel =
+                        Channels.newChannel(URL.of(URI.create(sourceUrl), null).openStream());
+                FileOutputStream fileOutputStream = new FileOutputStream(zipFilename)) {
             fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-            fileOutputStream.close();
         } catch (IOException e) {
             LOGGER.error("Could not download the current {} list with error ", listName, e);
         }
@@ -60,13 +58,13 @@ public abstract class ZipFileProvider implements ITargetListProvider {
             }
             File newFile = new File(outputFile);
             // write file content
-            FileOutputStream fos = new FileOutputStream(newFile);
-            int len;
-            byte[] buffer = new byte[1024];
-            while ((len = zis.read(buffer)) > 0) {
-                fos.write(buffer, 0, len);
+            try (FileOutputStream fos = new FileOutputStream(newFile)) {
+                int len;
+                byte[] buffer = new byte[1024];
+                while ((len = zis.read(buffer)) > 0) {
+                    fos.write(buffer, 0, len);
+                }
             }
-            fos.close();
         } catch (IOException e) {
             LOGGER.error("Could not unzip the current {} list with error ", listName, e);
         }
