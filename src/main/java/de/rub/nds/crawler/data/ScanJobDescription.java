@@ -85,7 +85,7 @@ public class ScanJobDescription implements Serializable {
 
     public void setDeliveryTag(Long deliveryTag) {
         if (this.deliveryTag.isPresent()) {
-            throw new IllegalStateException("Delivery tag already set");
+            throw new IllegalStateException("Delivery tag already set"); // $NON-NLS-1$
         }
         this.deliveryTag = Optional.of(deliveryTag);
     }

@@ -39,13 +39,13 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private static final String SCAN_JOB_QUEUE = "scan-job-queue";
+    private static final String SCAN_JOB_QUEUE = "scan-job-queue"; // $NON-NLS-1$
     private static final Map<String, Object> SCAN_JOB_QUEUE_PROPERTIES = new HashMap<>();
     private static final Map<String, Object> DONE_NOTIFY_QUEUE_PROPERTIES = new HashMap<>();
 
     static {
         // set TTLs such that queues are deleted if no consumer is registered
-        DONE_NOTIFY_QUEUE_PROPERTIES.put("x-expires", 1000 * 60 * 5);
+        DONE_NOTIFY_QUEUE_PROPERTIES.put("x-expires", 1000 * 60 * 5); // $NON-NLS-1$
     }
 
     private Connection connection;
@@ -69,38 +69,39 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
                         Files.readAllLines(Paths.get(rabbitMqDelegate.getRabbitMqPassFile()))
                                 .get(0));
             } catch (IOException e) {
-                LOGGER.error("Could not read rabbitMq password file: ", e);
+                LOGGER.error("Could not read rabbitMq password file: ", e); // $NON-NLS-1$
             }
         }
         if (rabbitMqDelegate.isRabbitMqTLS()) {
             try {
                 factory.useSslProtocol();
             } catch (NoSuchAlgorithmException | KeyManagementException e) {
-                LOGGER.error("Could not setup rabbitMq TLS: ", e);
+                LOGGER.error("Could not setup rabbitMq TLS: ", e); // $NON-NLS-1$
             }
         }
         factory.setThreadFactory(
-                new NamedThreadFactory("crawler-orchestration: RabbitMqOrchestrationProvider"));
+                new NamedThreadFactory(
+                        "crawler-orchestration: RabbitMqOrchestrationProvider")); //$NON-NLS-1$
         try {
             this.connection = factory.newConnection();
             this.channel = connection.createChannel();
             this.channel.queueDeclare(
                     SCAN_JOB_QUEUE, false, false, false, SCAN_JOB_QUEUE_PROPERTIES);
         } catch (IOException | TimeoutException e) {
-            LOGGER.error("Could not connect to RabbitMQ: ", e);
+            LOGGER.error("Could not connect to RabbitMQ: ", e); // $NON-NLS-1$
             throw new RuntimeException(e);
         }
     }
 
     private String getDoneNotifyQueue(String bulkScanId) {
-        String queueName = "done-notify-queue_" + bulkScanId;
+        String queueName = "done-notify-queue_" + bulkScanId; // $NON-NLS-1$
         if (!declaredQueues.contains(queueName)) {
             try {
                 this.channel.queueDeclare(
                         queueName, false, false, true, DONE_NOTIFY_QUEUE_PROPERTIES);
                 declaredQueues.add(bulkScanId);
             } catch (IOException e) {
-                LOGGER.error("Could not declare done-notify-queue: ", e);
+                LOGGER.error("Could not declare done-notify-queue: ", e); // $NON-NLS-1$
             }
         }
         return queueName;
@@ -110,9 +111,12 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
     public void submitScanJob(ScanJobDescription scanJobDescription) {
         try {
             this.channel.basicPublish(
-                    "", SCAN_JOB_QUEUE, null, SerializationUtils.serialize(scanJobDescription));
+                    "",
+                    SCAN_JOB_QUEUE,
+                    null,
+                    SerializationUtils.serialize(scanJobDescription)); // $NON-NLS-1$
         } catch (IOException e) {
-            LOGGER.error("Failed to submit ScanJobDescription: ", e);
+            LOGGER.error("Failed to submit ScanJobDescription: ", e); // $NON-NLS-1$
         }
     }
 
@@ -127,7 +131,7 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
                         scanJobDescription.setDeliveryTag(deliveryTag);
                     } catch (SerializationException e) {
                         LOGGER.error(
-                                "Failed to deserialize ScanJobDescription - rejecting and dropping",
+                                "Failed to deserialize ScanJobDescription - rejecting and dropping", //$NON-NLS-1$
                                 e);
                         channel.basicReject(deliveryTag, false);
                     }
@@ -139,7 +143,7 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
             channel.basicQos(prefetchCount);
             channel.basicConsume(SCAN_JOB_QUEUE, false, deliverCallback, consumerTag -> {});
         } catch (IOException e) {
-            LOGGER.error("Failed to register ScanJobDescription consumer: ", e);
+            LOGGER.error("Failed to register ScanJobDescription consumer: ", e); // $NON-NLS-1$
         }
     }
 
@@ -147,7 +151,7 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         try {
             channel.basicAck(deliveryTag, false);
         } catch (IOException e) {
-            LOGGER.error("Failed to send message acknowledgment: ", e);
+            LOGGER.error("Failed to send message acknowledgment: ", e); // $NON-NLS-1$
         }
     }
 
@@ -166,7 +170,7 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
                     deliverCallback,
                     consumerTag -> {});
         } catch (IOException e) {
-            LOGGER.error("Failed to register DoneNotification consumer: ", e);
+            LOGGER.error("Failed to register DoneNotification consumer: ", e); // $NON-NLS-1$
         }
     }
 
@@ -176,12 +180,14 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
         if (scanJobDescription.getBulkScanInfo().isMonitored()) {
             try {
                 this.channel.basicPublish(
-                        "",
+                        "", //$NON-NLS-1$
                         getDoneNotifyQueue(scanJobDescription.getBulkScanInfo().getBulkScanId()),
                         null,
                         SerializationUtils.serialize(scanJobDescription));
             } catch (IOException e) {
-                LOGGER.error("Failed to send notification for done ScanJobDescription: ", e);
+                LOGGER.error(
+                        "Failed to send notification for done ScanJobDescription: ",
+                        e); //$NON-NLS-1$
             }
         }
     }
@@ -192,7 +198,7 @@ public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
             this.channel.close();
             this.connection.close();
         } catch (IOException | TimeoutException e) {
-            LOGGER.error("Failed to close RabbitMQ connection: ", e);
+            LOGGER.error("Failed to close RabbitMQ connection: ", e); // $NON-NLS-1$
         }
     }
 }

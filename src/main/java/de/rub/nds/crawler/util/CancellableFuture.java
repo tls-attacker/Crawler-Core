@@ -74,7 +74,7 @@ public class CancellableFuture<V> implements RunnableFuture<V> {
             if (resultWritten.tryAcquire(l, timeUnit)) {
                 return result.get();
             }
-            throw new TimeoutException("Timeout while waiting for cancelled result");
+            throw new TimeoutException("Timeout while waiting for cancelled result"); // $NON-NLS-1$
         }
     }
 

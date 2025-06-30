@@ -45,7 +45,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                         5,
                         TimeUnit.MINUTES,
                         new LinkedBlockingDeque<>(),
-                        new NamedThreadFactory("crawler-worker: scan executor"));
+                        new NamedThreadFactory("crawler-worker: scan executor")); // $NON-NLS-1$
     }
 
     public Future<Document> handle(ScanTarget scanTarget) {
@@ -86,7 +86,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                 if (activeJobs.get() > 0) {
                     shouldCleanupSelf.set(true);
                     LOGGER.warn(
-                            "Was told to cleanup while still running; Enqueuing cleanup for later");
+                            "Was told to cleanup while still running; Enqueuing cleanup for later"); //$NON-NLS-1$
                     return false;
                 }
                 if (initialized.getAndSet(false)) {

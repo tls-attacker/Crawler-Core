@@ -78,7 +78,7 @@ public class BulkScanWorkerManager {
                         return ret;
                     });
         } catch (ExecutionException e) {
-            LOGGER.error("Could not create bulk scan worker", e);
+            LOGGER.error("Could not create bulk scan worker", e); // $NON-NLS-1$
             throw new UncheckedException(e);
         }
     }

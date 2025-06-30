@@ -48,7 +48,7 @@ import org.mongojack.JacksonMongoCollection;
 public class MongoPersistenceProvider implements IPersistenceProvider {
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private static final String BULK_SCAN_COLLECTION_NAME = "bulkScans";
+    private static final String BULK_SCAN_COLLECTION_NAME = "bulkScans"; // $NON-NLS-1$
 
     private static final Set<JsonSerializer<?>> serializers = new HashSet<>();
     private static final Set<Module> modules = new HashSet<>();
@@ -58,7 +58,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     public static void registerSerializer(JsonSerializer<?> serializer) {
         synchronized (registrationLock) {
             if (registrationClosed) {
-                throw new RuntimeException("Cannot register serializer after initialization");
+                throw new RuntimeException(
+                        "Cannot register serializer after initialization"); //$NON-NLS-1$
             }
             serializers.add(serializer);
         }
@@ -73,7 +74,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     public static void registerModule(Module module) {
         synchronized (registrationLock) {
             if (registrationClosed) {
-                throw new RuntimeException("Cannot register module after initialization");
+                throw new RuntimeException(
+                        "Cannot register module after initialization"); //$NON-NLS-1$
             }
             modules.add(module);
         }
@@ -95,18 +97,18 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private static MongoClient createMongoClient(MongoDbDelegate mongoDbDelegate) {
         ConnectionString connectionString =
                 new ConnectionString(
-                        "mongodb://"
+                        "mongodb://" //$NON-NLS-1$
                                 + mongoDbDelegate.getMongoDbHost()
-                                + ":"
+                                + ":" //$NON-NLS-1$
                                 + mongoDbDelegate.getMongoDbPort());
-        String pw = "";
+        String pw = ""; // $NON-NLS-1$
         if (mongoDbDelegate.getMongoDbPass() != null) {
             pw = mongoDbDelegate.getMongoDbPass();
         } else if (mongoDbDelegate.getMongoDbPassFile() != null) {
             try {
                 pw = Files.readAllLines(Paths.get(mongoDbDelegate.getMongoDbPassFile())).get(0);
             } catch (IOException e) {
-                LOGGER.error("Could not read mongoDb password file: ", e);
+                LOGGER.error("Could not read mongoDb password file: ", e); // $NON-NLS-1$
             }
         }
 
@@ -121,7 +123,9 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                         .credential(credentials)
                         .applyConnectionString(connectionString)
                         .build();
-        LOGGER.info("MongoDB persistence provider prepared to connect to {}", connectionString);
+        LOGGER.info(
+                "MongoDB persistence provider prepared to connect to {}",
+                connectionString); //$NON-NLS-1$
         return MongoClients.create(mongoClientSettings);
     }
 
@@ -162,9 +166,9 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
 
         try {
             mongoClient.startSession();
-            LOGGER.info("MongoDB persistence provider initialized and connected.");
+            LOGGER.info("MongoDB persistence provider initialized and connected."); // $NON-NLS-1$
         } catch (Exception e) {
-            LOGGER.error("Could not connect to MongoDB: ", e);
+            LOGGER.error("Could not connect to MongoDB: ", e); // $NON-NLS-1$
             throw new RuntimeException(e);
         }
 
@@ -183,13 +187,13 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     }
 
     private MongoDatabase initDatabase(String dbName) {
-        LOGGER.info("Initializing database: {}.", dbName);
+        LOGGER.info("Initializing database: {}.", dbName); // $NON-NLS-1$
         return mongoClient.getDatabase(dbName);
     }
 
     private JacksonMongoCollection<ScanResult> initResultCollection(
             String dbName, String collectionName) {
-        LOGGER.info("Initializing collection: {}.{}.", dbName, collectionName);
+        LOGGER.info("Initializing collection: {}.{}.", dbName, collectionName); // $NON-NLS-1$
         var collection =
                 JacksonMongoCollection.builder()
                         .withObjectMapper(mapper)
@@ -199,10 +203,10 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                                 ScanResult.class,
                                 UuidRepresentation.STANDARD);
         // createIndex is idempotent, hence we do not need to check if an index exists
-        collection.createIndex(Indexes.ascending("scanTarget.ip"));
-        collection.createIndex(Indexes.ascending("scanTarget.hostname"));
-        collection.createIndex(Indexes.ascending("scanTarget.trancoRank"));
-        collection.createIndex(Indexes.ascending("scanTarget.resultStatus"));
+        collection.createIndex(Indexes.ascending("scanTarget.ip")); // $NON-NLS-1$
+        collection.createIndex(Indexes.ascending("scanTarget.hostname")); // $NON-NLS-1$
+        collection.createIndex(Indexes.ascending("scanTarget.trancoRank")); // $NON-NLS-1$
+        collection.createIndex(Indexes.ascending("scanTarget.resultStatus")); // $NON-NLS-1$
         return collection;
     }
 
@@ -234,7 +238,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private void writeResultToDatabase(
             String dbName, String collectionName, ScanResult scanResult) {
         LOGGER.info(
-                "Writing result ({}) for {} into collection: {}",
+                "Writing result ({}) for {} into collection: {}", //$NON-NLS-1$
                 scanResult.getResultStatus(),
                 scanResult.getScanTarget().getHostname(),
                 collectionName);
@@ -245,11 +249,11 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     public void insertScanResult(ScanResult scanResult, ScanJobDescription scanJobDescription) {
         if (scanResult.getResultStatus() != scanJobDescription.getStatus()) {
             LOGGER.error(
-                    "ScanResult status ({}) does not match ScanJobDescription status ({})",
+                    "ScanResult status ({}) does not match ScanJobDescription status ({})", //$NON-NLS-1$
                     scanResult.getResultStatus(),
                     scanJobDescription.getStatus());
             throw new IllegalArgumentException(
-                    "ScanResult status does not match ScanJobDescription status");
+                    "ScanResult status does not match ScanJobDescription status"); //$NON-NLS-1$
         }
         try {
             writeResultToDatabase(
@@ -258,14 +262,14 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                     scanResult);
         } catch (Exception e) {
             // catch JsonMappingException etc.
-            LOGGER.error("Exception while writing Result to MongoDB: ", e);
+            LOGGER.error("Exception while writing Result to MongoDB: ", e); // $NON-NLS-1$
             if (scanResult.getResultStatus() != JobStatus.SERIALIZATION_ERROR) {
                 scanJobDescription.setStatus(JobStatus.SERIALIZATION_ERROR);
                 insertScanResult(
                         ScanResult.fromException(scanJobDescription, e), scanJobDescription);
             } else {
                 LOGGER.error(
-                        "Did not write serialization exception to MongoDB (to avoid infinite recursion)");
+                        "Did not write serialization exception to MongoDB (to avoid infinite recursion)"); //$NON-NLS-1$
                 scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
             }
         }

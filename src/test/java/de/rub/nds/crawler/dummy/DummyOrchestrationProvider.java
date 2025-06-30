@@ -46,7 +46,10 @@ public class DummyOrchestrationProvider implements IOrchestrationProvider {
                 jobConsumers.put(consumer);
                 long id = jobIdCounter++;
                 unackedJobs.put(id, scanJobDescription);
-                LOGGER.info("Sending job {} to consumer as ID {}", scanJobDescription, id);
+                LOGGER.info(
+                        "Sending job {} to consumer as ID {}",
+                        scanJobDescription,
+                        id); //$NON-NLS-1$
                 scanJobDescription.setDeliveryTag(id);
                 consumer.consumeScanJob(scanJobDescription);
             } catch (InterruptedException e) {
@@ -57,7 +60,7 @@ public class DummyOrchestrationProvider implements IOrchestrationProvider {
 
     @Override
     public void submitScanJob(ScanJobDescription scanJobDescription) {
-        LOGGER.info("Received job {}", scanJobDescription);
+        LOGGER.info("Received job {}", scanJobDescription); // $NON-NLS-1$
         jobQueue.add(scanJobDescription);
     }
 
@@ -75,7 +78,9 @@ public class DummyOrchestrationProvider implements IOrchestrationProvider {
     @Override
     public void notifyOfDoneScanJob(ScanJobDescription scanJobDescription) {
         LOGGER.info(
-                "Job {} ID={} was acked", scanJobDescription, scanJobDescription.getDeliveryTag());
+                "Job {} ID={} was acked",
+                scanJobDescription,
+                scanJobDescription.getDeliveryTag()); // $NON-NLS-1$
         unackedJobs.remove(scanJobDescription.getDeliveryTag());
         for (DoneNotificationConsumer consumer : doneNotificationConsumers) {
             consumer.consumeDoneNotification(null, scanJobDescription);

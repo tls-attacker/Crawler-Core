@@ -61,7 +61,7 @@ public class Worker {
                         5,
                         TimeUnit.MINUTES,
                         new LinkedBlockingDeque<>(),
-                        new NamedThreadFactory("crawler-worker: result handler"));
+                        new NamedThreadFactory("crawler-worker: result handler")); // $NON-NLS-1$
     }
 
     public void start() {
@@ -79,7 +79,7 @@ public class Worker {
             jobStatus = resultDocument != null ? JobStatus.SUCCESS : JobStatus.EMPTY;
         } catch (TimeoutException e) {
             LOGGER.info(
-                    "Trying to shutdown scan of '{}' because timeout reached",
+                    "Trying to shutdown scan of '{}' because timeout reached", //$NON-NLS-1$
                     scanJobDescription.getScanTarget());
             resultFuture.cancel(true);
             // after interrupting, the scan should return as soon as possible
@@ -91,7 +91,7 @@ public class Worker {
     }
 
     private void handleScanJob(ScanJobDescription scanJobDescription) {
-        LOGGER.info("Received scan job for {}", scanJobDescription.getScanTarget());
+        LOGGER.info("Received scan job for {}", scanJobDescription.getScanTarget()); // $NON-NLS-1$
         Future<Document> resultFuture =
                 BulkScanWorkerManager.handleStatic(
                         scanJobDescription, parallelConnectionThreads, parallelScanThreads);
@@ -102,27 +102,29 @@ public class Worker {
                     try {
                         scanResult = waitForScanResult(resultFuture, scanJobDescription);
                     } catch (InterruptedException e) {
-                        LOGGER.error("Worker was interrupted - not persisting anything", e);
+                        LOGGER.error(
+                                "Worker was interrupted - not persisting anything",
+                                e); //$NON-NLS-1$
                         scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
                         persist = false;
                         Thread.currentThread().interrupt();
                     } catch (ExecutionException e) {
                         LOGGER.error(
-                                "Scanning of {} failed because of an exception: ",
+                                "Scanning of {} failed because of an exception: ", //$NON-NLS-1$
                                 scanJobDescription.getScanTarget(),
                                 e);
                         scanJobDescription.setStatus(JobStatus.ERROR);
                         scanResult = ScanResult.fromException(scanJobDescription, e);
                     } catch (TimeoutException e) {
                         LOGGER.info(
-                                "Scan of '{}' did not finish in time and did not cancel gracefully",
+                                "Scan of '{}' did not finish in time and did not cancel gracefully", //$NON-NLS-1$
                                 scanJobDescription.getScanTarget());
                         scanJobDescription.setStatus(JobStatus.CANCELLED);
                         resultFuture.cancel(true);
                         scanResult = ScanResult.fromException(scanJobDescription, e);
                     } catch (Exception e) {
                         LOGGER.error(
-                                "Scanning of {} failed because of an unexpected exception: ",
+                                "Scanning of {} failed because of an unexpected exception: ", //$NON-NLS-1$
                                 scanJobDescription.getScanTarget(),
                                 e);
                         scanJobDescription.setStatus(JobStatus.CRAWLER_ERROR);
@@ -139,17 +141,19 @@ public class Worker {
         try {
             if (scanResult != null) {
                 LOGGER.info(
-                        "Writing {} result for {}",
+                        "Writing {} result for {}", //$NON-NLS-1$
                         scanResult.getResultStatus(),
                         scanJobDescription.getScanTarget());
                 scanJobDescription.setStatus(scanResult.getResultStatus());
                 persistenceProvider.insertScanResult(scanResult, scanJobDescription);
             } else {
-                LOGGER.error("ScanResult was null, this should not happen.");
+                LOGGER.error("ScanResult was null, this should not happen."); // $NON-NLS-1$
                 scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
             }
         } catch (Exception e) {
-            LOGGER.error("Could not persist result for {}", scanJobDescription.getScanTarget());
+            LOGGER.error(
+                    "Could not persist result for {}",
+                    scanJobDescription.getScanTarget()); // $NON-NLS-1$
             scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
         } finally {
             orchestrationProvider.notifyOfDoneScanJob(scanJobDescription);

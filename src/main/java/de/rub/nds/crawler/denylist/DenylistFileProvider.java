@@ -42,16 +42,18 @@ public class DenylistFileProvider implements IDenylistProvider {
         try (Stream<String> lines = Files.lines(Paths.get(denylistFilename))) {
             denylist = lines.collect(Collectors.toList());
         } catch (IOException e) {
-            LOGGER.error("Could not read denylist {}", denylistFilename);
+            LOGGER.error("Could not read denylist {}", denylistFilename); // $NON-NLS-1$
         }
         for (String denylistEntry : denylist) {
             if (DomainValidator.getInstance().isValid(denylistEntry)) {
                 domainDenylistSet.add(denylistEntry);
             } else if (InetAddressValidator.getInstance().isValid(denylistEntry)) {
                 ipDenylistSet.add(denylistEntry);
-            } else if (denylistEntry.contains("/")
-                    && InetAddressValidator.getInstance().isValid(denylistEntry.split("/")[0])
-                    && IntegerValidator.getInstance().isValid(denylistEntry.split("/")[1])) {
+            } else if (denylistEntry.contains("/") // $NON-NLS-1$
+                    && InetAddressValidator.getInstance()
+                            .isValid(denylistEntry.split("/")[0]) // $NON-NLS-1$
+                    && IntegerValidator.getInstance()
+                            .isValid(denylistEntry.split("/")[1])) { // $NON-NLS-1$
                 SubnetUtils utils = new SubnetUtils(denylistEntry);
                 cidrDenylist.add(utils.getInfo());
             }

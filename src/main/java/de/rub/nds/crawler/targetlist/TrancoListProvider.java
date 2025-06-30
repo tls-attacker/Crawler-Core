@@ -14,16 +14,16 @@ import java.util.stream.Stream;
 
 /**
  * Target list provider that downloads the most recent tranco list (<a
- * href="https://tranco-list.eu/">...</a>) and extracts the top x hosts from it.
+ * href="https://tranco-list.eu/">...</a>) and extracts the top x hosts from it. //$NON-NLS-1$
  */
 public class TrancoListProvider extends ZipFileProvider {
 
-    private static final String SOURCE = "https://tranco-list.eu/top-1m.csv.zip";
-    private static final String ZIP_FILENAME = "tranco-1m.csv.zip";
-    private static final String FILENAME = "tranco-1m.csv";
+    private static final String SOURCE = "https://tranco-list.eu/top-1m.csv.zip"; // $NON-NLS-1$
+    private static final String ZIP_FILENAME = "tranco-1m.csv.zip"; // $NON-NLS-1$
+    private static final String FILENAME = "tranco-1m.csv"; // $NON-NLS-1$
 
     public TrancoListProvider(int number) {
-        super(number, SOURCE, ZIP_FILENAME, FILENAME, "Tranco");
+        super(number, SOURCE, ZIP_FILENAME, FILENAME, "Tranco"); // $NON-NLS-1$
     }
 
     @Override

@@ -34,25 +34,28 @@ public class PublishBulkScanJob implements Job {
         try {
             JobDataMap data = context.getMergedJobDataMap();
 
-            ControllerCommandConfig controllerConfig = (ControllerCommandConfig) data.get("config");
+            ControllerCommandConfig controllerConfig =
+                    (ControllerCommandConfig) data.get("config"); // $NON-NLS-1$
             IOrchestrationProvider orchestrationProvider =
-                    (IOrchestrationProvider) data.get("orchestrationProvider");
+                    (IOrchestrationProvider) data.get("orchestrationProvider"); // $NON-NLS-1$
             IPersistenceProvider persistenceProvider =
-                    (IPersistenceProvider) data.get("persistenceProvider");
+                    (IPersistenceProvider) data.get("persistenceProvider"); // $NON-NLS-1$
             ITargetListProvider targetListProvider =
-                    (ITargetListProvider) data.get("targetListProvider");
-            IDenylistProvider denylistProvider = (IDenylistProvider) data.get("denylistProvider");
-            ProgressMonitor progressMonitor = (ProgressMonitor) data.get("progressMonitor");
+                    (ITargetListProvider) data.get("targetListProvider"); // $NON-NLS-1$
+            IDenylistProvider denylistProvider =
+                    (IDenylistProvider) data.get("denylistProvider"); // $NON-NLS-1$
+            ProgressMonitor progressMonitor =
+                    (ProgressMonitor) data.get("progressMonitor"); // $NON-NLS-1$
 
             // Create Bulk Scan and write to DB
-            LOGGER.info("Initializing BulkScan");
+            LOGGER.info("Initializing BulkScan"); // $NON-NLS-1$
             BulkScan bulkScan = controllerConfig.createBulkScan();
 
             List<String> targetStringList = targetListProvider.getTargetList();
             bulkScan.setTargetsGiven(targetStringList.size());
 
             persistenceProvider.insertBulkScan(bulkScan);
-            LOGGER.info("Persisted BulkScan with id: {}", bulkScan.get_id());
+            LOGGER.info("Persisted BulkScan with id: {}", bulkScan.get_id()); // $NON-NLS-1$
 
             if (controllerConfig.isMonitored()) {
                 progressMonitor.startMonitoringBulkScanProgress(bulkScan);
@@ -60,7 +63,7 @@ public class PublishBulkScanJob implements Job {
 
             // create and submit scan jobs for valid hosts
             LOGGER.info(
-                    "Filtering out denylisted hosts and hosts where the domain can not be resolved.");
+                    "Filtering out denylisted hosts and hosts where the domain can not be resolved."); //$NON-NLS-1$
             var submitter =
                     new JobSubmitter(
                             orchestrationProvider,
@@ -89,13 +92,13 @@ public class PublishBulkScanJob implements Job {
                 progressMonitor.stopMonitoringAndFinalizeBulkScan(bulkScan.get_id());
             }
             LOGGER.info(
-                    "Submitted {} scan jobs to RabbitMq (Not submitted: {} Unresolvable, {} Denylisted, {} unhandled Error)",
+                    "Submitted {} scan jobs to RabbitMq (Not submitted: {} Unresolvable, {} Denylisted, {} unhandled Error)", //$NON-NLS-1$
                     submittedJobs,
                     unresolvedJobs,
                     denylistedJobs,
                     resolutionErrorJobs);
         } catch (Exception e) {
-            LOGGER.error("Exception while publishing BulkScan: ", e);
+            LOGGER.error("Exception while publishing BulkScan: ", e); // $NON-NLS-1$
             JobExecutionException e2 = new JobExecutionException(e);
             e2.setUnscheduleAllTriggers(true);
             throw e2;
@@ -138,7 +141,9 @@ public class PublishBulkScanJob implements Job {
                                 new ScanTarget(), bulkScan, JobStatus.RESOLUTION_ERROR);
                 errorResult = ScanResult.fromException(jobDescription, e);
                 LOGGER.error(
-                        "Error while creating ScanJobDescription for target '{}'", targetString, e);
+                        "Error while creating ScanJobDescription for target '{}'",
+                        targetString,
+                        e); //$NON-NLS-1$
             }
 
             if (jobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {

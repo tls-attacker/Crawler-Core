@@ -72,25 +72,25 @@ public class ProgressMonitor {
 
         private String formatTime(double millis) {
             if (millis < 1000) {
-                return String.format("%4.0f ms", millis);
+                return String.format("%4.0f ms", millis); // $NON-NLS-1$
             }
             double seconds = millis / 1000;
             if (seconds < 100) {
-                return String.format("%5.2f s", seconds);
+                return String.format("%5.2f s", seconds); // $NON-NLS-1$
             }
 
             double minutes = seconds / 60;
             seconds = seconds % 60;
             if (minutes < 100) {
-                return String.format("%2.0f m %2.0f s", minutes, seconds);
+                return String.format("%2.0f m %2.0f s", minutes, seconds); // $NON-NLS-1$
             }
             double hours = minutes / 60;
             minutes = minutes % 60;
             if (hours < 48) {
-                return String.format("%2.0f h %2.0f m", hours, minutes);
+                return String.format("%2.0f h %2.0f m", hours, minutes); // $NON-NLS-1$
             }
             double days = hours / 24;
-            return String.format("%.1f d", days);
+            return String.format("%.1f d", days); // $NON-NLS-1$
         }
 
         @Override
@@ -114,7 +114,7 @@ public class ProgressMonitor {
                 double eta = (expectedTotal - totalDone) * movingAverageDuration;
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info(
-                            "BulkScan '{}' - {} of {} scan jobs done | Global Average {}/report | Moving Average {}/report | ETA: {}",
+                            "BulkScan '{}' - {} of {} scan jobs done | Global Average {}/report | Moving Average {}/report | ETA: {}", //$NON-NLS-1$
                             bulkScanId,
                             totalDone,
                             expectedTotal,
@@ -122,7 +122,7 @@ public class ProgressMonitor {
                             formatTime(movingAverageDuration),
                             formatTime(eta));
                     LOGGER.info(
-                            "BulkScan '{}' - Successful: {} | Empty: {} | Timeout: {} | Error: {} | Serialization Error: {} | Internal Error: {}",
+                            "BulkScan '{}' - Successful: {} | Empty: {} | Timeout: {} | Error: {} | Serialization Error: {} | Internal Error: {}", //$NON-NLS-1$
                             bulkScanId,
                             counters.getJobStatusCount(JobStatus.SUCCESS),
                             counters.getJobStatusCount(JobStatus.EMPTY),
@@ -135,7 +135,7 @@ public class ProgressMonitor {
                     stopMonitoringAndFinalizeBulkScan(scanJob.getBulkScanInfo().getBulkScanId());
                 }
             } catch (Exception e) {
-                LOGGER.error("Exception in done notification consumer:", e);
+                LOGGER.error("Exception in done notification consumer:", e); // $NON-NLS-1$
             }
         }
     }
@@ -164,7 +164,7 @@ public class ProgressMonitor {
      * @param bulkScanId of the bulk scan for which the monitoring should be stopped.
      */
     public void stopMonitoringAndFinalizeBulkScan(String bulkScanId) {
-        LOGGER.info("BulkScan '{}' is finished", bulkScanId);
+        LOGGER.info("BulkScan '{}' is finished", bulkScanId); // $NON-NLS-1$
         BulkScanJobCounters bulkScanJobCounters = scanJobDetailsById.get(bulkScanId);
         BulkScan scan = bulkScanJobCounters.getBulkScan();
         scan.setFinished(true);
@@ -172,7 +172,7 @@ public class ProgressMonitor {
         scan.setSuccessfulScans(bulkScanJobCounters.getJobStatusCount(JobStatus.SUCCESS));
         scan.setJobStatusCounters(bulkScanJobCounters.getJobStatusCountersCopy());
         persistenceProvider.updateBulkScan(scan);
-        LOGGER.info("Persisted updated BulkScan with id: {}", scan.get_id());
+        LOGGER.info("Persisted updated BulkScan with id: {}", scan.get_id()); // $NON-NLS-1$
 
         scanJobDetailsById.remove(bulkScanId);
 
@@ -182,17 +182,19 @@ public class ProgressMonitor {
             try {
                 String response = notify(scan);
                 LOGGER.info(
-                        "BulkScan {}(id={}): sent notification to '{}' got response: '{}'",
+                        "BulkScan {}(id={}): sent notification to '{}' got response: '{}'", //$NON-NLS-1$
                         scan.getName(),
                         scan.get_id(),
                         scan.getNotifyUrl(),
                         response);
             } catch (IOException e) {
                 LOGGER.error(
-                        "Could not send notification for bulkScan '{}' because: ", bulkScanId, e);
+                        "Could not send notification for bulkScan '{}' because: ",
+                        bulkScanId,
+                        e); //$NON-NLS-1$
             } catch (InterruptedException e) {
                 LOGGER.error(
-                        "Could not send notification for bulkScan '{}' because we were interrupted: ",
+                        "Could not send notification for bulkScan '{}' because we were interrupted: ", //$NON-NLS-1$
                         bulkScanId,
                         e);
                 Thread.currentThread().interrupt();
@@ -200,7 +202,8 @@ public class ProgressMonitor {
         }
         try {
             if (scanJobDetailsById.isEmpty() && scheduler.isShutdown()) {
-                LOGGER.info("All bulkScans are finished. Closing rabbitMq connection.");
+                LOGGER.info(
+                        "All bulkScans are finished. Closing rabbitMq connection."); //$NON-NLS-1$
                 orchestrationProvider.closeConnection();
             }
         } catch (SchedulerException e) {
@@ -222,7 +225,7 @@ public class ProgressMonitor {
 
         HttpRequest request =
                 HttpRequest.newBuilder(URI.create(bulkScan.getNotifyUrl()))
-                        .header("Content-Type", "application/json")
+                        .header("Content-Type", "application/json") // $NON-NLS-1$ //$NON-NLS-2$
                         .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                         .build();
 

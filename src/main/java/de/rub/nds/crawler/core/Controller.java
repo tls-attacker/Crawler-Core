@@ -64,12 +64,12 @@ public class Controller {
             }
 
             JobDataMap jobDataMap = new JobDataMap();
-            jobDataMap.put("config", config);
-            jobDataMap.put("orchestrationProvider", orchestrationProvider);
-            jobDataMap.put("persistenceProvider", persistenceProvider);
-            jobDataMap.put("targetListProvider", targetListProvider);
-            jobDataMap.put("denylistProvider", denylistProvider);
-            jobDataMap.put("progressMonitor", progressMonitor);
+            jobDataMap.put("config", config); // $NON-NLS-1$
+            jobDataMap.put("orchestrationProvider", orchestrationProvider); // $NON-NLS-1$
+            jobDataMap.put("persistenceProvider", persistenceProvider); // $NON-NLS-1$
+            jobDataMap.put("targetListProvider", targetListProvider); // $NON-NLS-1$
+            jobDataMap.put("denylistProvider", denylistProvider); // $NON-NLS-1$
+            jobDataMap.put("progressMonitor", progressMonitor); // $NON-NLS-1$
 
             // schedule job publishing according to specified cmd parameters
             scheduler.scheduleJob(
@@ -78,7 +78,7 @@ public class Controller {
 
             scheduler.start();
         } catch (SchedulerException e) {
-            LOGGER.error("Scheduler exception with message ", e);
+            LOGGER.error("Scheduler exception with message ", e); // $NON-NLS-1$
         }
     }
 
@@ -101,18 +101,19 @@ public class Controller {
                                             return scheduler.getTrigger(k).mayFireAgain();
                                         } catch (SchedulerException e) {
                                             LOGGER.warn(
-                                                    "Could not read trigger state in scheduler. Treating as still running.");
+                                                    "Could not read trigger state in scheduler. Treating as still running."); //$NON-NLS-1$
                                             return false;
                                         }
                                     })
                             .noneMatch(Predicate.isEqual(true));
 
             if (allTriggersFinalized) {
-                LOGGER.info("All scheduled Jobs published. Shutting down scheduler.");
+                LOGGER.info(
+                        "All scheduled Jobs published. Shutting down scheduler."); //$NON-NLS-1$
                 scheduler.shutdown();
             }
         } catch (SchedulerException e) {
-            LOGGER.error("Scheduler exception with message ", e);
+            LOGGER.error("Scheduler exception with message ", e); // $NON-NLS-1$
         }
     }
 }

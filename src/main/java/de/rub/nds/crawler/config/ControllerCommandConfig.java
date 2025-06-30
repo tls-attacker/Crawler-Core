@@ -28,66 +28,76 @@ public abstract class ControllerCommandConfig {
 
     @ParametersDelegate private final MongoDbDelegate mongoDbDelegate;
 
-    @Parameter(names = "-portToBeScanned", description = "The port that should be scanned.")
+    @Parameter(
+            names = "-portToBeScanned",
+            description = "The port that should be scanned.") // $NON-NLS-1$ //$NON-NLS-2$
     private int port = 443;
 
-    @Parameter(names = "-scanDetail")
+    @Parameter(names = "-scanDetail") // $NON-NLS-1$
     private ScannerDetail scanDetail = ScannerDetail.NORMAL;
 
     @Parameter(
-            names = "-timeout",
+            names = "-timeout", // $NON-NLS-1$
             validateWith = PositiveInteger.class,
-            description = "The timeout to use inside the TLS-Scanner.")
+            description = "The timeout to use inside the TLS-Scanner.") // $NON-NLS-1$
     private int scannerTimeout = 2000;
 
     @Parameter(
-            names = "-reexecutions",
+            names = "-reexecutions", // $NON-NLS-1$
             validateWith = PositiveInteger.class,
-            description = "Number of reexecutions to use in the TLS-Scanner.")
+            description = "Number of reexecutions to use in the TLS-Scanner.") // $NON-NLS-1$
     private int reexecutions = 3;
 
     @Parameter(
-            names = "-scanCronInterval",
+            names = "-scanCronInterval", // $NON-NLS-1$
             validateWith = CronSyntax.class,
             description =
-                    "A cron expression which defines the interval of when scans are started. Leave empty to only start one scan immediately.")
+                    "A cron expression which defines the interval of when scans are started. Leave empty to only start one scan immediately.") //$NON-NLS-1$
     private String scanCronInterval;
 
-    @Parameter(names = "-scanName", description = "The name of the scan")
+    @Parameter(
+            names = "-scanName",
+            description = "The name of the scan") // $NON-NLS-1$ //$NON-NLS-2$
     private String scanName;
 
     @Parameter(
-            names = "-hostFile",
-            description = "A file of a list of servers which should be scanned.")
+            names = "-hostFile", // $NON-NLS-1$
+            description = "A file of a list of servers which should be scanned.") // $NON-NLS-1$
     private String hostFile;
 
     @Parameter(
-            names = "-denylist",
-            description = "A file with a list of IP-Ranges or domains which should not be scanned.")
+            names = "-denylist", // $NON-NLS-1$
+            description =
+                    "A file with a list of IP-Ranges or domains which should not be scanned.") //$NON-NLS-1$
     private String denylistFile;
 
     @Parameter(
-            names = "-monitorScan",
-            description = "If set the progress of the scans is monitored and logged.")
+            names = "-monitorScan", // $NON-NLS-1$
+            description =
+                    "If set the progress of the scans is monitored and logged.") //$NON-NLS-1$
     private boolean monitored;
 
     @Parameter(
-            names = "-notifyUrl",
+            names = "-notifyUrl", // $NON-NLS-1$
             description =
-                    "If set the controller sends a HTTP Post request including the BulkScan object in JSON after a BulkScan is finished to the specified URL.")
+                    "If set the controller sends a HTTP Post request including the BulkScan object in JSON after a BulkScan is finished to the specified URL.") //$NON-NLS-1$
     private String notifyUrl;
 
     @Parameter(
-            names = "-tranco",
-            description = "Number of top x hosts of the tranco list that should be scanned")
+            names = "-tranco", // $NON-NLS-1$
+            description =
+                    "Number of top x hosts of the tranco list that should be scanned") //$NON-NLS-1$
     private int tranco;
 
     @Parameter(
-            names = "-crux",
-            description = "Number of top x hosts of the crux list that should be scanned")
+            names = "-crux", // $NON-NLS-1$
+            description =
+                    "Number of top x hosts of the crux list that should be scanned") //$NON-NLS-1$
     private CruxListNumber crux;
 
-    @Parameter(names = "-trancoEmail", description = "MX record for number of top x hosts")
+    @Parameter(
+            names = "-trancoEmail",
+            description = "MX record for number of top x hosts") // $NON-NLS-1$ //$NON-NLS-2$
     private int trancoEmail;
 
     public ControllerCommandConfig() {
@@ -98,17 +108,17 @@ public abstract class ControllerCommandConfig {
     public void validate() {
         if (hostFile == null && tranco == 0 && trancoEmail == 0 && crux == null) {
             throw new ParameterException(
-                    "You have to either pass a hostFile, specify a number of tranco hosts or specify a number of crux hosts");
+                    "You have to either pass a hostFile, specify a number of tranco hosts or specify a number of crux hosts"); //$NON-NLS-1$
         }
         if (notifyUrl != null && !notifyUrl.isEmpty() && !notifyUrl.isBlank() && !monitored) {
             throw new ParameterException(
-                    "If a notify message should be sent the scan has to be monitored (-monitorScan)");
+                    "If a notify message should be sent the scan has to be monitored (-monitorScan)"); //$NON-NLS-1$
         }
         if (notifyUrl != null
                 && !notifyUrl.isEmpty()
                 && !notifyUrl.isBlank()
                 && !new UrlValidator().isValid(notifyUrl)) {
-            throw new ParameterException("Provided notify URI is not a valid URI");
+            throw new ParameterException("Provided notify URI is not a valid URI"); // $NON-NLS-1$
         }
     }
 
@@ -117,7 +127,11 @@ public abstract class ControllerCommandConfig {
             int n = Integer.parseInt(value);
             if (n < 0) {
                 throw new ParameterException(
-                        "Parameter " + name + " should be positive (found " + value + ")");
+                        "Parameter "
+                                + name
+                                + " should be positive (found "
+                                + value
+                                + ")"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             }
         }
     }

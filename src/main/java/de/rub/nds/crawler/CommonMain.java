@@ -28,24 +28,24 @@ public class CommonMain {
 
         JCommander jc = new JCommander();
 
-        jc.addCommand("controller", controllerCommandConfig);
-        jc.addCommand("worker", workerCommandConfig);
+        jc.addCommand("controller", controllerCommandConfig); // $NON-NLS-1$
+        jc.addCommand("worker", workerCommandConfig); // $NON-NLS-1$
 
         try {
             jc.parse(args);
         } catch (Exception e) {
-            LOGGER.error("Failed to parse command line arguments", e);
+            LOGGER.error("Failed to parse command line arguments", e); // $NON-NLS-1$
             jc.usage();
             return;
         }
         if (jc.getParsedCommand() == null) {
-            LOGGER.error("No command given");
+            LOGGER.error("No command given"); // $NON-NLS-1$
             jc.usage();
             return;
         }
 
         switch (jc.getParsedCommand().toLowerCase()) {
-            case "worker":
+            case "worker": //$NON-NLS-1$
                 Worker worker =
                         new Worker(
                                 workerCommandConfig,
@@ -55,7 +55,7 @@ public class CommonMain {
                                         workerCommandConfig.getMongoDbDelegate()));
                 worker.start();
                 break;
-            case "controller":
+            case "controller": //$NON-NLS-1$
                 controllerCommandConfig.validate();
                 Controller controller =
                         new Controller(

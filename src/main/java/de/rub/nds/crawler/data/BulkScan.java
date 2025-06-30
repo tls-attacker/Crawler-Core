@@ -52,9 +52,10 @@ public class BulkScan implements Serializable {
     private String crawlerVersion;
 
     private static final DateTimeFormatter DATE_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm").withZone(ZoneId.systemDefault());
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")
+                    .withZone(ZoneId.systemDefault()); // $NON-NLS-1$
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("unused") // $NON-NLS-1$
     private BulkScan() {}
 
     public BulkScan(
@@ -72,7 +73,8 @@ public class BulkScan implements Serializable {
         this.finished = false;
         this.startTime = startTime;
         this.monitored = monitored;
-        this.collectionName = name + "_" + DATE_FORMATTER.format(Instant.ofEpochMilli(startTime));
+        this.collectionName =
+                name + "_" + DATE_FORMATTER.format(Instant.ofEpochMilli(startTime)); // $NON-NLS-1$
         this.notifyUrl = notifyUrl;
     }
 

@@ -39,13 +39,15 @@ public class TrancoEmailListProvider implements ITargetListProvider {
         try {
             InitialDirContext iDirC = new InitialDirContext();
             List<String> hostList = new ArrayList<>(this.trancoList.getTargetList());
-            LOGGER.info("Fetching MX Hosts");
+            LOGGER.info("Fetching MX Hosts"); // $NON-NLS-1$
             for (String hold : hostList) {
                 String hostname = hold.substring(hold.lastIndexOf(',') + 1);
                 try {
                     Attributes attributes =
-                            iDirC.getAttributes("dns:/" + hostname, new String[] {"MX"});
-                    Attribute attributeMX = attributes.get("MX");
+                            iDirC.getAttributes(
+                                    "dns:/" + hostname,
+                                    new String[] {"MX"}); // $NON-NLS-1$ //$NON-NLS-2$
+                    Attribute attributeMX = attributes.get("MX"); // $NON-NLS-1$
 
                     if (attributeMX != null) {
                         for (int i = 0; i < attributeMX.size(); i++) {
@@ -54,7 +56,10 @@ public class TrancoEmailListProvider implements ITargetListProvider {
                         }
                     }
                 } catch (NamingException e) {
-                    LOGGER.error("No MX record found for host: {} with error {}", hostname, e);
+                    LOGGER.error(
+                            "No MX record found for host: {} with error {}",
+                            hostname,
+                            e); //$NON-NLS-1$
                 }
             }
         } catch (NamingException e) {

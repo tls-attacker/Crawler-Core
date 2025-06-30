@@ -35,28 +35,30 @@ public class ScanTarget implements Serializable {
         ScanTarget target = new ScanTarget();
 
         // check if targetString contains rank (e.g. "1,example.com")
-        if (targetString.contains(",")) {
-            if (targetString.split(",")[0].chars().allMatch(Character::isDigit)) {
-                target.setTrancoRank(Integer.parseInt(targetString.split(",")[0]));
-                targetString = targetString.split(",")[1];
+        if (targetString.contains(",")) { // $NON-NLS-1$
+            if (targetString.split(",")[0].chars().allMatch(Character::isDigit)) { // $NON-NLS-1$
+                target.setTrancoRank(Integer.parseInt(targetString.split(",")[0])); // $NON-NLS-1$
+                targetString = targetString.split(",")[1]; // $NON-NLS-1$
             } else {
-                targetString = "";
+                targetString = ""; // $NON-NLS-1$
             }
         }
 
         // Formatting for MX hosts
-        if (targetString.contains("//")) {
-            targetString = targetString.split("//")[1];
+        if (targetString.contains("//")) { // $NON-NLS-1$
+            targetString = targetString.split("//")[1]; // $NON-NLS-1$
         }
-        if (targetString.startsWith("\"") && targetString.endsWith("\"")) {
-            targetString = targetString.replace("\"", "");
+        if (targetString.startsWith("\"")
+                && targetString.endsWith("\"")) { // $NON-NLS-1$ //$NON-NLS-2$
+            targetString = targetString.replace("\"", ""); // $NON-NLS-1$ //$NON-NLS-2$
             System.out.println(targetString);
         }
 
         // check if targetString contains port (e.g. "www.example.com:8080" or "[2001:db8::1]:8080")
         // Handle IPv6 addresses with ports (enclosed in brackets)
-        if (targetString.startsWith("[") && targetString.contains("]:")) {
-            int bracketEnd = targetString.indexOf("]:");
+        if (targetString.startsWith("[")
+                && targetString.contains("]:")) { // $NON-NLS-1$ //$NON-NLS-2$
+            int bracketEnd = targetString.indexOf("]:"); // $NON-NLS-1$
             String ipv6Address = targetString.substring(1, bracketEnd);
             String portString = targetString.substring(bracketEnd + 2);
             try {
@@ -67,14 +69,14 @@ public class ScanTarget implements Serializable {
                     target.setPort(defaultPort);
                 }
             } catch (NumberFormatException e) {
-                LOGGER.warn("Invalid port number: {}", portString);
+                LOGGER.warn("Invalid port number: {}", portString); // $NON-NLS-1$
                 target.setPort(defaultPort);
             }
             targetString = ipv6Address; // Always extract the IPv6 address
-        } else if (targetString.contains(":")) {
+        } else if (targetString.contains(":")) { // $NON-NLS-1$
             // Check if it's an IPv6 address without port or IPv4/hostname with port
-            String[] parts = targetString.split(":");
-            if (parts.length == 2 && !targetString.contains("::")) {
+            String[] parts = targetString.split(":"); // $NON-NLS-1$
+            if (parts.length == 2 && !targetString.contains("::")) { // $NON-NLS-1$
                 // Likely IPv4 or hostname with port
                 try {
                     int port = Integer.parseInt(parts[1]);
@@ -106,14 +108,17 @@ public class ScanTarget implements Serializable {
                 target.setIp(InetAddress.getByName(targetString).getHostAddress());
             } catch (UnknownHostException e) {
                 LOGGER.error(
-                        "Host {} is unknown or can not be reached with error {}.", targetString, e);
+                        "Host {} is unknown or can not be reached with error {}.",
+                        targetString,
+                        e); //$NON-NLS-1$
                 // TODO in the current design we discard the exception info; maybe we want to keep
                 // this in the future
                 return Pair.of(target, JobStatus.UNRESOLVABLE);
             }
         }
         if (denylistProvider != null && denylistProvider.isDenylisted(target)) {
-            LOGGER.error("Host {} is denylisted and will not be scanned.", targetString);
+            LOGGER.error(
+                    "Host {} is denylisted and will not be scanned.", targetString); // $NON-NLS-1$
             // TODO similar to the unknownHostException, we do not keep any information as to why
             // the target is blocklisted it may be nice to distinguish cases where the domain is
             // blocked or where the IP is blocked

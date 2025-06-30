@@ -16,16 +16,17 @@ import java.util.stream.Stream;
 /**
  * Target list provider that downloads the most recent crux list (<a
  * href="https://github.com/zakird/crux-top-lists">...</a>) and extracts the top x hosts from it.
+ * //$NON-NLS-1$
  */
 public class CruxListProvider extends ZipFileProvider {
 
     private static final String SOURCE =
-            "https://raw.githubusercontent.com/zakird/crux-top-lists/main/data/global/current.csv.gz";
-    private static final String ZIP_FILENAME = "current.csv.gz";
-    private static final String FILENAME = "current.csv";
+            "https://raw.githubusercontent.com/zakird/crux-top-lists/main/data/global/current.csv.gz"; //$NON-NLS-1$
+    private static final String ZIP_FILENAME = "current.csv.gz"; // $NON-NLS-1$
+    private static final String FILENAME = "current.csv"; // $NON-NLS-1$
 
     public CruxListProvider(CruxListNumber cruxListNumber) {
-        super(cruxListNumber.getNumber(), SOURCE, ZIP_FILENAME, FILENAME, "Crux");
+        super(cruxListNumber.getNumber(), SOURCE, ZIP_FILENAME, FILENAME, "Crux"); // $NON-NLS-1$
     }
 
     @Override
@@ -34,11 +35,11 @@ public class CruxListProvider extends ZipFileProvider {
         // filter...
         return
         // ... ignore all none http
-        lines.filter(line -> line.contains("https://"))
+        lines.filter(line -> line.contains("https://")) // $NON-NLS-1$
                 // ... limit to names with correct crux rank
-                .filter(line -> Integer.parseInt(line.split(",")[1]) <= number)
+                .filter(line -> Integer.parseInt(line.split(",")[1]) <= number) // $NON-NLS-1$
                 // ... ignore crux rank and protocol
-                .map(line -> line.split(",")[0].split("://")[1])
+                .map(line -> line.split(",")[0].split("://")[1]) // $NON-NLS-1$ //$NON-NLS-2$
                 .collect(Collectors.toList());
     }
 }

@@ -50,9 +50,12 @@ public abstract class ZipFileProvider implements ITargetListProvider {
             fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
             fileOutputStream.close();
         } catch (IOException e) {
-            LOGGER.error("Could not download the current {} list with error ", listName, e);
+            LOGGER.error(
+                    "Could not download the current {} list with error ",
+                    listName,
+                    e); //$NON-NLS-1$
         }
-        LOGGER.info("Unzipping current {} list...", listName);
+        LOGGER.info("Unzipping current {} list...", listName); // $NON-NLS-1$
         try (InflaterInputStream zis = getZipInputStream(zipFilename)) {
             if (zis instanceof ZipInputStream) {
                 ((ZipInputStream) zis).getNextEntry();
@@ -67,32 +70,34 @@ public abstract class ZipFileProvider implements ITargetListProvider {
             }
             fos.close();
         } catch (IOException e) {
-            LOGGER.error("Could not unzip the current {} list with error ", listName, e);
+            LOGGER.error(
+                    "Could not unzip the current {} list with error ", listName, e); // $NON-NLS-1$
         }
-        LOGGER.info("Reading first {} hosts from current {} list...", number, listName);
+        LOGGER.info(
+                "Reading first {} hosts from current {} list...", number, listName); // $NON-NLS-1$
         // currently hosts are in order. e.g. top 1000 hosts come first but that does not have to be
         // the case. Therefore, we parse every line until we hit the specified number of hosts
         try (Stream<String> lines = Files.lines(Paths.get(outputFile))) {
             targetList = getTargetListFromLines(lines);
         } catch (IOException ex) {
-            throw new RuntimeException("Could not load " + outputFile, ex);
+            throw new RuntimeException("Could not load " + outputFile, ex); // $NON-NLS-1$
         }
-        LOGGER.info("Deleting files...");
+        LOGGER.info("Deleting files..."); // $NON-NLS-1$
         try {
             Files.delete(Path.of(zipFilename));
         } catch (IOException e) {
-            LOGGER.error("Could not delete {}: ", zipFilename, e);
+            LOGGER.error("Could not delete {}: ", zipFilename, e); // $NON-NLS-1$
         }
         try {
             Files.delete(Path.of(outputFile));
         } catch (IOException e) {
-            LOGGER.error("Could not delete {}: ", outputFile, e);
+            LOGGER.error("Could not delete {}: ", outputFile, e); // $NON-NLS-1$
         }
         return targetList;
     }
 
     private InflaterInputStream getZipInputStream(String filename) throws IOException {
-        if (filename.contains(".gz")) {
+        if (filename.contains(".gz")) { // $NON-NLS-1$
             return new GZIPInputStream(new FileInputStream(filename));
         } else {
             return new ZipInputStream(new FileInputStream(filename));

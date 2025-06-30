@@ -29,17 +29,17 @@ public class TargetFileProvider implements ITargetListProvider {
 
     @Override
     public List<String> getTargetList() {
-        LOGGER.info("Reading hostName list");
+        LOGGER.info("Reading hostName list"); // $NON-NLS-1$
         List<String> targetList;
         try (Stream<String> lines = Files.lines(Paths.get(filename))) {
             // remove comments and empty lines
             targetList =
-                    lines.filter(line -> !(line.startsWith("#") || line.isEmpty()))
+                    lines.filter(line -> !(line.startsWith("#") || line.isEmpty())) // $NON-NLS-1$
                             .collect(Collectors.toList());
         } catch (IOException ex) {
-            throw new RuntimeException("Could not load " + filename, ex);
+            throw new RuntimeException("Could not load " + filename, ex); // $NON-NLS-1$
         }
-        LOGGER.info("Read {} hosts", targetList.size());
+        LOGGER.info("Read {} hosts", targetList.size()); // $NON-NLS-1$
         return targetList;
     }
 }

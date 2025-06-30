@@ -43,25 +43,26 @@ public class ScanResult implements Serializable {
                 result);
         if (scanJobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {
             throw new IllegalArgumentException(
-                    "ScanJobDescription must not be in TO_BE_EXECUTED state");
+                    "ScanJobDescription must not be in TO_BE_EXECUTED state"); //$NON-NLS-1$
         }
     }
 
     public static ScanResult fromException(ScanJobDescription scanJobDescription, Exception e) {
         if (!scanJobDescription.getStatus().isError()) {
-            throw new IllegalArgumentException("ScanJobDescription must be in an error state");
+            throw new IllegalArgumentException(
+                    "ScanJobDescription must be in an error state"); //$NON-NLS-1$
         }
         Document errorDocument = new Document();
-        errorDocument.put("exception", e);
+        errorDocument.put("exception", e); // $NON-NLS-1$
         return new ScanResult(scanJobDescription, errorDocument);
     }
 
-    @JsonProperty("_id")
+    @JsonProperty("_id") // $NON-NLS-1$
     public String getId() {
         return this.id;
     }
 
-    @JsonProperty("_id")
+    @JsonProperty("_id") // $NON-NLS-1$
     public void setId(String id) {
         this.id = id;
     }

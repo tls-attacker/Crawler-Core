@@ -26,10 +26,10 @@ class ControllerTest {
         var orchestrationProvider = new DummyOrchestrationProvider();
         ControllerCommandConfig config = new DummyControllerCommandConfig();
 
-        File hostlist = File.createTempFile("hosts", "txt");
+        File hostlist = File.createTempFile("hosts", "txt"); // $NON-NLS-1$ //$NON-NLS-2$
         hostlist.deleteOnExit();
         FileWriter writer = new FileWriter(hostlist);
-        writer.write("example.com\nexample.org:8000");
+        writer.write("example.com\nexample.org:8000"); // $NON-NLS-1$
         writer.flush();
         writer.close();
 
