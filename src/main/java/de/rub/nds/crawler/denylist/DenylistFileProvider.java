@@ -58,7 +58,7 @@ public class DenylistFileProvider implements IDenylistProvider {
         }
     }
 
-    private boolean isInSubnet(String ip, SubnetUtils.SubnetInfo subnetInfo) {
+    private static boolean isInSubnet(String ip, SubnetUtils.SubnetInfo subnetInfo) {
         try {
             return subnetInfo.isInRange(ip);
         } catch (IllegalArgumentException e) {

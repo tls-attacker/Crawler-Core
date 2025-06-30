@@ -90,7 +90,7 @@ public abstract class ZipFileProvider implements ITargetListProvider {
         return targetList;
     }
 
-    private InflaterInputStream getZipInputStream(String filename) throws IOException {
+    private static InflaterInputStream getZipInputStream(String filename) throws IOException {
         if (filename.contains(".gz")) {
             return new GZIPInputStream(new FileInputStream(filename));
         } else {
