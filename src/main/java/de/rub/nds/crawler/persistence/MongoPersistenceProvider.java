@@ -45,7 +45,7 @@ import org.bson.UuidRepresentation;
 import org.mongojack.JacksonMongoCollection;
 
 /** A persistence provider implementation using MongoDB as the persistence layer. */
-public class MongoPersistenceProvider implements IPersistenceProvider {
+public final class MongoPersistenceProvider implements IPersistenceProvider {
     private static final Logger LOGGER = LogManager.getLogger();
 
     private static final String BULK_SCAN_COLLECTION_NAME = "bulkScans";

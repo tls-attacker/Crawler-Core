@@ -35,7 +35,7 @@ import org.apache.logging.log4j.Logger;
  * Provides all methods required for the communication with RabbitMQ for the controller and the
  * worker.
  */
-public class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
+public final class RabbitMqOrchestrationProvider implements IOrchestrationProvider {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
