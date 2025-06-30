@@ -9,6 +9,7 @@
 package de.rub.nds.crawler.targetlist;
 
 import java.io.*;
+import java.net.URI;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -44,7 +45,7 @@ public abstract class ZipFileProvider implements ITargetListProvider {
     public List<String> getTargetList() {
         List<String> targetList;
         try (ReadableByteChannel readableByteChannel =
-                        Channels.newChannel(new URL(sourceUrl).openStream());
+                        Channels.newChannel(URL.of(URI.create(sourceUrl), null).openStream());
                 FileOutputStream fileOutputStream = new FileOutputStream(zipFilename)) {
             fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
         } catch (IOException e) {
