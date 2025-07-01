@@ -60,11 +60,13 @@ public class CanceallableThreadPoolExecutor extends ThreadPoolExecutor {
 
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
+        super.newTaskFor(callable);
         return new CancellableFuture<>(callable);
     }
 
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
+        super.newTaskFor(runnable, value);
         return new CancellableFuture<>(runnable, value);
     }
 }

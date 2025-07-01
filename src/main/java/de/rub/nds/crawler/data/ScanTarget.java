@@ -134,6 +134,7 @@ public class ScanTarget implements Serializable {
 
     @Override
     public String toString() {
+        super.toString();
         return hostname != null ? hostname : ip;
     }
 
