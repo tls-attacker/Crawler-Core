@@ -8,7 +8,9 @@
  */
 package de.rub.nds.crawler.persistence;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -139,6 +141,10 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
             mapper.registerModule(module);
         }
         mapper.registerModule(new JavaTimeModule());
+
+        // Prevents some serialization error
+        mapper.setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.NONE);
+        mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
 
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         mapper.configOverride(BigDecimal.class)
