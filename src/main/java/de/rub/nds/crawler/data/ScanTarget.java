@@ -40,7 +40,24 @@ public class ScanTarget implements Serializable {
                 target.setTrancoRank(Integer.parseInt(targetString.split(",")[0]));
                 targetString = targetString.split(",")[1];
             } else {
-                targetString = "";
+                // Testing for format: hostname, optional IP with optional port
+                String[] parts = targetString.split(",", -1); // keep empty strings
+                if (parts.length == 2) {
+                    String[] hostnameParts = parts[0].split(":");
+                    target.setHostname(hostnameParts[0]);
+                    if (hostnameParts.length > 1) {
+                        target.setPort(Integer.parseInt(hostnameParts[1]));
+                    }
+                    targetString = parts[1];
+                    if (targetString.trim().isEmpty()) {
+                        try {
+                            target.setIp(
+                                    InetAddress.getByName(target.getHostname()).getHostAddress());
+                        } catch (UnknownHostException e) {
+                            return Pair.of(target, JobStatus.UNRESOLVABLE);
+                        }
+                    }
+                }
             }
         }
 
@@ -98,7 +115,7 @@ public class ScanTarget implements Serializable {
 
         if (InetAddressValidator.getInstance().isValid(targetString)) {
             target.setIp(targetString);
-        } else {
+        } else if (!targetString.trim().isEmpty()) {
             target.setHostname(targetString);
             try {
                 // TODO this only allows one IP per hostname; it may be interesting to scan all IPs
