@@ -9,6 +9,7 @@
 package de.rub.nds.crawler.persistence;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -125,6 +126,10 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private static ObjectMapper createMapper() {
         ObjectMapper mapper = new ObjectMapper();
 
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES, false);
+
         if (!serializers.isEmpty()) {
             SimpleModule serializerModule = new SimpleModule();
             for (JsonSerializer<?> serializer : serializers) {
@@ -217,6 +222,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
 
     @Override
     public void insertBulkScan(@NonNull BulkScan bulkScan) {
+        LOGGER.info("Inserting bulk scan with name: {}", bulkScan.getName());
         this.getBulkScanCollection(bulkScan.getName()).insertOne(bulkScan);
     }
 
@@ -229,7 +235,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private void writeResultToDatabase(
             String dbName, String collectionName, ScanResult scanResult) {
         LOGGER.info(
-                "Writing result ({}) for {} into collection: {}",
+                "Writinng result ({}) for {} into collection: {}",
                 scanResult.getResultStatus(),
                 scanResult.getScanTarget().getHostname(),
                 collectionName);
@@ -238,6 +244,10 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
 
     @Override
     public void insertScanResult(ScanResult scanResult, ScanJobDescription scanJobDescription) {
+        LOGGER.info(
+                "Inserting scan result for job ID: {} with status: {}",
+                scanJobDescription.getId(),
+                scanResult.getResultStatus());
         if (scanResult.getResultStatus() != scanJobDescription.getStatus()) {
             LOGGER.error(
                     "ScanResult status ({}) does not match ScanJobDescription status ({})",
@@ -246,6 +256,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
             throw new IllegalArgumentException(
                     "ScanResult status does not match ScanJobDescription status");
         }
+        scanResult.setId(scanJobDescription.getId().toString()); // <- Add this line
         try {
             writeResultToDatabase(
                     scanJobDescription.getDbName(),
