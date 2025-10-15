@@ -96,6 +96,12 @@ public abstract class ControllerCommandConfig {
     @Parameter(names = "-trancoEmail", description = "MX record for number of top x hosts")
     private int trancoEmail;
 
+    @Parameter(
+            names = "-exclude",
+            description =
+                    "A list of probes that should be excluded from the scan. The list is separated by commas.")
+    private String excludedProbes;
+
     public ControllerCommandConfig() {
         rabbitMqDelegate = new RabbitMqDelegate();
         mongoDbDelegate = new MongoDbDelegate();
@@ -292,5 +298,13 @@ public abstract class ControllerCommandConfig {
 
     public void setTrancoEmail(int trancoEmail) {
         this.trancoEmail = trancoEmail;
+    }
+
+    public String getExcludedProbes() {
+        return excludedProbes;
+    }
+
+    public void setExcludedProbes(String excludedProbes) {
+        this.excludedProbes = excludedProbes;
     }
 }
