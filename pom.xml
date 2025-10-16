@@ -8,7 +8,7 @@
     </parent>
 
     <artifactId>crawler-core</artifactId>
-    <version>1.2.1-SNAPSHOT-webapp</version>
+    <version>1.2.1-SNAPSHOT</version>
 
     <name>Crawler-Core</name>
     <url>https://github.com/tls-attacker/TLS-Crawler</url>
@@ -88,6 +88,16 @@
         <skip.failsafe.tests>${skipTests}</skip.failsafe.tests>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>de.rub.nds</groupId>
+                <artifactId>scanner-core</artifactId>
+                <version>6.2.2</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>com.beust</groupId>
@@ -125,7 +135,6 @@
         <dependency>
             <groupId>de.rub.nds</groupId>
             <artifactId>scanner-core</artifactId>
-            <version>6.2.2-webapp</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
