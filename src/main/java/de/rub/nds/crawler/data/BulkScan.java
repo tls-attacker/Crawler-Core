@@ -10,9 +10,9 @@ package de.rub.nds.crawler.data;
 
 import de.rub.nds.crawler.constant.JobStatus;
 import java.io.Serializable;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Date;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.Map;
 import javax.persistence.Id;
@@ -56,7 +56,8 @@ public class BulkScan implements Serializable {
 
     private String crawlerVersion;
 
-    private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm");
+    private static final DateTimeFormatter DATE_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm").withZone(ZoneId.systemDefault());
 
     @SuppressWarnings("unused")
     private BulkScan() {}
@@ -87,8 +88,7 @@ public class BulkScan implements Serializable {
         this.finished = false;
         this.startTime = startTime;
         this.monitored = monitored;
-        this.collectionName =
-                name + "_" + dateFormat.format(Date.from(Instant.ofEpochMilli(startTime)));
+        this.collectionName = name + "_" + DATE_FORMATTER.format(Instant.ofEpochMilli(startTime));
         this.notifyUrl = notifyUrl;
     }
 

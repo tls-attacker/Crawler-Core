@@ -28,7 +28,7 @@ import org.bson.Document;
  */
 public class BulkScanWorkerManager {
     private static final Logger LOGGER = LogManager.getLogger();
-    private static BulkScanWorkerManager instance;
+    private static volatile BulkScanWorkerManager instance;
 
     /**
      * Gets the singleton instance of the BulkScanWorkerManager. Creates the instance if it doesn't
@@ -38,7 +38,11 @@ public class BulkScanWorkerManager {
      */
     public static BulkScanWorkerManager getInstance() {
         if (instance == null) {
-            instance = new BulkScanWorkerManager();
+            synchronized (BulkScanWorkerManager.class) {
+                if (instance == null) {
+                    instance = new BulkScanWorkerManager();
+                }
+            }
         }
         return instance;
     }
@@ -56,8 +60,8 @@ public class BulkScanWorkerManager {
             ScanJobDescription scanJobDescription,
             int parallelConnectionThreads,
             int parallelScanThreads) {
-        BulkScanWorkerManager instance = getInstance();
-        return instance.handle(scanJobDescription, parallelConnectionThreads, parallelScanThreads);
+        BulkScanWorkerManager manager = getInstance();
+        return manager.handle(scanJobDescription, parallelConnectionThreads, parallelScanThreads);
     }
 
     private final Cache<String, BulkScanWorker<?>> bulkScanWorkers;

@@ -19,22 +19,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bson.Document;
 
-/**
- * Abstract worker for performing bulk scanning operations. Implements thread management and
- * lifecycle operations for scan workers.
- *
- * @param <T> The specific ScanConfig type used by this worker
- */
 public abstract class BulkScanWorker<T extends ScanConfig> {
     private static final Logger LOGGER = LogManager.getLogger();
     private final AtomicInteger activeJobs = new AtomicInteger(0);
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final AtomicBoolean shouldCleanupSelf = new AtomicBoolean(false);
-
-    /** The ID of the bulk scan this worker is associated with */
+    private final Object initializationLock = new Object();
     protected final String bulkScanId;
-
-    /** The scan configuration for this worker */
     protected final T scanConfig;
 
     /**
@@ -43,13 +34,6 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      */
     private final ThreadPoolExecutor timeoutExecutor;
 
-    /**
-     * Creates a new bulk scan worker.
-     *
-     * @param bulkScanId The ID of the bulk scan this worker is associated with
-     * @param scanConfig The scan configuration for this worker
-     * @param parallelScanThreads The number of parallel scan threads to use
-     */
     protected BulkScanWorker(String bulkScanId, T scanConfig, int parallelScanThreads) {
         this.bulkScanId = bulkScanId;
         this.scanConfig = scanConfig;
@@ -64,14 +48,6 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                         new NamedThreadFactory("crawler-worker: scan executor"));
     }
 
-    /**
-     * Handles a scan target by submitting it to the executor. If this is the first call, it will
-     * initialize the worker first. When the last job completes, it will clean up the worker if
-     * needed.
-     *
-     * @param scanTarget The target to scan
-     * @return A future that will complete when the scan is done
-     */
     public Future<Document> handle(ScanTarget scanTarget) {
         // if we initialized ourself, we also clean up ourself
         shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
@@ -86,26 +62,13 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                 });
     }
 
-    /**
-     * Scans a target and returns the result as a Document. This is the core scanning functionality
-     * that must be implemented by subclasses.
-     *
-     * @param scanTarget The target to scan
-     * @return The scan result as a Document
-     */
     public abstract Document scan(ScanTarget scanTarget);
 
-    /**
-     * Initializes this worker if it hasn't been initialized yet. This method is thread-safe and
-     * will only initialize once.
-     *
-     * @return True if this call performed the initialization, false if already initialized
-     */
     public final boolean init() {
         // synchronize such that no thread runs before being initialized
         // but only synchronize if not already initialized
         if (!initialized.get()) {
-            synchronized (initialized) {
+            synchronized (initializationLock) {
                 if (!initialized.getAndSet(true)) {
                     initInternal();
                     return true;
@@ -115,17 +78,11 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         return false;
     }
 
-    /**
-     * Cleans up this worker if it has been initialized and has no active jobs. This method is
-     * thread-safe and will only clean up once.
-     *
-     * @return True if this call performed the cleanup, false otherwise
-     */
     public final boolean cleanup() {
         // synchronize such that init and cleanup do not run simultaneously
         // but only synchronize if already initialized
         if (initialized.get()) {
-            synchronized (initialized) {
+            synchronized (initializationLock) {
                 if (activeJobs.get() > 0) {
                     shouldCleanupSelf.set(true);
                     LOGGER.warn(
@@ -142,17 +99,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         return false;
     }
 
-    /**
-     * Performs the actual initialization of this worker. This method is called exactly once by
-     * {@link #init()} when initialization is needed. Subclasses must implement this method to
-     * initialize their specific resources.
-     */
     protected abstract void initInternal();
 
-    /**
-     * Performs the actual cleanup of this worker. This method is called exactly once by {@link
-     * #cleanup()} when cleanup is needed. Subclasses must implement this method to clean up their
-     * specific resources.
-     */
     protected abstract void cleanupInternal();
 }

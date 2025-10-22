@@ -9,6 +9,7 @@
 package de.rub.nds.crawler.targetlist;
 
 import java.io.*;
+import java.net.URI;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -43,33 +44,31 @@ public abstract class ZipFileProvider implements ITargetListProvider {
 
     public List<String> getTargetList() {
         List<String> targetList;
-        try {
-            ReadableByteChannel readableByteChannel =
-                    Channels.newChannel(new URL(sourceUrl).openStream());
-            FileOutputStream fileOutputStream = new FileOutputStream(zipFilename);
+        try (ReadableByteChannel readableByteChannel =
+                        Channels.newChannel(URL.of(URI.create(sourceUrl), null).openStream());
+                FileOutputStream fileOutputStream = new FileOutputStream(zipFilename)) {
             fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-            fileOutputStream.close();
         } catch (IOException e) {
-            LOGGER.error("Could not download the current " + listName + " list with error ", e);
+            LOGGER.error("Could not download the current {} list with error ", listName, e);
         }
-        LOGGER.info("Unzipping current " + listName + " list...");
+        LOGGER.info("Unzipping current {} list...", listName);
         try (InflaterInputStream zis = getZipInputStream(zipFilename)) {
             if (zis instanceof ZipInputStream) {
                 ((ZipInputStream) zis).getNextEntry();
             }
             File newFile = new File(outputFile);
             // write file content
-            FileOutputStream fos = new FileOutputStream(newFile);
-            int len;
-            byte[] buffer = new byte[1024];
-            while ((len = zis.read(buffer)) > 0) {
-                fos.write(buffer, 0, len);
+            try (FileOutputStream fos = new FileOutputStream(newFile)) {
+                int len;
+                byte[] buffer = new byte[1024];
+                while ((len = zis.read(buffer)) > 0) {
+                    fos.write(buffer, 0, len);
+                }
             }
-            fos.close();
         } catch (IOException e) {
-            LOGGER.error("Could not unzip the current " + listName + " list with error ", e);
+            LOGGER.error("Could not unzip the current {} list with error ", listName, e);
         }
-        LOGGER.info("Reading first {} hosts from current " + listName + " list...", number);
+        LOGGER.info("Reading first {} hosts from current {} list...", number, listName);
         // currently hosts are in order. e.g. top 1000 hosts come first but that does not have to be
         // the case. Therefore, we parse every line until we hit the specified number of hosts
         try (Stream<String> lines = Files.lines(Paths.get(outputFile))) {
@@ -81,17 +80,17 @@ public abstract class ZipFileProvider implements ITargetListProvider {
         try {
             Files.delete(Path.of(zipFilename));
         } catch (IOException e) {
-            LOGGER.error("Could not delete " + zipFilename + ": ", e);
+            LOGGER.error("Could not delete {}: ", zipFilename, e);
         }
         try {
             Files.delete(Path.of(outputFile));
         } catch (IOException e) {
-            LOGGER.error("Could not delete " + outputFile + ": ", e);
+            LOGGER.error("Could not delete {}: ", outputFile, e);
         }
         return targetList;
     }
 
-    private InflaterInputStream getZipInputStream(String filename) throws IOException {
+    private static InflaterInputStream getZipInputStream(String filename) throws IOException {
         if (filename.contains(".gz")) {
             return new GZIPInputStream(new FileInputStream(filename));
         } else {

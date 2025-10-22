@@ -41,6 +41,9 @@ public class DummyPersistenceProvider implements IPersistenceProvider {
 
     @Override
     public ScanResult getScanResultById(String dbName, String collectionName, String id) {
-        return null;
+        return results.stream()
+                .filter(result -> result.getId().equals(id))
+                .findFirst()
+                .orElse(null);
     }
 }

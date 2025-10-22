@@ -53,32 +53,37 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
 
     private static final String BULK_SCAN_COLLECTION_NAME = "bulkScans";
 
-    private static boolean isInitialized = false;
     private static final Set<JsonSerializer<?>> serializers = new HashSet<>();
     private static final Set<Module> modules = new HashSet<>();
+    private static final Object registrationLock = new Object();
+    private static volatile boolean registrationClosed = false;
 
     public static void registerSerializer(JsonSerializer<?> serializer) {
-        if (isInitialized) {
-            throw new RuntimeException("Cannot register serializer after initialization");
+        synchronized (registrationLock) {
+            if (registrationClosed) {
+                throw new RuntimeException("Cannot register serializer after initialization");
+            }
+            serializers.add(serializer);
         }
-        serializers.add(serializer);
     }
 
-    public static void registerSerializer(JsonSerializer<?>... serializers) {
-        for (JsonSerializer<?> serializer : serializers) {
+    public static void registerSerializer(JsonSerializer<?>... serializersToRegister) {
+        for (JsonSerializer<?> serializer : serializersToRegister) {
             registerSerializer(serializer);
         }
     }
 
     public static void registerModule(Module module) {
-        if (isInitialized) {
-            throw new RuntimeException("Cannot register module after initialization");
+        synchronized (registrationLock) {
+            if (registrationClosed) {
+                throw new RuntimeException("Cannot register module after initialization");
+            }
+            modules.add(module);
         }
-        modules.add(module);
     }
 
-    public static void registerModule(Module... modules) {
-        for (Module module : modules) {
+    public static void registerModule(Module... modulesToRegister) {
+        for (Module module : modulesToRegister) {
             registerModule(module);
         }
     }
@@ -155,7 +160,9 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
      * @param mongoDbDelegate Mongodb command line configuration parameters
      */
     public MongoPersistenceProvider(MongoDbDelegate mongoDbDelegate) {
-        isInitialized = true;
+        synchronized (registrationLock) {
+            registrationClosed = true;
+        }
 
         mapper = createMapper();
         mongoClient = createMongoClient(mongoDbDelegate);

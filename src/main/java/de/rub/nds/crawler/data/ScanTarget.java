@@ -45,7 +45,24 @@ public class ScanTarget implements Serializable {
                 target.setTrancoRank(Integer.parseInt(targetString.split(",")[0]));
                 targetString = targetString.split(",")[1];
             } else {
-                targetString = "";
+                // Testing for format: hostname, optional IP with optional port
+                String[] parts = targetString.split(",", -1); // keep empty strings
+                if (parts.length == 2) {
+                    String[] hostnameParts = parts[0].split(":");
+                    target.setHostname(hostnameParts[0]);
+                    if (hostnameParts.length > 1) {
+                        target.setPort(Integer.parseInt(hostnameParts[1]));
+                    }
+                    targetString = parts[1];
+                    if (targetString.trim().isEmpty()) {
+                        try {
+                            target.setIp(
+                                    InetAddress.getByName(target.getHostname()).getHostAddress());
+                        } catch (UnknownHostException e) {
+                            return Pair.of(target, JobStatus.UNRESOLVABLE);
+                        }
+                    }
+                }
             }
         }
 
@@ -58,13 +75,44 @@ public class ScanTarget implements Serializable {
             System.out.println(targetString);
         }
 
-        // check if targetString contains port (e.g. "www.example.com:8080")
-        // FIXME I guess this breaks any IPv6 parsing
-        if (targetString.contains(":")) {
-            int port = Integer.parseInt(targetString.split(":")[1]);
-            targetString = targetString.split(":")[0];
-            if (port > 1 && port < 65535) {
-                target.setPort(port);
+        // check if targetString contains port (e.g. "www.example.com:8080" or "[2001:db8::1]:8080")
+        // Handle IPv6 addresses with ports (enclosed in brackets)
+        if (targetString.startsWith("[") && targetString.contains("]:")) {
+            int bracketEnd = targetString.indexOf("]:");
+            String ipv6Address = targetString.substring(1, bracketEnd);
+            String portString = targetString.substring(bracketEnd + 2);
+            try {
+                int port = Integer.parseInt(portString);
+                if (port > 1 && port < 65535) {
+                    target.setPort(port);
+                } else {
+                    target.setPort(defaultPort);
+                }
+            } catch (NumberFormatException e) {
+                LOGGER.warn("Invalid port number: {}", portString);
+                target.setPort(defaultPort);
+            }
+            targetString = ipv6Address; // Always extract the IPv6 address
+        } else if (targetString.contains(":")) {
+            // Check if it's an IPv6 address without port or IPv4/hostname with port
+            String[] parts = targetString.split(":");
+            if (parts.length == 2 && !targetString.contains("::")) {
+                // Likely IPv4 or hostname with port
+                try {
+                    int port = Integer.parseInt(parts[1]);
+                    if (port > 1 && port < 65535) {
+                        target.setPort(port);
+                    } else {
+                        target.setPort(defaultPort);
+                    }
+                    targetString = parts[0]; // Always extract the address part
+                } catch (NumberFormatException e) {
+                    // Not a valid port, treat the whole string as address
+                    target.setPort(defaultPort);
+                }
+            } else {
+                // Multiple colons or "::" - likely an IPv6 address without port
+                target.setPort(defaultPort);
             }
         } else {
             target.setPort(defaultPort);
@@ -72,7 +120,7 @@ public class ScanTarget implements Serializable {
 
         if (InetAddressValidator.getInstance().isValid(targetString)) {
             target.setIp(targetString);
-        } else {
+        } else if (!targetString.trim().isEmpty()) {
             target.setHostname(targetString);
             try {
                 // TODO this only allows one IP per hostname; it may be interesting to scan all IPs
