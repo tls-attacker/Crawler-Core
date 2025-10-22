@@ -294,8 +294,6 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
 
             var iterable = collection.find(query);
 
-            
-
             List<ScanResult> results = new ArrayList<>();
             iterable.forEach(results::add);
 

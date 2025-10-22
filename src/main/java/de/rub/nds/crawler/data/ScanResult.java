@@ -32,7 +32,7 @@ public class ScanResult implements Serializable {
             @JsonProperty("bulkScan") String bulkScan,
             @JsonProperty("scanTarget") ScanTarget scanTarget,
             @JsonProperty("resultStatus")
-                    JobStatus jobStatus, // Note: field is 'jobStatus' but JSON is 'resultStatus'
+                    JobStatus jobStatus,
             @JsonProperty("result") Document result) {
         this.id = UUID.randomUUID().toString();
         this.bulkScan = bulkScan;
