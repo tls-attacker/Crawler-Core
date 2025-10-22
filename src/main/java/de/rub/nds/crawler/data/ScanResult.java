@@ -31,8 +31,7 @@ public class ScanResult implements Serializable {
     private ScanResult(
             @JsonProperty("bulkScan") String bulkScan,
             @JsonProperty("scanTarget") ScanTarget scanTarget,
-            @JsonProperty("resultStatus")
-                    JobStatus jobStatus,
+            @JsonProperty("resultStatus") JobStatus jobStatus,
             @JsonProperty("result") Document result) {
         this.id = UUID.randomUUID().toString();
         this.bulkScan = bulkScan;
