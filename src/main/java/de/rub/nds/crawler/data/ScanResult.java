@@ -8,6 +8,7 @@
  */
 package de.rub.nds.crawler.data;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import de.rub.nds.crawler.constant.JobStatus;
 import java.io.Serializable;
@@ -26,8 +27,13 @@ public class ScanResult implements Serializable {
 
     private final Document result;
 
+    @JsonCreator
     private ScanResult(
-            String bulkScan, ScanTarget scanTarget, JobStatus jobStatus, Document result) {
+            @JsonProperty("bulkScan") String bulkScan,
+            @JsonProperty("scanTarget") ScanTarget scanTarget,
+            @JsonProperty("resultStatus")
+                    JobStatus jobStatus, // Note: field is 'jobStatus' but JSON is 'resultStatus'
+            @JsonProperty("result") Document result) {
         this.id = UUID.randomUUID().toString();
         this.bulkScan = bulkScan;
         this.scanTarget = scanTarget;
