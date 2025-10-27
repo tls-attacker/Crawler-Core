@@ -14,10 +14,6 @@ import java.io.Serializable;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Description of a scan job to be processed by a worker. Contains all information needed to perform
- * a scan and to store its results.
- */
 public class ScanJobDescription implements Serializable {
 
     private final UUID id = UUID.randomUUID();
@@ -37,15 +33,6 @@ public class ScanJobDescription implements Serializable {
 
     private final String collectionName;
 
-    /**
-     * Creates a new scan job description with the given parameters.
-     *
-     * @param scanTarget The target to scan
-     * @param bulkScanInfo Information about the bulk scan this job is part of
-     * @param dbName The database name where results should be stored
-     * @param collectionName The collection name where results should be stored
-     * @param status The initial status of the job
-     */
     public ScanJobDescription(
             ScanTarget scanTarget,
             BulkScanInfo bulkScanInfo,
@@ -59,14 +46,6 @@ public class ScanJobDescription implements Serializable {
         this.status = status;
     }
 
-    /**
-     * Creates a new scan job description as part of a bulk scan. This is a convenience constructor
-     * that extracts the necessary information from the bulk scan.
-     *
-     * @param scanTarget The target to scan
-     * @param bulkScan The bulk scan this job is part of
-     * @param status The initial status of the job
-     */
     public ScanJobDescription(ScanTarget scanTarget, BulkScan bulkScan, JobStatus status) {
         this(
                 scanTarget,
@@ -76,22 +55,10 @@ public class ScanJobDescription implements Serializable {
                 status);
     }
 
-    /**
-     * Gets the unique identifier for this job.
-     *
-     * @return The job's UUID
-     */
     public UUID getId() {
         return id;
     }
 
-    /**
-     * Custom deserialization to properly handle transient fields.
-     *
-     * @param in The input stream to read from
-     * @throws IOException If an I/O error occurs
-     * @throws ClassNotFoundException If the class of a serialized object cannot be found
-     */
     private void readObject(java.io.ObjectInputStream in)
             throws IOException, ClassNotFoundException {
         // handle deserialization, cf. https://stackoverflow.com/a/3960558
@@ -99,67 +66,30 @@ public class ScanJobDescription implements Serializable {
         deliveryTag = Optional.empty();
     }
 
-    /**
-     * Gets the target to scan.
-     *
-     * @return The scan target
-     */
     public ScanTarget getScanTarget() {
         return scanTarget;
     }
 
-    /**
-     * Gets the database name where results should be stored.
-     *
-     * @return The database name
-     */
     public String getDbName() {
         return dbName;
     }
 
-    /**
-     * Gets the collection name where results should be stored.
-     *
-     * @return The collection name
-     */
     public String getCollectionName() {
         return collectionName;
     }
 
-    /**
-     * Gets the current status of the job.
-     *
-     * @return The job status
-     */
     public JobStatus getStatus() {
         return status;
     }
 
-    /**
-     * Sets the status of the job.
-     *
-     * @param status The new job status
-     */
     public void setStatus(JobStatus status) {
         this.status = status;
     }
 
-    /**
-     * Gets the delivery tag assigned by the message broker.
-     *
-     * @return The delivery tag
-     * @throws java.util.NoSuchElementException If no delivery tag has been set
-     */
     public long getDeliveryTag() {
         return deliveryTag.get();
     }
 
-    /**
-     * Sets the delivery tag assigned by the message broker.
-     *
-     * @param deliveryTag The delivery tag
-     * @throws IllegalStateException If a delivery tag has already been set
-     */
     public void setDeliveryTag(Long deliveryTag) {
         if (this.deliveryTag.isPresent()) {
             throw new IllegalStateException("Delivery tag already set");
@@ -167,11 +97,6 @@ public class ScanJobDescription implements Serializable {
         this.deliveryTag = Optional.of(deliveryTag);
     }
 
-    /**
-     * Gets information about the bulk scan this job is part of.
-     *
-     * @return The bulk scan information
-     */
     public BulkScanInfo getBulkScanInfo() {
         return bulkScanInfo;
     }
