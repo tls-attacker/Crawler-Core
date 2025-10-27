@@ -9,6 +9,7 @@
 package de.rub.nds.crawler.persistence;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +36,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.tuple.Pair;
@@ -127,6 +130,10 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
 
     private static ObjectMapper createMapper() {
         ObjectMapper mapper = new ObjectMapper();
+
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES, false);
 
         if (!serializers.isEmpty()) {
             SimpleModule serializerModule = new SimpleModule();
@@ -222,6 +229,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
 
     @Override
     public void insertBulkScan(@NonNull BulkScan bulkScan) {
+        LOGGER.info("Inserting bulk scan with name: {}", bulkScan.getName());
         this.getBulkScanCollection(bulkScan.getName()).insertOne(bulkScan);
     }
 
@@ -234,7 +242,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private void writeResultToDatabase(
             String dbName, String collectionName, ScanResult scanResult) {
         LOGGER.info(
-                "Writing result ({}) for {} into collection: {}",
+                "Writinng result ({}) for {} into collection: {}",
                 scanResult.getResultStatus(),
                 scanResult.getScanTarget().getHostname(),
                 collectionName);
@@ -243,6 +251,10 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
 
     @Override
     public void insertScanResult(ScanResult scanResult, ScanJobDescription scanJobDescription) {
+        LOGGER.info(
+                "Inserting scan result for job ID: {} with status: {}",
+                scanJobDescription.getId(),
+                scanResult.getResultStatus());
         if (scanResult.getResultStatus() != scanJobDescription.getStatus()) {
             LOGGER.error(
                     "ScanResult status ({}) does not match ScanJobDescription status ({})",
@@ -251,6 +263,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
             throw new IllegalArgumentException(
                     "ScanResult status does not match ScanJobDescription status");
         }
+        scanResult.setId(scanJobDescription.getId().toString()); // <- Add this line
         try {
             writeResultToDatabase(
                     scanJobDescription.getDbName(),
@@ -268,6 +281,77 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                         "Did not write serialization exception to MongoDB (to avoid infinite recursion)");
                 scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
             }
+        }
+    }
+
+    @Override
+    public List<ScanResult> getScanResultsByTarget(
+            String dbName, String collectionName, String target) {
+        LOGGER.info(
+                "Retrieving scan results for target {} from collection: {}.{}",
+                target,
+                dbName,
+                collectionName);
+
+        try {
+            var collection = resultCollectionCache.getUnchecked(Pair.of(dbName, collectionName));
+
+            // Create a query that matches either hostname or IP
+            var query = new org.bson.Document();
+            var orQuery = new ArrayList<org.bson.Document>();
+            orQuery.add(new org.bson.Document("scanTarget.hostname", target));
+            orQuery.add(new org.bson.Document("scanTarget.ip", target));
+            query.append("$or", orQuery);
+
+            var iterable = collection.find(query);
+
+            List<ScanResult> results = new ArrayList<>();
+            iterable.forEach(results::add);
+
+            LOGGER.info(
+                    "Retrieved {} scan results for target {} from collection: {}.{}",
+                    results.size(),
+                    target,
+                    dbName,
+                    collectionName);
+
+            return results;
+        } catch (Exception e) {
+            LOGGER.error("Exception while retrieving scan results from MongoDB: ", e);
+            throw new RuntimeException("Failed to retrieve scan results for target: " + target, e);
+        }
+    }
+
+    @Override
+    public ScanResult getScanResultById(String dbName, String collectionName, String id) {
+        LOGGER.info(
+                "Retrieving scan result with ID {} from collection: {}.{}",
+                id,
+                dbName,
+                collectionName);
+
+        try {
+            var collection = resultCollectionCache.getUnchecked(Pair.of(dbName, collectionName));
+            var result = collection.findOneById(id);
+
+            if (result == null) {
+                LOGGER.warn(
+                        "No scan result found with ID: {} in collection: {}.{}",
+                        id,
+                        dbName,
+                        collectionName);
+            } else {
+                LOGGER.info(
+                        "Retrieved scan result with ID: {} from collection: {}.{}",
+                        id,
+                        dbName,
+                        collectionName);
+            }
+
+            return result;
+        } catch (Exception e) {
+            LOGGER.error("Exception while retrieving scan result from MongoDB: ", e);
+            throw new RuntimeException("Failed to retrieve scan result with ID: " + id, e);
         }
     }
 }

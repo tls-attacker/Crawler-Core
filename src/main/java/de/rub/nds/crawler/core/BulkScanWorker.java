@@ -24,7 +24,6 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     private final AtomicInteger activeJobs = new AtomicInteger(0);
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final AtomicBoolean shouldCleanupSelf = new AtomicBoolean(false);
-    private final Object initializationLock = new Object();
     protected final String bulkScanId;
     protected final T scanConfig;
 
@@ -68,7 +67,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         // synchronize such that no thread runs before being initialized
         // but only synchronize if not already initialized
         if (!initialized.get()) {
-            synchronized (initializationLock) {
+            synchronized (initialized) {
                 if (!initialized.getAndSet(true)) {
                     initInternal();
                     return true;
@@ -82,7 +81,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         // synchronize such that init and cleanup do not run simultaneously
         // but only synchronize if already initialized
         if (initialized.get()) {
-            synchronized (initializationLock) {
+            synchronized (initialized) {
                 if (activeJobs.get() > 0) {
                     shouldCleanupSelf.set(true);
                     LOGGER.warn(

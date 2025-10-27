@@ -18,6 +18,11 @@ import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Represents a target to be scanned by the crawler. Contains information about the hostname, IP
+ * address, port, and ranking information. This class is used to track targets throughout the
+ * scanning process.
+ */
 public class ScanTarget implements Serializable {
     private static final Logger LOGGER = LogManager.getLogger();
 
@@ -139,49 +144,100 @@ public class ScanTarget implements Serializable {
         return Pair.of(target, JobStatus.TO_BE_EXECUTED);
     }
 
+    /** The IP address of the target. */
     private String ip;
 
+    /** The hostname of the target. */
     private String hostname;
 
+    /** The port number to connect to. */
     private int port;
 
+    /** The Tranco rank of the target (if applicable). */
     private int trancoRank;
 
+    /** Creates a new empty scan target. Fields should be set using the setter methods. */
     public ScanTarget() {}
 
+    /**
+     * Returns a string representation of this scan target. Uses the hostname if available,
+     * otherwise uses the IP address.
+     *
+     * @return The string representation
+     */
     @Override
     public String toString() {
         return hostname != null ? hostname : ip;
     }
 
+    /**
+     * Gets the IP address of this target.
+     *
+     * @return The IP address
+     */
     public String getIp() {
         return this.ip;
     }
 
+    /**
+     * Gets the hostname of this target.
+     *
+     * @return The hostname
+     */
     public String getHostname() {
         return this.hostname;
     }
 
+    /**
+     * Gets the port number to connect to.
+     *
+     * @return The port number
+     */
     public int getPort() {
         return this.port;
     }
 
+    /**
+     * Gets the Tranco rank of this target (if applicable).
+     *
+     * @return The Tranco rank
+     */
     public int getTrancoRank() {
         return this.trancoRank;
     }
 
+    /**
+     * Sets the IP address of this target.
+     *
+     * @param ip The IP address
+     */
     public void setIp(String ip) {
         this.ip = ip;
     }
 
+    /**
+     * Sets the hostname of this target.
+     *
+     * @param hostname The hostname
+     */
     public void setHostname(String hostname) {
         this.hostname = hostname;
     }
 
+    /**
+     * Sets the port number to connect to.
+     *
+     * @param port The port number
+     */
     public void setPort(int port) {
         this.port = port;
     }
 
+    /**
+     * Sets the Tranco rank of this target.
+     *
+     * @param trancoRank The Tranco rank
+     */
     public void setTrancoRank(int trancoRank) {
         this.trancoRank = trancoRank;
     }
