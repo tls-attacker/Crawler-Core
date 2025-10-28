@@ -12,16 +12,20 @@ import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.util.CanceallableThreadPoolExecutor;
 import de.rub.nds.scanner.core.execution.NamedThreadFactory;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bson.Document;
 
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
- * Abstract worker for performing bulk scanning operations. Implements thread management and
- * lifecycle operations for scan workers.
+ * A worker that scans all targets for a single scan ID.
+ * Instances are managed using the {@link BulkScanWorkerManager}.
  *
  * @param <T> The specific ScanConfig type used by this worker
  */
@@ -33,7 +37,9 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     private final Object initializationLock = new Object();
     protected final String bulkScanId;
 
-    /** The scan configuration for this worker */
+    /**
+     * The scan configuration for this worker
+     */
     protected final T scanConfig;
 
     /**
@@ -43,11 +49,11 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     private final ThreadPoolExecutor timeoutExecutor;
 
     /**
-     * Creates a new bulk scan worker.
+     * Creates a new bulk scan worker. This should only be called by the {@link BulkScanWorkerManager}.
      *
-     * @param bulkScanId The ID of the bulk scan this worker is associated with
-     * @param scanConfig The scan configuration for this worker
-     * @param parallelScanThreads The number of parallel scan threads to use
+     * @param bulkScanId          The ID of the bulk scan this worker is associated with
+     * @param scanConfig          The scan configuration for this worker
+     * @param parallelScanThreads The number of parallel scan threads to use, i.e., how many {@link ScanTarget}s to handle in parallel.
      */
     protected BulkScanWorker(String bulkScanId, T scanConfig, int parallelScanThreads) {
         this.bulkScanId = bulkScanId;
@@ -64,12 +70,11 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     }
 
     /**
-     * Handles a scan target by submitting it to the executor. If this is the first call, it will
-     * initialize the worker first. When the last job completes, it will clean up the worker if
-     * needed.
+     * Handles a scan target by submitting it to the executor.
+     * If init was not called, it will initialize itself. In this case it will also clean up itself if all jobs are done.
      *
-     * @param scanTarget The target to scan
-     * @return A future that will complete when the scan is done
+     * @param scanTarget The target to scan.
+     * @return A future that resolves to the scan result once the scan is done.
      */
     public Future<Document> handle(ScanTarget scanTarget) {
         // if we initialized ourself, we also clean up ourself
@@ -117,6 +122,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     /**
      * Cleans up this worker if it has been initialized and has no active jobs. This method is
      * thread-safe and will only clean up once.
+     * If there are still active jobs, it will enqueue the cleanup for later.
      *
      * @return True if this call performed the cleanup, false otherwise
      */

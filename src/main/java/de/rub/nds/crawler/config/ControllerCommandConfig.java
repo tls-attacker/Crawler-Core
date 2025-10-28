@@ -23,16 +23,18 @@ import org.apache.commons.validator.routines.UrlValidator;
 import org.quartz.CronScheduleBuilder;
 
 /**
- * Configuration class for controller instances. Contains settings for the controller's behavior,
+ * Configuration class for controller instances used to parse command line parameters. Contains settings for the controller's behavior,
  * including scan parameters, target selection, and notification settings. This abstract class
  * provides the base configuration, while specific scanner implementations must extend it to provide
  * scanner-specific configuration.
  */
 public abstract class ControllerCommandConfig {
 
-    @ParametersDelegate private final RabbitMqDelegate rabbitMqDelegate;
+    @ParametersDelegate
+    private final RabbitMqDelegate rabbitMqDelegate;
 
-    @ParametersDelegate private final MongoDbDelegate mongoDbDelegate;
+    @ParametersDelegate
+    private final MongoDbDelegate mongoDbDelegate;
 
     @Parameter(names = "-portToBeScanned", description = "The port that should be scanned.")
     private int port = 443;
@@ -118,12 +120,14 @@ public abstract class ControllerCommandConfig {
         }
     }
 
-    /** Validator that ensures parameter values are positive integers. */
+    /**
+     * Validator that ensures parameter values are positive integers.
+     */
     public static class PositiveInteger implements IParameterValidator {
         /**
          * Validates that the parameter value is a positive integer.
          *
-         * @param name The parameter name
+         * @param name  The parameter name
          * @param value The parameter value
          * @throws ParameterException If the value is not a positive integer
          */
@@ -136,12 +140,14 @@ public abstract class ControllerCommandConfig {
         }
     }
 
-    /** Validator that ensures parameter values are valid cron expressions. */
+    /**
+     * Validator that ensures parameter values are valid cron expressions.
+     */
     public static class CronSyntax implements IParameterValidator {
         /**
          * Validates that the parameter value is a valid cron expression.
          *
-         * @param name The parameter name
+         * @param name  The parameter name
          * @param value The parameter value
          * @throws ParameterException If the value is not a valid cron expression
          */

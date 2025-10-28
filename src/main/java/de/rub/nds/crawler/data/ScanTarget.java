@@ -10,18 +10,18 @@ package de.rub.nds.crawler.data;
 
 import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.denylist.IDenylistProvider;
-import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 /**
  * Represents a target to be scanned by the crawler. Contains information about the hostname, IP
- * address, port, and ranking information. This class is used to track targets throughout the
- * scanning process.
+ * address, port, and ranking information.
  */
 public class ScanTarget implements Serializable {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -30,8 +30,8 @@ public class ScanTarget implements Serializable {
      * Initializes a ScanTarget object from a string that potentially contains a hostname, an ip, a
      * port, the tranco rank.
      *
-     * @param targetString from which to create the ScanTarget object
-     * @param defaultPort that used if no port is present in targetString
+     * @param targetString     from which to create the ScanTarget object
+     * @param defaultPort      that used if no port is present in targetString
      * @param denylistProvider which provides info if a host is denylisted
      * @return ScanTarget object
      */
@@ -144,20 +144,31 @@ public class ScanTarget implements Serializable {
         return Pair.of(target, JobStatus.TO_BE_EXECUTED);
     }
 
-    /** The IP address of the target. */
+    /**
+     * The IP address of the target.
+     */
     private String ip;
 
-    /** The hostname of the target. */
+    /**
+     * The hostname of the target.
+     */
     private String hostname;
 
-    /** The port number to connect to. */
+    /**
+     * The port number to connect to.
+     */
     private int port;
 
-    /** The Tranco rank of the target (if applicable). */
+    /**
+     * The Tranco rank of the target (if applicable).
+     */
     private int trancoRank;
 
-    /** Creates a new empty scan target. Fields should be set using the setter methods. */
-    public ScanTarget() {}
+    /**
+     * Creates a new empty scan target. Fields should be set using the setter methods.
+     */
+    public ScanTarget() {
+    }
 
     /**
      * Returns a string representation of this scan target. Uses the hostname if available,

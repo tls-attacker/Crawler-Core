@@ -9,6 +9,7 @@
 package de.rub.nds.crawler.data;
 
 import de.rub.nds.crawler.constant.JobStatus;
+
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Counter class for tracking job statistics during a bulk scan. This class maintains thread-safe
  * counters for each job status type.
+ * Used to track statistics of finished jobs during a bulk scan.
  */
 public class BulkScanJobCounters {
 

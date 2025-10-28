@@ -19,19 +19,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Main entry point for the TLS-Crawler application. Provides the main method to start either a
- * controller or worker instance.
+ * Common functionality for crawler main entry points. Provides functionality to parse command line arguments and start the worker/controller as specified by the user.
  */
 public class CommonMain {
     private static final Logger LOGGER = LogManager.getLogger();
 
     /**
-     * Main entry point for the application. Parses command line arguments and starts either a
-     * controller or worker based on the command.
+     * Main entry point for the application. Uses JCommander to parse the controller/worker command and parse the arguments into the respective configuration object. Then starts the controller/worker.
      *
-     * @param args Command line arguments
-     * @param controllerCommandConfig Configuration for the controller
-     * @param workerCommandConfig Configuration for the worker
+     * @param args                    Command line arguments
+     * @param controllerCommandConfig Configuration for the controller. Will be filled by JCommander from the command line if first argument is "controller".
+     * @param workerCommandConfig     Configuration for the worker. Will be filled by JCommander from the command line if first argument is "worker".
      */
     public static void main(
             String[] args,
@@ -85,10 +83,10 @@ public class CommonMain {
 
     /**
      * Convenience method to start the application with just a controller configuration. Creates a
-     * default worker configuration.
+     * default worker configuration. See {@link #main(String[], ControllerCommandConfig, WorkerCommandConfig)} for details.
      *
-     * @param args Command line arguments
-     * @param controllerConfig Configuration for the controller
+     * @param args             Command line arguments
+     * @param controllerConfig Configuration for the controller. Will be filled by JCommander from the command line if first argument is "controller".
      */
     public static void main(String[] args, ControllerCommandConfig controllerConfig) {
         main(args, controllerConfig, new WorkerCommandConfig());

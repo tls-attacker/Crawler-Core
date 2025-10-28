@@ -9,22 +9,24 @@
 package de.rub.nds.crawler.data;
 
 import de.rub.nds.crawler.constant.JobStatus;
+
+import javax.persistence.Id;
 import java.io.Serializable;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.Map;
-import javax.persistence.Id;
 
 /**
- * Represents a bulk scanning operation that manages multiple TLS scanning jobs. This class tracks
+ * Represents a bulk scanning operation that manages multiple scanning jobs. This class tracks
  * metadata about a scan batch including scan configuration, timing information, job statistics, and
  * version information.
  */
 public class BulkScan implements Serializable {
 
-    @Id private String _id;
+    @Id
+    private String _id;
 
     private String name;
 
@@ -60,18 +62,19 @@ public class BulkScan implements Serializable {
             DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm").withZone(ZoneId.systemDefault());
 
     @SuppressWarnings("unused")
-    private BulkScan() {}
+    private BulkScan() {
+    }
 
     /**
      * Creates a new bulk scan with the given parameters.
      *
      * @param scannerClass A scanner implementation class for retrieving version information
      * @param crawlerClass A crawler implementation class for retrieving version information
-     * @param name The name of the bulk scan
-     * @param scanConfig The configuration to use for this scan
-     * @param startTime The start time as a timestamp in milliseconds
-     * @param monitored Whether this scan should be monitored for progress
-     * @param notifyUrl Optional URL to notify when the scan is complete
+     * @param name         The name of the bulk scan
+     * @param scanConfig   The configuration to use for this scan
+     * @param startTime    The start time as a timestamp in milliseconds
+     * @param monitored    Whether this scan should be monitored for progress
+     * @param notifyUrl    Optional URL to notify when the scan is complete
      */
     public BulkScan(
             Class<?> scannerClass,
@@ -91,14 +94,14 @@ public class BulkScan implements Serializable {
         this.collectionName = name + "_" + DATE_FORMATTER.format(Instant.ofEpochMilli(startTime));
         this.notifyUrl = notifyUrl;
     }
-
-    // Getter naming important for correct serialization, do not change!
+    
     /**
      * Gets the database ID for this bulk scan.
      *
      * @return The database ID
      */
     public String get_id() {
+        // Getter naming important for correct serialization, do not change!
         return _id;
     }
 
@@ -220,6 +223,7 @@ public class BulkScan implements Serializable {
     }
 
     // Setter naming important for correct serialization, do not change!
+
     /**
      * Sets the database ID for this bulk scan.
      *
