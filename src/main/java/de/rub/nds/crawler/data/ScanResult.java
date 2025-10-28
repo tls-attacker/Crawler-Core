@@ -40,6 +40,13 @@ public class ScanResult implements Serializable {
         this.result = result;
     }
 
+    /**
+     * Creates a new scan result from a scan job description.
+     *
+     * @param scanJobDescription the scan job description
+     * @param result the scan result document
+     * @throws IllegalArgumentException if the scan job description is in TO_BE_EXECUTED state
+     */
     public ScanResult(ScanJobDescription scanJobDescription, Document result) {
         this(
                 scanJobDescription.getBulkScanInfo().getBulkScanId(),
@@ -52,6 +59,14 @@ public class ScanResult implements Serializable {
         }
     }
 
+    /**
+     * Creates a scan result from an exception.
+     *
+     * @param scanJobDescription the scan job description
+     * @param e the exception that occurred
+     * @return a new scan result containing the exception
+     * @throws IllegalArgumentException if the scan job description is not in an error state
+     */
     public static ScanResult fromException(ScanJobDescription scanJobDescription, Exception e) {
         if (!scanJobDescription.getStatus().isError()) {
             throw new IllegalArgumentException("ScanJobDescription must be in an error state");
@@ -61,28 +76,58 @@ public class ScanResult implements Serializable {
         return new ScanResult(scanJobDescription, errorDocument);
     }
 
+    /**
+     * Gets the unique identifier of the scan result.
+     *
+     * @return the scan result ID
+     */
     @JsonProperty("_id")
     public String getId() {
         return this.id;
     }
 
+    /**
+     * Sets the unique identifier of the scan result.
+     *
+     * @param id the scan result ID
+     */
     @JsonProperty("_id")
     public void setId(String id) {
         this.id = id;
     }
 
+    /**
+     * Gets the bulk scan ID associated with this result.
+     *
+     * @return the bulk scan ID
+     */
     public String getBulkScan() {
         return this.bulkScan;
     }
 
+    /**
+     * Gets the scan target for this result.
+     *
+     * @return the scan target
+     */
     public ScanTarget getScanTarget() {
         return this.scanTarget;
     }
 
+    /**
+     * Gets the result document containing scan data.
+     *
+     * @return the result document
+     */
     public Document getResult() {
         return this.result;
     }
 
+    /**
+     * Gets the job status of this scan result.
+     *
+     * @return the job status
+     */
     public JobStatus getResultStatus() {
         return jobStatus;
     }
