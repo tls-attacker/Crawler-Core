@@ -33,6 +33,13 @@ public class Controller {
     private final ControllerCommandConfig config;
     private IDenylistProvider denylistProvider;
 
+    /**
+     * Creates a new Controller instance.
+     *
+     * @param config the controller command configuration
+     * @param orchestrationProvider the orchestration provider for job management
+     * @param persistenceProvider the persistence provider for data storage
+     */
     public Controller(
             ControllerCommandConfig config,
             IOrchestrationProvider orchestrationProvider,
@@ -45,6 +52,7 @@ public class Controller {
         }
     }
 
+    /** Starts the controller and schedules bulk scan publishing jobs. */
     public void start() {
         ITargetListProvider targetListProvider = config.getTargetListProvider();
 
@@ -91,6 +99,11 @@ public class Controller {
         }
     }
 
+    /**
+     * Shuts down the scheduler if all triggers have been finalized.
+     *
+     * @param scheduler the scheduler to potentially shut down
+     */
     public static void shutdownSchedulerIfAllTriggersFinalized(Scheduler scheduler) {
         try {
             boolean allTriggersFinalized =

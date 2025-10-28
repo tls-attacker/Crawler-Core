@@ -48,6 +48,13 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                         new NamedThreadFactory("crawler-worker: scan executor"));
     }
 
+    /**
+     * Handles a scan target by submitting it to the executor and managing initialization and
+     * cleanup.
+     *
+     * @param scanTarget the target to scan
+     * @return a Future containing the scan result as a Document
+     */
     public Future<Document> handle(ScanTarget scanTarget) {
         // if we initialized ourself, we also clean up ourself
         shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
@@ -62,8 +69,19 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                 });
     }
 
+    /**
+     * Performs the actual scan operation on the given target.
+     *
+     * @param scanTarget the target to scan
+     * @return a Document containing the scan results
+     */
     public abstract Document scan(ScanTarget scanTarget);
 
+    /**
+     * Initializes the bulk scan worker in a thread-safe manner.
+     *
+     * @return true if initialization was performed, false if already initialized
+     */
     public final boolean init() {
         // synchronize such that no thread runs before being initialized
         // but only synchronize if not already initialized
@@ -78,6 +96,11 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         return false;
     }
 
+    /**
+     * Cleans up the bulk scan worker resources in a thread-safe manner.
+     *
+     * @return true if cleanup was performed, false if cleanup was deferred or not needed
+     */
     public final boolean cleanup() {
         // synchronize such that init and cleanup do not run simultaneously
         // but only synchronize if already initialized
