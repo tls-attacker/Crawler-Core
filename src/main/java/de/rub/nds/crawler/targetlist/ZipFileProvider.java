@@ -42,6 +42,11 @@ public abstract class ZipFileProvider implements ITargetListProvider {
         this.listName = listName;
     }
 
+    /**
+     * Downloads, extracts, and processes the target list from the configured zip file source.
+     *
+     * @return A list of target hosts extracted from the downloaded file
+     */
     public List<String> getTargetList() {
         List<String> targetList;
         try (ReadableByteChannel readableByteChannel =
