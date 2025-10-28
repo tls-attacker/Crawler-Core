@@ -35,7 +35,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.tuple.Pair;
@@ -268,6 +270,77 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                         "Did not write serialization exception to MongoDB (to avoid infinite recursion)");
                 scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
             }
+        }
+    }
+
+    @Override
+    public List<ScanResult> getScanResultsByTarget(
+            String dbName, String collectionName, String target) {
+        LOGGER.info(
+                "Retrieving scan results for target {} from collection: {}.{}",
+                target,
+                dbName,
+                collectionName);
+
+        try {
+            var collection = resultCollectionCache.getUnchecked(Pair.of(dbName, collectionName));
+
+            // Create a query that matches either hostname or IP
+            var query = new org.bson.Document();
+            var orQuery = new ArrayList<org.bson.Document>();
+            orQuery.add(new org.bson.Document("scanTarget.hostname", target));
+            orQuery.add(new org.bson.Document("scanTarget.ip", target));
+            query.append("$or", orQuery);
+
+            var iterable = collection.find(query);
+
+            List<ScanResult> results = new ArrayList<>();
+            iterable.forEach(results::add);
+
+            LOGGER.info(
+                    "Retrieved {} scan results for target {} from collection: {}.{}",
+                    results.size(),
+                    target,
+                    dbName,
+                    collectionName);
+
+            return results;
+        } catch (Exception e) {
+            LOGGER.error("Exception while retrieving scan results from MongoDB: ", e);
+            throw new RuntimeException("Failed to retrieve scan results for target: " + target, e);
+        }
+    }
+
+    @Override
+    public ScanResult getScanResultById(String dbName, String collectionName, String id) {
+        LOGGER.info(
+                "Retrieving scan result with ID {} from collection: {}.{}",
+                id,
+                dbName,
+                collectionName);
+
+        try {
+            var collection = resultCollectionCache.getUnchecked(Pair.of(dbName, collectionName));
+            var result = collection.findOneById(id);
+
+            if (result == null) {
+                LOGGER.warn(
+                        "No scan result found with ID: {} in collection: {}.{}",
+                        id,
+                        dbName,
+                        collectionName);
+            } else {
+                LOGGER.info(
+                        "Retrieved scan result with ID: {} from collection: {}.{}",
+                        id,
+                        dbName,
+                        collectionName);
+            }
+
+            return result;
+        } catch (Exception e) {
+            LOGGER.error("Exception while retrieving scan result from MongoDB: ", e);
+            throw new RuntimeException("Failed to retrieve scan result with ID: " + id, e);
         }
     }
 }

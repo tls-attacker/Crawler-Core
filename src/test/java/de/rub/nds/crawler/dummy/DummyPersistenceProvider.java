@@ -13,6 +13,7 @@ import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class DummyPersistenceProvider implements IPersistenceProvider {
@@ -31,4 +32,18 @@ public class DummyPersistenceProvider implements IPersistenceProvider {
 
     @Override
     public void updateBulkScan(BulkScan bulkScan) {}
+
+    @Override
+    public List<ScanResult> getScanResultsByTarget(
+            String dbName, String collectionName, String target) {
+        return new LinkedList<>();
+    }
+
+    @Override
+    public ScanResult getScanResultById(String dbName, String collectionName, String id) {
+        return results.stream()
+                .filter(result -> result.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+    }
 }
