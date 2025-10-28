@@ -12,5 +12,11 @@ import de.rub.nds.crawler.data.ScanTarget;
 
 public interface IDenylistProvider {
 
+    /**
+     * Checks if a given scan target is on the denylist.
+     *
+     * @param target the scan target to check
+     * @return true if the target is denylisted, false otherwise
+     */
     boolean isDenylisted(ScanTarget target);
 }
