@@ -13,11 +13,17 @@ import com.beust.jcommander.ParametersDelegate;
 import de.rub.nds.crawler.config.delegate.MongoDbDelegate;
 import de.rub.nds.crawler.config.delegate.RabbitMqDelegate;
 
+/**
+ * Configuration class for worker instances used to parse command line parameters. Contains settings for the worker's behavior, including
+ * thread counts and timeouts, as well as MongoDB and RabbitMQ connection settings.
+ */
 public class WorkerCommandConfig {
 
-    @ParametersDelegate private final RabbitMqDelegate rabbitMqDelegate;
+    @ParametersDelegate
+    private final RabbitMqDelegate rabbitMqDelegate;
 
-    @ParametersDelegate private final MongoDbDelegate mongoDbDelegate;
+    @ParametersDelegate
+    private final MongoDbDelegate mongoDbDelegate;
 
     @Parameter(
             names = "-numberOfThreads",
@@ -43,34 +49,74 @@ public class WorkerCommandConfig {
         mongoDbDelegate = new MongoDbDelegate();
     }
 
+    /**
+     * Gets the configuration for RabbitMQ, which contains the connection settings for RabbitMQ.
+     *
+     * @return The RabbitMQ connection settings
+     */
     public RabbitMqDelegate getRabbitMqDelegate() {
         return rabbitMqDelegate;
     }
 
+    /**
+     * Gets the configuration for MongoDB, which contains the connection settings for MongoDB.
+     *
+     * @return The MongoDB connection settings
+     */
     public MongoDbDelegate getMongoDbDelegate() {
         return mongoDbDelegate;
     }
 
+    /**
+     * Gets the number of parallel scan threads to use. Each thread starts a scanner instance.
+     *
+     * @return The number of scan threads
+     */
     public int getParallelScanThreads() {
         return parallelScanThreads;
     }
 
+    /**
+     * Gets the number of parallel connection threads to use per bulk scan (i.e., per scan ID).
+     *
+     * @return The number of connection threads
+     */
     public int getParallelConnectionThreads() {
         return parallelConnectionThreads;
     }
 
+    /**
+     * Gets the timeout for scanning an individual target.
+     *
+     * @return The scan timeout in milliseconds
+     */
     public int getScanTimeout() {
         return scanTimeout;
     }
 
+    /**
+     * Sets the number of parallel scan threads to use. Each thread starts a scanner instance.
+     *
+     * @param parallelScanThreads The number of scan threads
+     */
     public void setParallelScanThreads(int parallelScanThreads) {
         this.parallelScanThreads = parallelScanThreads;
     }
 
+    /**
+     * Sets the number of parallel connection threads to use bulk scan (i.e., per scan ID).
+     *
+     * @param parallelConnectionThreads The number of connection threads
+     */
     public void setParallelConnectionThreads(int parallelConnectionThreads) {
         this.parallelConnectionThreads = parallelConnectionThreads;
     }
 
+    /**
+     * Sets the timeout for scanning an individual target.
+     *
+     * @param scanTimeout The scan timeout in milliseconds
+     */
     public void setScanTimeout(int scanTimeout) {
         this.scanTimeout = scanTimeout;
     }

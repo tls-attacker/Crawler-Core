@@ -40,6 +40,14 @@ public class ScanResult implements Serializable {
         this.result = result;
     }
 
+    public ScanResult() {
+        // Default constructor for Jackson deserialization
+        this.bulkScan = "";
+        this.scanTarget = null;
+        this.jobStatus = null;
+        this.result = null;
+    }
+
     public ScanResult(ScanJobDescription scanJobDescription, Document result) {
         this(
                 scanJobDescription.getBulkScanInfo().getBulkScanId(),

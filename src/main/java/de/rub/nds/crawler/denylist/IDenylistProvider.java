@@ -10,7 +10,17 @@ package de.rub.nds.crawler.denylist;
 
 import de.rub.nds.crawler.data.ScanTarget;
 
+/**
+ * Interface for providers that check if a scan target is on a denylist. This can be used to skip
+ * scanning of certain targets for various reasons (legal, ethical, or technical).
+ */
 public interface IDenylistProvider {
 
+    /**
+     * Checks if a scan target is on the denylist.
+     *
+     * @param target The scan target to check
+     * @return True if the target is denylisted, false otherwise
+     */
     boolean isDenylisted(ScanTarget target);
 }
