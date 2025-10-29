@@ -242,7 +242,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     private void writeResultToDatabase(
             String dbName, String collectionName, ScanResult scanResult) {
         LOGGER.info(
-                "Writinng result ({}) for {} into collection: {}",
+                "Writing result ({}) for {} into collection: {}",
                 scanResult.getResultStatus(),
                 scanResult.getScanTarget().getHostname(),
                 collectionName);
