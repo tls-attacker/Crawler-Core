@@ -263,7 +263,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
             throw new IllegalArgumentException(
                     "ScanResult status does not match ScanJobDescription status");
         }
-        scanResult.setId(scanJobDescription.getId().toString()); // <- Add this line
+        scanResult.setId(scanJobDescription.getId().toString());
         try {
             writeResultToDatabase(
                     scanJobDescription.getDbName(),
