@@ -117,7 +117,8 @@ class ControllerTest {
         if (jobExcludedProbes == null) {
             Assertions.assertNull(jobExcludedProbes, "Expected excluded probes to be null");
         } else {
-            Assertions.assertTrue(jobExcludedProbes.isEmpty(), "Expected excluded probes to be empty");
+            Assertions.assertTrue(
+                    jobExcludedProbes.isEmpty(), "Expected excluded probes to be empty");
         }
     }
 }
