@@ -63,7 +63,6 @@ class ControllerTest {
 
         config.setHostFile(hostlist.getAbsolutePath());
 
-        // Set test probe types to exclude
         List<ProbeType> excludedProbes =
                 Arrays.asList(new TestProbeType("probe1"), new TestProbeType("probe2"));
         config.setExcludedProbes(excludedProbes);
@@ -76,7 +75,6 @@ class ControllerTest {
         Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
         Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
 
-        // Verify that excluded probes are correctly propagated to all scan jobs
         for (ScanJobDescription job : orchestrationProvider.jobQueue) {
             List<ProbeType> jobExcludedProbes =
                     job.getBulkScanInfo().getScanConfig().getExcludedProbes();
@@ -101,7 +99,6 @@ class ControllerTest {
         writer.close();
 
         config.setHostFile(hostlist.getAbsolutePath());
-        // Explicitly do not set excluded probes
 
         Controller controller = new Controller(config, orchestrationProvider, persistenceProvider);
         controller.start();
@@ -110,7 +107,6 @@ class ControllerTest {
 
         Assertions.assertEquals(1, orchestrationProvider.jobQueue.size());
 
-        // Verify that when no excluded probes are set, the field is either null or empty
         ScanJobDescription job = orchestrationProvider.jobQueue.peek();
         List<ProbeType> jobExcludedProbes =
                 job.getBulkScanInfo().getScanConfig().getExcludedProbes();
