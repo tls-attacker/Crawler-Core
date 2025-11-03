@@ -114,8 +114,10 @@ class ControllerTest {
         ScanJobDescription job = orchestrationProvider.jobQueue.peek();
         List<ProbeType> jobExcludedProbes =
                 job.getBulkScanInfo().getScanConfig().getExcludedProbes();
-        Assertions.assertTrue(
-                jobExcludedProbes == null || jobExcludedProbes.isEmpty(),
-                "Expected no excluded probes");
+        if (jobExcludedProbes == null) {
+            Assertions.assertNull(jobExcludedProbes, "Expected excluded probes to be null");
+        } else {
+            Assertions.assertTrue(jobExcludedProbes.isEmpty(), "Expected excluded probes to be empty");
+        }
     }
 }
