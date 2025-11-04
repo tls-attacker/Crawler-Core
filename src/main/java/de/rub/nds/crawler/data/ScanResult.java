@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import de.rub.nds.crawler.constant.JobStatus;
 import java.io.Serializable;
-import java.util.UUID;
 import org.bson.Document;
 
 public class ScanResult implements Serializable {
@@ -26,19 +25,6 @@ public class ScanResult implements Serializable {
     private final JobStatus jobStatus;
 
     private final Document result;
-
-    @JsonCreator
-    private ScanResult(
-            @JsonProperty("bulkScan") String bulkScan,
-            @JsonProperty("scanTarget") ScanTarget scanTarget,
-            @JsonProperty("resultStatus") JobStatus jobStatus,
-            @JsonProperty("result") Document result) {
-        this.id = UUID.randomUUID().toString();
-        this.bulkScan = bulkScan;
-        this.scanTarget = scanTarget;
-        this.jobStatus = jobStatus;
-        this.result = result;
-    }
 
     @JsonCreator
     private ScanResult(
