@@ -14,6 +14,11 @@ import java.io.Serializable;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Single scan job to be processed by a worker. Contains all data required to perform the scan and
+ * write back the results. Also holds metadata about the bulk scan this job belongs to, the current
+ * status and the delivery tag used for the orchestration.
+ */
 public class ScanJobDescription implements Serializable {
 
     private final UUID id = UUID.randomUUID();
