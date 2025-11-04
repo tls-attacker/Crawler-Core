@@ -19,6 +19,10 @@ import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.targetlist.*;
 import de.rub.nds.scanner.core.config.ScannerDetail;
+import de.rub.nds.scanner.core.probe.ProbeType;
+import de.rub.nds.scanner.core.probe.ProbeTypeConverter;
+import java.util.LinkedList;
+import java.util.List;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.quartz.CronScheduleBuilder;
 
@@ -45,6 +49,13 @@ public abstract class ControllerCommandConfig {
             validateWith = PositiveInteger.class,
             description = "Number of reexecutions to use in the TLS-Scanner.")
     private int reexecutions = 3;
+
+    @Parameter(
+            names = "-exclude",
+            description =
+                    "A list of probes that should be excluded from the scan. The list is separated by commas.",
+            converter = ProbeTypeConverter.class)
+    private List<ProbeType> excludedProbes = new LinkedList<>();
 
     @Parameter(
             names = "-scanCronInterval",
@@ -156,6 +167,10 @@ public abstract class ControllerCommandConfig {
         return reexecutions;
     }
 
+    public List<ProbeType> getExcludedProbes() {
+        return excludedProbes;
+    }
+
     public String getScanCronInterval() {
         return scanCronInterval;
     }
@@ -238,6 +253,10 @@ public abstract class ControllerCommandConfig {
 
     public void setReexecutions(int reexecutions) {
         this.reexecutions = reexecutions;
+    }
+
+    public void setExcludedProbes(List<ProbeType> excludedProbes) {
+        this.excludedProbes = excludedProbes;
     }
 
     public void setScanCronInterval(String scanCronInterval) {
