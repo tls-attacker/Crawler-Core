@@ -8,6 +8,10 @@
  */
 package de.rub.nds.crawler.constant;
 
+/**
+ * Enumeration of possible job status values. Indicates the current state or final result of a scan
+ * job.
+ */
 public enum JobStatus {
     /** Job is waiting to be executed. */
     TO_BE_EXECUTED(false),
@@ -42,6 +46,11 @@ public enum JobStatus {
         this.isError = isError;
     }
 
+    /**
+     * Get whether this status represents an error condition.
+     *
+     * @return True if this status is an error, false otherwise
+     */
     public boolean isError() {
         return isError;
     }

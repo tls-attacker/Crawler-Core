@@ -26,6 +26,12 @@ import java.util.List;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.quartz.CronScheduleBuilder;
 
+/**
+ * Configuration class for controller instances used to parse command line parameters. Contains
+ * settings for the controller's behavior, including scan parameters, target selection, and
+ * notification settings. This abstract class provides the base configuration, while specific
+ * scanner implementations must extend it to provide scanner-specific configuration.
+ */
 public abstract class ControllerCommandConfig {
 
     @ParametersDelegate private final RabbitMqDelegate rabbitMqDelegate;
@@ -123,6 +129,7 @@ public abstract class ControllerCommandConfig {
         }
     }
 
+    /** Validator that ensures parameter values are positive integers. */
     public static class PositiveInteger implements IParameterValidator {
         public void validate(String name, String value) throws ParameterException {
             int n = Integer.parseInt(value);
@@ -133,6 +140,7 @@ public abstract class ControllerCommandConfig {
         }
     }
 
+    /** Validator that ensures parameter values are valid cron expressions. */
     public static class CronSyntax implements IParameterValidator {
         public void validate(String name, String value) throws ParameterException {
             CronScheduleBuilder.cronSchedule(value);

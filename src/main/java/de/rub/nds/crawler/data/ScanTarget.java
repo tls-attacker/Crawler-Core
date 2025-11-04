@@ -18,6 +18,10 @@ import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Represents a target to be scanned by the crawler. Contains information about the hostname, IP
+ * address, port, and ranking information.
+ */
 public class ScanTarget implements Serializable {
     private static final Logger LOGGER = LogManager.getLogger();
 
@@ -147,6 +151,7 @@ public class ScanTarget implements Serializable {
 
     private int trancoRank;
 
+    /** Creates a new empty scan target. Fields should be set using the setter methods. */
     public ScanTarget() {}
 
     @Override

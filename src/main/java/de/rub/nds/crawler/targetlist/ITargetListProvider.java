@@ -10,7 +10,16 @@ package de.rub.nds.crawler.targetlist;
 
 import java.util.List;
 
+/**
+ * Interface for providers that supply lists of targets to scan. Implementations can retrieve
+ * targets from different sources such as files, databases, or web services.
+ */
 public interface ITargetListProvider {
 
+    /**
+     * Gets the list of targets to scan.
+     *
+     * @return A list of target hostnames or IP addresses
+     */
     List<String> getTargetList();
 }

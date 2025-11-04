@@ -17,6 +17,11 @@ import java.util.EnumMap;
 import java.util.Map;
 import javax.persistence.Id;
 
+/**
+ * Represents a bulk scanning operation that manages multiple scanning jobs. This class tracks
+ * metadata about a scan batch including scan configuration, timing information, job statistics, and
+ * version information.
+ */
 public class BulkScan implements Serializable {
 
     @Id private String _id;
@@ -57,6 +62,17 @@ public class BulkScan implements Serializable {
     @SuppressWarnings("unused")
     private BulkScan() {}
 
+    /**
+     * Creates a new bulk scan with the given parameters.
+     *
+     * @param scannerClass A scanner implementation class for retrieving version information
+     * @param crawlerClass A crawler implementation class for retrieving version information
+     * @param name The name of the bulk scan
+     * @param scanConfig The configuration to use for this scan
+     * @param startTime The start time as a timestamp in milliseconds
+     * @param monitored Whether this scan should be monitored for progress
+     * @param notifyUrl Optional URL to notify when the scan is complete
+     */
     public BulkScan(
             Class<?> scannerClass,
             Class<?> crawlerClass,
@@ -76,65 +92,135 @@ public class BulkScan implements Serializable {
         this.notifyUrl = notifyUrl;
     }
 
-    // Getter naming important for correct serialization, do not change!
+    /**
+     * Gets the database ID for this bulk scan.
+     *
+     * @return The database ID
+     */
     public String get_id() {
+        // Getter naming important for correct serialization, do not change!
         return _id;
     }
 
+    /**
+     * Gets the name of this bulk scan.
+     *
+     * @return The name
+     */
     public String getName() {
         return this.name;
     }
 
+    /**
+     * Gets the collection name where scan results will be stored.
+     *
+     * @return The collection name
+     */
     public String getCollectionName() {
         return this.collectionName;
     }
 
+    /**
+     * Gets the scan configuration for this bulk scan.
+     *
+     * @return The scan configuration
+     */
     public ScanConfig getScanConfig() {
         return this.scanConfig;
     }
 
+    /**
+     * Checks if this bulk scan is monitored for progress.
+     *
+     * @return True if the scan is monitored, false otherwise
+     */
     public boolean isMonitored() {
         return this.monitored;
     }
 
+    /**
+     * Checks if this bulk scan has finished.
+     *
+     * @return True if the scan is finished, false otherwise
+     */
     public boolean isFinished() {
         return this.finished;
     }
 
+    /**
+     * Gets the start time of this bulk scan.
+     *
+     * @return The start time as a timestamp in milliseconds
+     */
     public long getStartTime() {
         return this.startTime;
     }
 
+    /**
+     * Gets the end time of this bulk scan.
+     *
+     * @return The end time as a timestamp in milliseconds
+     */
     public long getEndTime() {
         return this.endTime;
     }
 
+    /**
+     * Gets the total number of targets provided for this bulk scan.
+     *
+     * @return The number of targets
+     */
     public int getTargetsGiven() {
         return this.targetsGiven;
     }
 
+    /**
+     * Gets the number of scan jobs published for this bulk scan.
+     *
+     * @return The number of scan jobs published
+     */
     public long getScanJobsPublished() {
         return this.scanJobsPublished;
     }
 
+    /**
+     * Gets the number of successful scans completed for this bulk scan.
+     *
+     * @return The number of successful scans
+     */
     public int getSuccessfulScans() {
         return this.successfulScans;
     }
 
+    /**
+     * Gets the URL to notify when this bulk scan is complete.
+     *
+     * @return The notification URL
+     */
     public String getNotifyUrl() {
         return this.notifyUrl;
     }
 
+    /**
+     * Gets the version of the scanner used for this bulk scan.
+     *
+     * @return The scanner version
+     */
     public String getScannerVersion() {
         return this.scannerVersion;
     }
 
+    /**
+     * Gets the version of the crawler used for this bulk scan.
+     *
+     * @return The crawler version
+     */
     public String getCrawlerVersion() {
         return this.crawlerVersion;
     }
 
-    // Setter naming important for correct serialization, do not change!
     public void set_id(String _id) {
+        // Setter naming important for correct serialization, do not change!
         this._id = _id;
     }
 

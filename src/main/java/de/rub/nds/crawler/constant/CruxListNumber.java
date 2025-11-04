@@ -8,6 +8,10 @@
  */
 package de.rub.nds.crawler.constant;
 
+/**
+ * Enumeration of different Crux list sizes available for scanning. Each enum constant represents a
+ * specific list of top websites, with the value indicating the number of entries in that list.
+ */
 public enum CruxListNumber {
     TOP_1k(1000),
     TOP_5K(5000),

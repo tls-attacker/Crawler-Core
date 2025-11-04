@@ -10,24 +10,31 @@ package de.rub.nds.crawler.config.delegate;
 
 import com.beust.jcommander.Parameter;
 
+/** Configuration delegate that holds RabbitMQ connection settings. */
 public class RabbitMqDelegate {
 
-    @Parameter(names = "-rabbitMqHost")
+    @Parameter(names = "-rabbitMqHost", description = "Host of the RabbitMQ instance")
     private String rabbitMqHost;
 
-    @Parameter(names = "-rabbitMqPort")
+    @Parameter(names = "-rabbitMqPort", description = "Port of the RabbitMQ instance")
     private int rabbitMqPort;
 
-    @Parameter(names = "-rabbitMqUser")
+    @Parameter(names = "-rabbitMqUser", description = "Username for RabbitMQ authentication")
     private String rabbitMqUser;
 
-    @Parameter(names = "-rabbitMqPass")
+    @Parameter(
+            names = "-rabbitMqPass",
+            description =
+                    "Password for RabbitMQ authentication. Alternatively use -rabbitMqPassFile")
     private String rabbitMqPass;
 
-    @Parameter(names = "-rabbitMqPassFile")
+    @Parameter(
+            names = "-rabbitMqPassFile",
+            description =
+                    "File containing the password for RabbitMQ authentication. Alternatively use -rabbitMqPass")
     private String rabbitMqPassFile;
 
-    @Parameter(names = "-rabbitMqTLS")
+    @Parameter(names = "-rabbitMqTLS", description = "Use TLS for the RabbitMQ connection")
     private boolean rabbitMqTLS;
 
     public String getRabbitMqHost() {

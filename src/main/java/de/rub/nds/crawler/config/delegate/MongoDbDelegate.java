@@ -10,16 +10,17 @@ package de.rub.nds.crawler.config.delegate;
 
 import com.beust.jcommander.Parameter;
 
+/** Configuration delegate that holds MongoDB connection settings. */
 public class MongoDbDelegate {
 
     @Parameter(
             names = "-mongoDbHost",
-            description = "Host of the MongoDB instance this crawler saves to.")
+            description = "Host of the MongoDB instance this crawler saves results to.")
     private String mongoDbHost;
 
     @Parameter(
             names = "-mongoDbPort",
-            description = "Port of the MongoDB instance this crawler saves to.")
+            description = "Port of the MongoDB instance this crawler saves results to.")
     private int mongoDbPort;
 
     @Parameter(
@@ -29,12 +30,12 @@ public class MongoDbDelegate {
 
     @Parameter(
             names = "-mongoDbPass",
-            description = "The passwort to be used to authenticate with MongoDB.")
+            description = "The password to be used to authenticate with MongoDB.")
     private String mongoDbPass;
 
     @Parameter(
             names = "-mongoDbPassFile",
-            description = "The passwort to be used to authenticate with MongoDB.")
+            description = "The password to be used to authenticate with MongoDB.")
     private String mongoDbPassFile;
 
     @Parameter(

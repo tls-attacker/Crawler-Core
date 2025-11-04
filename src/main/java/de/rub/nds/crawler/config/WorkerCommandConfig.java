@@ -13,6 +13,11 @@ import com.beust.jcommander.ParametersDelegate;
 import de.rub.nds.crawler.config.delegate.MongoDbDelegate;
 import de.rub.nds.crawler.config.delegate.RabbitMqDelegate;
 
+/**
+ * Configuration class for worker instances used to parse command line parameters. Contains settings
+ * for the worker's behavior, including thread counts and timeouts, as well as MongoDB and RabbitMQ
+ * connection settings.
+ */
 public class WorkerCommandConfig {
 
     @ParametersDelegate private final RabbitMqDelegate rabbitMqDelegate;
