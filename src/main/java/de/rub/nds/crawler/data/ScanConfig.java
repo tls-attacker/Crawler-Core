@@ -11,7 +11,6 @@ package de.rub.nds.crawler.data;
 import de.rub.nds.crawler.core.BulkScanWorker;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import de.rub.nds.scanner.core.probe.ProbeType;
-
 import java.io.Serializable;
 import java.util.List;
 
@@ -30,15 +29,14 @@ public abstract class ScanConfig implements Serializable {
     private List<ProbeType> excludedProbes;
 
     @SuppressWarnings("unused")
-    private ScanConfig() {
-    }
+    private ScanConfig() {}
 
     /**
      * Creates a new scan configuration with the specified parameters.
      *
      * @param scannerDetail The level of detail for the scan
-     * @param reexecutions  The number of times to retry failed scans
-     * @param timeout       The timeout for each scan in seconds
+     * @param reexecutions The number of times to retry failed scans
+     * @param timeout The timeout for each scan in seconds
      */
     protected ScanConfig(ScannerDetail scannerDetail, int reexecutions, int timeout) {
         this(scannerDetail, reexecutions, timeout, null);
@@ -121,9 +119,9 @@ public abstract class ScanConfig implements Serializable {
      * Creates a worker for this scan configuration. Each implementation must provide a factory
      * method to create the appropriate worker type.
      *
-     * @param bulkScanID                The ID of the bulk scan this worker is for
+     * @param bulkScanID The ID of the bulk scan this worker is for
      * @param parallelConnectionThreads The number of parallel connection threads to use
-     * @param parallelScanThreads       The number of parallel scan threads to use
+     * @param parallelScanThreads The number of parallel scan threads to use
      * @return A worker for this scan configuration
      */
     public abstract BulkScanWorker<? extends ScanConfig> createWorker(
