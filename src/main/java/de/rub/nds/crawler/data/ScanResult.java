@@ -40,8 +40,23 @@ public class ScanResult implements Serializable {
         this.result = result;
     }
 
+    @JsonCreator
+    private ScanResult(
+            @JsonProperty("_id") String id,
+            @JsonProperty("bulkScan") String bulkScan,
+            @JsonProperty("scanTarget") ScanTarget scanTarget,
+            @JsonProperty("resultStatus") JobStatus jobStatus,
+            @JsonProperty("result") Document result) {
+        this.id = id;
+        this.bulkScan = bulkScan;
+        this.scanTarget = scanTarget;
+        this.jobStatus = jobStatus;
+        this.result = result;
+    }
+
     public ScanResult(ScanJobDescription scanJobDescription, Document result) {
         this(
+                scanJobDescription.getId().toString(),
                 scanJobDescription.getBulkScanInfo().getBulkScanId(),
                 scanJobDescription.getScanTarget(),
                 scanJobDescription.getStatus(),
