@@ -91,11 +91,11 @@ class DummyPersistenceProviderTest {
 
         assertNotNull(retrieved);
         assertEquals(scanJobDescriptionId, retrieved.getScanJobDescriptionId());
-        
+
         assertTrue(retrieved.getTimestamp().compareTo(scanResult1.getTimestamp()) >= 0);
         assertTrue(retrieved.getTimestamp().compareTo(scanResult2.getTimestamp()) >= 0);
         assertTrue(retrieved.getTimestamp().compareTo(scanResult3.getTimestamp()) >= 0);
-        
+
         assertEquals(scanResult3.getTimestamp(), retrieved.getTimestamp());
     }
 }
