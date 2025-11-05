@@ -46,4 +46,13 @@ public class DummyPersistenceProvider implements IPersistenceProvider {
                 .findFirst()
                 .orElse(null);
     }
+
+    @Override
+    public ScanResult getScanResultByScanJobDescriptionId(
+            String dbName, String collectionName, String id) {
+        return results.stream()
+                .filter(result -> result.getScanJobDescriptionId().equals(id))
+                .max((r1, r2) -> r1.getTimestamp().compareTo(r2.getTimestamp()))
+                .orElse(null);
+    }
 }

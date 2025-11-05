@@ -61,4 +61,16 @@ public interface IPersistenceProvider {
      * @return The scan result, or null if not found.
      */
     ScanResult getScanResultById(String dbName, String collectionName, String id);
+
+    /**
+     * Retrieve the most recent scan result by its scan job description ID. If multiple results
+     * exist for the same scan job description ID, returns the one with the latest timestamp.
+     *
+     * @param dbName The database name where the scan result is stored.
+     * @param collectionName The collection name where the scan result is stored.
+     * @param scanJobDescriptionId The scan job description ID to search for.
+     * @return The most recent scan result, or null if not found.
+     */
+    ScanResult getScanResultByScanJobDescriptionId(
+            String dbName, String collectionName, String scanJobDescriptionId);
 }
