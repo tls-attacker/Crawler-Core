@@ -62,12 +62,10 @@ class DummyPersistenceProviderTest {
         target.setIp("93.184.216.34");
         target.setPort(443);
 
-        // Create a single job description - all results will share its ID
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, testBulkScan, JobStatus.SUCCESS);
         String scanJobDescriptionId = jobDescription.getId().toString();
 
-        // Create multiple scan results from the same job description
         Document resultDoc1 = new Document();
         resultDoc1.put("attempt", 1);
         ScanResult scanResult1 = new ScanResult(jobDescription, resultDoc1);
