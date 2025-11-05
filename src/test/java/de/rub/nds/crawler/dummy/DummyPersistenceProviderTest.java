@@ -62,32 +62,30 @@ class DummyPersistenceProviderTest {
         target.setIp("93.184.216.34");
         target.setPort(443);
 
-        ScanJobDescription jobDescription1 =
+        // Create a single job description - all results will share its ID
+        ScanJobDescription jobDescription =
                 new ScanJobDescription(target, testBulkScan, JobStatus.SUCCESS);
+        String scanJobDescriptionId = jobDescription.getId().toString();
+
+        // Create multiple scan results from the same job description
         Document resultDoc1 = new Document();
         resultDoc1.put("attempt", 1);
-        ScanResult scanResult1 = new ScanResult(jobDescription1, resultDoc1);
-        provider.insertScanResult(scanResult1, jobDescription1);
+        ScanResult scanResult1 = new ScanResult(jobDescription, resultDoc1);
+        provider.insertScanResult(scanResult1, jobDescription);
 
         Thread.sleep(10);
 
-        ScanJobDescription jobDescription2 =
-                new ScanJobDescription(target, testBulkScan, JobStatus.SUCCESS);
         Document resultDoc2 = new Document();
         resultDoc2.put("attempt", 2);
-        ScanResult scanResult2 = new ScanResult(jobDescription2, resultDoc2);
-        provider.insertScanResult(scanResult2, jobDescription2);
+        ScanResult scanResult2 = new ScanResult(jobDescription, resultDoc2);
+        provider.insertScanResult(scanResult2, jobDescription);
 
         Thread.sleep(10);
 
-        ScanJobDescription jobDescription3 =
-                new ScanJobDescription(target, testBulkScan, JobStatus.SUCCESS);
         Document resultDoc3 = new Document();
         resultDoc3.put("attempt", 3);
-        ScanResult scanResult3 = new ScanResult(jobDescription3, resultDoc3);
-        provider.insertScanResult(scanResult3, jobDescription3);
-
-        String scanJobDescriptionId = scanResult2.getScanJobDescriptionId();
+        ScanResult scanResult3 = new ScanResult(jobDescription, resultDoc3);
+        provider.insertScanResult(scanResult3, jobDescription);
 
         ScanResult retrieved =
                 provider.getScanResultByScanJobDescriptionId(
@@ -95,13 +93,11 @@ class DummyPersistenceProviderTest {
 
         assertNotNull(retrieved);
         assertEquals(scanJobDescriptionId, retrieved.getScanJobDescriptionId());
-        assertTrue(
-                retrieved.getTimestamp().equals(scanResult3.getTimestamp())
-                        || retrieved.getTimestamp().equals(scanResult2.getTimestamp())
-                        || retrieved.getTimestamp().equals(scanResult1.getTimestamp()));
-        assertTrue(
-                retrieved.getTimestamp().compareTo(scanResult1.getTimestamp()) >= 0
-                        && retrieved.getTimestamp().compareTo(scanResult2.getTimestamp()) >= 0
-                        && retrieved.getTimestamp().compareTo(scanResult3.getTimestamp()) >= 0);
+        
+        assertTrue(retrieved.getTimestamp().compareTo(scanResult1.getTimestamp()) >= 0);
+        assertTrue(retrieved.getTimestamp().compareTo(scanResult2.getTimestamp()) >= 0);
+        assertTrue(retrieved.getTimestamp().compareTo(scanResult3.getTimestamp()) >= 0);
+        
+        assertEquals(scanResult3.getTimestamp(), retrieved.getTimestamp());
     }
 }
