@@ -205,6 +205,8 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         collection.createIndex(Indexes.ascending("scanTarget.hostname"));
         collection.createIndex(Indexes.ascending("scanTarget.trancoRank"));
         collection.createIndex(Indexes.ascending("scanTarget.resultStatus"));
+        collection.createIndex(Indexes.ascending("scanJobDescription"));
+        collection.createIndex(Indexes.descending("timestamp"));
         return collection;
     }
 
@@ -341,6 +343,53 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
         } catch (Exception e) {
             LOGGER.error("Exception while retrieving scan result from MongoDB: ", e);
             throw new RuntimeException("Failed to retrieve scan result with ID: " + id, e);
+        }
+    }
+
+    @Override
+    public ScanResult getScanResultByScanJobDescriptionId(
+            String dbName, String collectionName, String scanJobDescriptionId) {
+        LOGGER.info(
+                "Retrieving most recent scan result for scanJobDescriptionId {} from collection: {}.{}",
+                scanJobDescriptionId,
+                dbName,
+                collectionName);
+
+        try {
+            var collection = resultCollectionCache.getUnchecked(Pair.of(dbName, collectionName));
+
+            var query = new org.bson.Document("scanJobDescription", scanJobDescriptionId);
+
+            var iterable = collection.find(query).sort(new org.bson.Document("timestamp", -1));
+
+            var iterator = iterable.iterator();
+            ScanResult result = null;
+            if (iterator.hasNext()) {
+                result = iterator.next();
+            }
+
+            if (result == null) {
+                LOGGER.warn(
+                        "No scan result found for scanJobDescriptionId: {} in collection: {}.{}",
+                        scanJobDescriptionId,
+                        dbName,
+                        collectionName);
+            } else {
+                LOGGER.info(
+                        "Retrieved most recent scan result for scanJobDescriptionId: {} from collection: {}.{} (timestamp: {})",
+                        scanJobDescriptionId,
+                        dbName,
+                        collectionName,
+                        result.getTimestamp());
+            }
+
+            return result;
+        } catch (Exception e) {
+            LOGGER.error("Exception while retrieving scan result from MongoDB: ", e);
+            throw new RuntimeException(
+                    "Failed to retrieve scan result for scanJobDescriptionId: "
+                            + scanJobDescriptionId,
+                    e);
         }
     }
 }

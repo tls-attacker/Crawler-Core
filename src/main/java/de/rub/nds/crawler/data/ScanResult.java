@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import de.rub.nds.crawler.constant.JobStatus;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.UUID;
 import org.bson.Document;
 
@@ -27,25 +28,35 @@ public class ScanResult implements Serializable {
 
     private final Document result;
 
+    private final String scanJobDescriptionId;
+
+    private final Instant timestamp;
+
     @JsonCreator
     private ScanResult(
+            @JsonProperty("scanJobDescription") String scanJobDescriptionId,
             @JsonProperty("bulkScan") String bulkScan,
             @JsonProperty("scanTarget") ScanTarget scanTarget,
             @JsonProperty("resultStatus") JobStatus jobStatus,
-            @JsonProperty("result") Document result) {
+            @JsonProperty("result") Document result,
+            @JsonProperty("timestamp") Instant timestamp) {
         this.id = UUID.randomUUID().toString();
+        this.scanJobDescriptionId = scanJobDescriptionId;
         this.bulkScan = bulkScan;
         this.scanTarget = scanTarget;
         this.jobStatus = jobStatus;
         this.result = result;
+        this.timestamp = timestamp != null ? timestamp : Instant.now();
     }
 
     public ScanResult(ScanJobDescription scanJobDescription, Document result) {
         this(
+                scanJobDescription.getId().toString(),
                 scanJobDescription.getBulkScanInfo().getBulkScanId(),
                 scanJobDescription.getScanTarget(),
                 scanJobDescription.getStatus(),
-                result);
+                result,
+                Instant.now());
         if (scanJobDescription.getStatus() == JobStatus.TO_BE_EXECUTED) {
             throw new IllegalArgumentException(
                     "ScanJobDescription must not be in TO_BE_EXECUTED state");
@@ -85,5 +96,15 @@ public class ScanResult implements Serializable {
 
     public JobStatus getResultStatus() {
         return jobStatus;
+    }
+
+    @JsonProperty("scanJobDescription")
+    public String getScanJobDescriptionId() {
+        return scanJobDescriptionId;
+    }
+
+    @JsonProperty("timestamp")
+    public Instant getTimestamp() {
+        return timestamp;
     }
 }
