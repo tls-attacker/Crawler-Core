@@ -10,11 +10,15 @@ package de.rub.nds.crawler.core;
 
 import de.rub.nds.crawler.config.WorkerCommandConfig;
 import de.rub.nds.crawler.constant.JobStatus;
+import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.execution.NamedThreadFactory;
+import de.rub.nds.scanner.core.probe.ProbeType;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +37,7 @@ public class Worker {
     private final int parallelScanThreads;
     private final int parallelConnectionThreads;
     private final int scanTimeout;
+    private final List<ProbeType> excludedProbes;
 
     /** Runs a lambda which waits for the scanning result and persists it. */
     private final ThreadPoolExecutor workerExecutor;
@@ -53,6 +58,7 @@ public class Worker {
         this.parallelScanThreads = commandConfig.getParallelScanThreads();
         this.parallelConnectionThreads = commandConfig.getParallelConnectionThreads();
         this.scanTimeout = commandConfig.getScanTimeout();
+        this.excludedProbes = commandConfig.getExcludedProbes();
 
         workerExecutor =
                 new ThreadPoolExecutor(
@@ -92,6 +98,28 @@ public class Worker {
 
     private void handleScanJob(ScanJobDescription scanJobDescription) {
         LOGGER.info("Received scan job for {}", scanJobDescription.getScanTarget());
+        
+        // Apply worker-level excluded probes to the scan config
+        if (excludedProbes != null && !excludedProbes.isEmpty()) {
+            ScanConfig scanConfig = scanJobDescription.getBulkScanInfo().getScanConfig();
+            List<ProbeType> mergedExcludedProbes = new LinkedList<>();
+            
+            // Add probes from controller
+            if (scanConfig.getExcludedProbes() != null) {
+                mergedExcludedProbes.addAll(scanConfig.getExcludedProbes());
+            }
+            
+            // Add probes from worker (avoid duplicates)
+            for (ProbeType probe : excludedProbes) {
+                if (!mergedExcludedProbes.contains(probe)) {
+                    mergedExcludedProbes.add(probe);
+                }
+            }
+            
+            scanConfig.setExcludedProbes(mergedExcludedProbes);
+            LOGGER.info("Worker excluding {} probes from scan", mergedExcludedProbes.size());
+        }
+        
         Future<Document> resultFuture =
                 BulkScanWorkerManager.handleStatic(
                         scanJobDescription, parallelConnectionThreads, parallelScanThreads);

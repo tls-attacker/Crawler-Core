@@ -12,6 +12,10 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import de.rub.nds.crawler.config.delegate.MongoDbDelegate;
 import de.rub.nds.crawler.config.delegate.RabbitMqDelegate;
+import de.rub.nds.scanner.core.probe.ProbeType;
+import de.rub.nds.scanner.core.probe.ProbeTypeConverter;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Configuration class for worker instances used to parse command line parameters. Contains settings
@@ -43,6 +47,13 @@ public class WorkerCommandConfig {
                             + "After the timeout the worker tries to shutdown the scan but a shutdown can not be guaranteed due to the TLS-Scanner implementation.")
     private int scanTimeout = 840000;
 
+    @Parameter(
+            names = "-exclude",
+            description =
+                    "A list of probes that should be excluded from the scan. The list is separated by commas.",
+            converter = ProbeTypeConverter.class)
+    private List<ProbeType> excludedProbes = new LinkedList<>();
+
     public WorkerCommandConfig() {
         rabbitMqDelegate = new RabbitMqDelegate();
         mongoDbDelegate = new MongoDbDelegate();
@@ -68,6 +79,10 @@ public class WorkerCommandConfig {
         return scanTimeout;
     }
 
+    public List<ProbeType> getExcludedProbes() {
+        return excludedProbes;
+    }
+
     public void setParallelScanThreads(int parallelScanThreads) {
         this.parallelScanThreads = parallelScanThreads;
     }
@@ -78,5 +93,9 @@ public class WorkerCommandConfig {
 
     public void setScanTimeout(int scanTimeout) {
         this.scanTimeout = scanTimeout;
+    }
+
+    public void setExcludedProbes(List<ProbeType> excludedProbes) {
+        this.excludedProbes = excludedProbes;
     }
 }
