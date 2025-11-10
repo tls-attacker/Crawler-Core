@@ -64,6 +64,10 @@ class ControllerTest {
 
             Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
             Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
+
+            mockedInetAddress.verify(() -> InetAddress.getByName("example.com"));
+            mockedInetAddress.verify(() -> InetAddress.getByName("example.org"));
+            mockedInetAddress.verifyNoMoreInteractions();
         }
     }
 
@@ -116,6 +120,9 @@ class ControllerTest {
                 Assertions.assertEquals("probe1", jobExcludedProbes.get(0).getName());
                 Assertions.assertEquals("probe2", jobExcludedProbes.get(1).getName());
             }
+            mockedInetAddress.verify(() -> InetAddress.getByName("example.com"));
+            mockedInetAddress.verify(() -> InetAddress.getByName("example.org"));
+            mockedInetAddress.verifyNoMoreInteractions();
         }
     }
 
@@ -158,6 +165,9 @@ class ControllerTest {
                 Assertions.assertTrue(
                         jobExcludedProbes.isEmpty(), "Expected excluded probes to be empty");
             }
+            mockedInetAddress.verify(() -> InetAddress.getByName("example.com"));
+            mockedInetAddress.verify(() -> InetAddress.getByName("example.org"));
+            mockedInetAddress.verifyNoMoreInteractions();
         }
     }
 }
