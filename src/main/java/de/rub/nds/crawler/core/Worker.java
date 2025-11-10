@@ -15,7 +15,14 @@ import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.execution.NamedThreadFactory;
-import java.util.concurrent.*;
+import de.rub.nds.scanner.core.probe.ProbeType;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bson.Document;
@@ -33,6 +40,7 @@ public class Worker {
     private final int parallelScanThreads;
     private final int parallelConnectionThreads;
     private final int scanTimeout;
+    private final List<ProbeType> workerExcludedProbes;
 
     /** Runs a lambda which waits for the scanning result and persists it. */
     private final ThreadPoolExecutor workerExecutor;
@@ -53,6 +61,7 @@ public class Worker {
         this.parallelScanThreads = commandConfig.getParallelScanThreads();
         this.parallelConnectionThreads = commandConfig.getParallelConnectionThreads();
         this.scanTimeout = commandConfig.getScanTimeout();
+        this.workerExcludedProbes = commandConfig.getExcludedProbes();
 
         workerExecutor =
                 new ThreadPoolExecutor(
@@ -67,6 +76,31 @@ public class Worker {
     public void start() {
         this.orchestrationProvider.registerScanJobConsumer(
                 this::handleScanJob, this.parallelScanThreads);
+    }
+
+    /**
+     * Applies worker's excluded probes to the scan configuration if the controller didn't specify
+     * any. Controller configuration takes precedence over worker configuration.
+     *
+     * @param scanJobDescription The scan job to apply excluded probes to
+     */
+    private void applyWorkerExcludedProbes(ScanJobDescription scanJobDescription) {
+        if (workerExcludedProbes != null && !workerExcludedProbes.isEmpty()) {
+            var scanConfig = scanJobDescription.getBulkScanInfo().getScanConfig();
+            List<ProbeType> controllerExcludedProbes = scanConfig.getExcludedProbes();
+
+            // Only apply worker's exclude list if controller didn't specify one
+            if (controllerExcludedProbes == null || controllerExcludedProbes.isEmpty()) {
+                LOGGER.debug(
+                        "Applying worker excluded probes (controller didn't specify any): {}",
+                        workerExcludedProbes);
+                scanConfig.setExcludedProbes(workerExcludedProbes);
+            } else {
+                LOGGER.debug(
+                        "Using controller excluded probes (takes precedence): {}",
+                        controllerExcludedProbes);
+            }
+        }
     }
 
     private ScanResult waitForScanResult(
@@ -92,6 +126,11 @@ public class Worker {
 
     private void handleScanJob(ScanJobDescription scanJobDescription) {
         LOGGER.info("Received scan job for {}", scanJobDescription.getScanTarget());
+
+        // Apply worker's excluded probes if controller didn't specify any
+        // Controller takes precedence over worker configuration
+        applyWorkerExcludedProbes(scanJobDescription);
+
         Future<Document> resultFuture =
                 BulkScanWorkerManager.handleStatic(
                         scanJobDescription, parallelConnectionThreads, parallelScanThreads);
