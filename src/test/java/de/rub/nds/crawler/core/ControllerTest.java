@@ -33,7 +33,7 @@ class ControllerTest {
         File hostlist = File.createTempFile("hosts", "txt");
         hostlist.deleteOnExit();
         FileWriter writer = new FileWriter(hostlist);
-        writer.write("example.com\nexample.org:8000");
+        writer.write("127.0.0.10\n127.0.0.11:8000");
         writer.flush();
         writer.close();
 
@@ -57,7 +57,7 @@ class ControllerTest {
         File hostlist = File.createTempFile("hosts", "txt");
         hostlist.deleteOnExit();
         FileWriter writer = new FileWriter(hostlist);
-        writer.write("example.com\nexample.org:443");
+        writer.write("127.0.0.20\n127.0.0.21:443");
         writer.flush();
         writer.close();
 
@@ -94,7 +94,7 @@ class ControllerTest {
         File hostlist = File.createTempFile("hosts", "txt");
         hostlist.deleteOnExit();
         FileWriter writer = new FileWriter(hostlist);
-        writer.write("example.com");
+        writer.write("127.0.0.30");
         writer.flush();
         writer.close();
 
