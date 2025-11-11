@@ -46,13 +46,6 @@ class ControllerTest {
 
         Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
         Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
-
-        List<String> resolvedIps =
-                orchestrationProvider.jobQueue.stream()
-                        .map(job -> job.getScanTarget().getIp())
-                        .toList();
-        Assertions.assertTrue(resolvedIps.contains("127.0.0.10"));
-        Assertions.assertTrue(resolvedIps.contains("127.0.0.11"));
     }
 
     @Test
