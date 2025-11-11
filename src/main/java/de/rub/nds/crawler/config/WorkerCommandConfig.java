@@ -50,7 +50,7 @@ public class WorkerCommandConfig {
     @Parameter(
             names = "-exclude",
             description =
-                    "A list of probes that should be excluded from the scan. The list is separated by commas.",
+                    "A list of probes that should be excluded from the scan. The list is separated by commas. This is used as a fallback when the Controller does not specify excluded probes. Controller's exclude list takes precedence over Worker's exclude list.",
             converter = ProbeTypeConverter.class)
     private List<ProbeType> excludedProbes = new LinkedList<>();
 
