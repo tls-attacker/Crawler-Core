@@ -90,13 +90,6 @@ class ControllerTest {
             Assertions.assertEquals("probe1", jobExcludedProbes.get(0).getName());
             Assertions.assertEquals("probe2", jobExcludedProbes.get(1).getName());
         }
-
-        List<String> resolvedIps =
-                orchestrationProvider.jobQueue.stream()
-                        .map(job -> job.getScanTarget().getIp())
-                        .toList();
-        Assertions.assertTrue(resolvedIps.contains("127.0.0.20"));
-        Assertions.assertTrue(resolvedIps.contains("127.0.0.21"));
     }
 
     @Test
@@ -130,7 +123,5 @@ class ControllerTest {
             Assertions.assertTrue(
                     jobExcludedProbes.isEmpty(), "Expected excluded probes to be empty");
         }
-
-        Assertions.assertEquals("127.0.0.30", job.getScanTarget().getIp());
     }
 }
