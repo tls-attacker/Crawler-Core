@@ -8,8 +8,6 @@
  */
 package de.rub.nds.crawler.core;
 
-import static org.mockito.Mockito.*;
-
 import de.rub.nds.crawler.config.ControllerCommandConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.dummy.DummyControllerCommandConfig;
@@ -19,155 +17,120 @@ import de.rub.nds.scanner.core.probe.ProbeType;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
 
 class ControllerTest {
 
     @Test
     void submitting() throws IOException, InterruptedException {
-        try (MockedStatic<InetAddress> mockedInetAddress = mockStatic(InetAddress.class)) {
-            InetAddress mockExampleCom = mock(InetAddress.class);
-            when(mockExampleCom.getHostAddress()).thenReturn("192.0.2.1");
-            mockedInetAddress
-                    .when(() -> InetAddress.getByName("example.com"))
-                    .thenReturn(mockExampleCom);
+        var persistenceProvider = new DummyPersistenceProvider();
+        var orchestrationProvider = new DummyOrchestrationProvider();
+        ControllerCommandConfig config = new DummyControllerCommandConfig();
 
-            InetAddress mockExampleOrg = mock(InetAddress.class);
-            when(mockExampleOrg.getHostAddress()).thenReturn("192.0.2.2");
-            mockedInetAddress
-                    .when(() -> InetAddress.getByName("example.org"))
-                    .thenReturn(mockExampleOrg);
+        File hostlist = File.createTempFile("hosts", "txt");
+        hostlist.deleteOnExit();
+        FileWriter writer = new FileWriter(hostlist);
+        writer.write("127.0.0.10\n127.0.0.11:8000");
+        writer.flush();
+        writer.close();
 
-            var persistenceProvider = new DummyPersistenceProvider();
-            var orchestrationProvider = new DummyOrchestrationProvider();
-            ControllerCommandConfig config = new DummyControllerCommandConfig();
+        config.setHostFile(hostlist.getAbsolutePath());
 
-            File hostlist = File.createTempFile("hosts", "txt");
-            hostlist.deleteOnExit();
-            FileWriter writer = new FileWriter(hostlist);
-            writer.write("example.com\nexample.org:8000");
-            writer.flush();
-            writer.close();
+        Controller controller = new Controller(config, orchestrationProvider, persistenceProvider);
+        controller.start();
 
-            config.setHostFile(hostlist.getAbsolutePath());
+        Thread.sleep(1000);
 
-            Controller controller =
-                    new Controller(config, orchestrationProvider, persistenceProvider);
-            controller.start();
+        Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
+        Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
 
-            Thread.sleep(1000);
-
-            Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
-            Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
-
-            mockedInetAddress.verify(() -> InetAddress.getByName("example.com"));
-            mockedInetAddress.verify(() -> InetAddress.getByName("example.org"));
-            mockedInetAddress.verifyNoMoreInteractions();
-        }
+        List<String> resolvedIps =
+                orchestrationProvider.jobQueue.stream()
+                        .map(job -> job.getScanTarget().getIp())
+                        .toList();
+        Assertions.assertTrue(resolvedIps.contains("127.0.0.10"));
+        Assertions.assertTrue(resolvedIps.contains("127.0.0.11"));
     }
 
     @Test
     void submittingWithExcludedProbes() throws IOException, InterruptedException {
-        try (MockedStatic<InetAddress> mockedInetAddress = mockStatic(InetAddress.class)) {
-            InetAddress mockExampleCom = mock(InetAddress.class);
-            when(mockExampleCom.getHostAddress()).thenReturn("192.0.2.1");
-            mockedInetAddress
-                    .when(() -> InetAddress.getByName("example.com"))
-                    .thenReturn(mockExampleCom);
+        var persistenceProvider = new DummyPersistenceProvider();
+        var orchestrationProvider = new DummyOrchestrationProvider();
+        ControllerCommandConfig config = new DummyControllerCommandConfig();
 
-            InetAddress mockExampleOrg = mock(InetAddress.class);
-            when(mockExampleOrg.getHostAddress()).thenReturn("192.0.2.2");
-            mockedInetAddress
-                    .when(() -> InetAddress.getByName("example.org"))
-                    .thenReturn(mockExampleOrg);
+        File hostlist = File.createTempFile("hosts", "txt");
+        hostlist.deleteOnExit();
+        FileWriter writer = new FileWriter(hostlist);
+        writer.write("127.0.0.20\n127.0.0.21:443");
+        writer.flush();
+        writer.close();
 
-            var persistenceProvider = new DummyPersistenceProvider();
-            var orchestrationProvider = new DummyOrchestrationProvider();
-            ControllerCommandConfig config = new DummyControllerCommandConfig();
+        config.setHostFile(hostlist.getAbsolutePath());
 
-            File hostlist = File.createTempFile("hosts", "txt");
-            hostlist.deleteOnExit();
-            FileWriter writer = new FileWriter(hostlist);
-            writer.write("example.com\nexample.org:443");
-            writer.flush();
-            writer.close();
+        List<ProbeType> excludedProbes =
+                Arrays.asList(new TestProbeType("probe1"), new TestProbeType("probe2"));
+        config.setExcludedProbes(excludedProbes);
 
-            config.setHostFile(hostlist.getAbsolutePath());
+        Controller controller = new Controller(config, orchestrationProvider, persistenceProvider);
+        controller.start();
 
-            List<ProbeType> excludedProbes =
-                    Arrays.asList(new TestProbeType("probe1"), new TestProbeType("probe2"));
-            config.setExcludedProbes(excludedProbes);
+        Thread.sleep(1000);
 
-            Controller controller =
-                    new Controller(config, orchestrationProvider, persistenceProvider);
-            controller.start();
+        Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
+        Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
 
-            Thread.sleep(1000);
-
-            Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
-            Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
-
-            for (ScanJobDescription job : orchestrationProvider.jobQueue) {
-                List<ProbeType> jobExcludedProbes =
-                        job.getBulkScanInfo().getScanConfig().getExcludedProbes();
-                Assertions.assertNotNull(jobExcludedProbes);
-                Assertions.assertEquals(2, jobExcludedProbes.size());
-                Assertions.assertEquals("probe1", jobExcludedProbes.get(0).getName());
-                Assertions.assertEquals("probe2", jobExcludedProbes.get(1).getName());
-            }
-            mockedInetAddress.verify(() -> InetAddress.getByName("example.com"));
-            mockedInetAddress.verify(() -> InetAddress.getByName("example.org"));
-            mockedInetAddress.verifyNoMoreInteractions();
+        for (ScanJobDescription job : orchestrationProvider.jobQueue) {
+            List<ProbeType> jobExcludedProbes =
+                    job.getBulkScanInfo().getScanConfig().getExcludedProbes();
+            Assertions.assertNotNull(jobExcludedProbes);
+            Assertions.assertEquals(2, jobExcludedProbes.size());
+            Assertions.assertEquals("probe1", jobExcludedProbes.get(0).getName());
+            Assertions.assertEquals("probe2", jobExcludedProbes.get(1).getName());
         }
+
+        List<String> resolvedIps =
+                orchestrationProvider.jobQueue.stream()
+                        .map(job -> job.getScanTarget().getIp())
+                        .toList();
+        Assertions.assertTrue(resolvedIps.contains("127.0.0.20"));
+        Assertions.assertTrue(resolvedIps.contains("127.0.0.21"));
     }
 
     @Test
     void submittingWithoutExcludedProbes() throws IOException, InterruptedException {
-        try (MockedStatic<InetAddress> mockedInetAddress = mockStatic(InetAddress.class)) {
-            InetAddress mockExampleCom = mock(InetAddress.class);
-            when(mockExampleCom.getHostAddress()).thenReturn("192.0.2.1");
-            mockedInetAddress
-                    .when(() -> InetAddress.getByName("example.com"))
-                    .thenReturn(mockExampleCom);
+        var persistenceProvider = new DummyPersistenceProvider();
+        var orchestrationProvider = new DummyOrchestrationProvider();
+        ControllerCommandConfig config = new DummyControllerCommandConfig();
 
-            var persistenceProvider = new DummyPersistenceProvider();
-            var orchestrationProvider = new DummyOrchestrationProvider();
-            ControllerCommandConfig config = new DummyControllerCommandConfig();
+        File hostlist = File.createTempFile("hosts", "txt");
+        hostlist.deleteOnExit();
+        FileWriter writer = new FileWriter(hostlist);
+        writer.write("127.0.0.30");
+        writer.flush();
+        writer.close();
 
-            File hostlist = File.createTempFile("hosts", "txt");
-            hostlist.deleteOnExit();
-            FileWriter writer = new FileWriter(hostlist);
-            writer.write("example.com");
-            writer.flush();
-            writer.close();
+        config.setHostFile(hostlist.getAbsolutePath());
 
-            config.setHostFile(hostlist.getAbsolutePath());
+        Controller controller = new Controller(config, orchestrationProvider, persistenceProvider);
+        controller.start();
 
-            Controller controller =
-                    new Controller(config, orchestrationProvider, persistenceProvider);
-            controller.start();
+        Thread.sleep(1000);
 
-            Thread.sleep(1000);
+        Assertions.assertEquals(1, orchestrationProvider.jobQueue.size());
 
-            Assertions.assertEquals(1, orchestrationProvider.jobQueue.size());
-
-            ScanJobDescription job = orchestrationProvider.jobQueue.peek();
-            List<ProbeType> jobExcludedProbes =
-                    job.getBulkScanInfo().getScanConfig().getExcludedProbes();
-            if (jobExcludedProbes == null) {
-                Assertions.assertNull(jobExcludedProbes, "Expected excluded probes to be null");
-            } else {
-                Assertions.assertTrue(
-                        jobExcludedProbes.isEmpty(), "Expected excluded probes to be empty");
-            }
-            mockedInetAddress.verify(() -> InetAddress.getByName("example.com"));
-            mockedInetAddress.verify(() -> InetAddress.getByName("example.org"));
-            mockedInetAddress.verifyNoMoreInteractions();
+        ScanJobDescription job = orchestrationProvider.jobQueue.peek();
+        List<ProbeType> jobExcludedProbes =
+                job.getBulkScanInfo().getScanConfig().getExcludedProbes();
+        if (jobExcludedProbes == null) {
+            Assertions.assertNull(jobExcludedProbes, "Expected excluded probes to be null");
+        } else {
+            Assertions.assertTrue(
+                    jobExcludedProbes.isEmpty(), "Expected excluded probes to be empty");
         }
+
+        Assertions.assertEquals("127.0.0.30", job.getScanTarget().getIp());
     }
 }
