@@ -144,9 +144,9 @@ class ScanTargetTest {
     @Test
     void testUnknownHost() {
         Pair<ScanTarget, JobStatus> result =
-                ScanTarget.fromTargetString("this-host-should-not-exist-12345.com", 443, null);
+                ScanTarget.fromTargetString("this-host-should-not-exist.invalid", 443, null);
         assertEquals(JobStatus.UNRESOLVABLE, result.getRight());
-        assertEquals("this-host-should-not-exist-12345.com", result.getLeft().getHostname());
+        assertEquals("this-host-should-not-exist.invalid", result.getLeft().getHostname());
         assertNull(result.getLeft().getIp());
     }
 
