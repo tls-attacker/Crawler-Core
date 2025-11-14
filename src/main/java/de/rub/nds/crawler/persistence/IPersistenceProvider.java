@@ -28,6 +28,17 @@ public interface IPersistenceProvider {
     void insertScanResult(ScanResult scanResult, ScanJobDescription job);
 
     /**
+     * Upsert a partial scan result into the database. This method updates an existing document with
+     * the same ID, or inserts a new one if it doesn't exist. Used during scanning to persist
+     * intermediate results as probes complete. The document is identified by the job's UUID and
+     * will be overwritten when insertScanResult() is called with the final result.
+     *
+     * @param partialResult The partial scan result to upsert (contains intermediate data).
+     * @param job The job that is being executed.
+     */
+    void upsertPartialScanResult(ScanResult partialResult, ScanJobDescription job);
+
+    /**
      * Insert a bulk scan into the database. This is used to store metadata about the bulk scan.
      * This adds an ID to the bulk scan.
      *

@@ -9,6 +9,7 @@
 package de.rub.nds.crawler.core;
 
 import de.rub.nds.crawler.data.ScanConfig;
+import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.util.CanceallableThreadPoolExecutor;
 import de.rub.nds.scanner.core.execution.NamedThreadFactory;
@@ -40,6 +41,10 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
 
     /** The scan configuration for this worker */
     protected final T scanConfig;
+
+    // ThreadLocal to pass ScanJobDescription to scan() implementations
+    private static final ThreadLocal<ScanJobDescription> currentJobDescription =
+            new ThreadLocal<>();
 
     /**
      * Calls the inner scan function and may handle cleanup. This is needed to wrap the scanner into
@@ -75,20 +80,35 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      * initialize itself. In this case it will also clean up itself if all jobs are done.
      *
      * @param scanTarget The target to scan.
+     * @param jobDescription The job description for this scan.
      * @return A future that resolves to the scan result once the scan is done.
      */
-    public Future<Document> handle(ScanTarget scanTarget) {
+    public Future<Document> handle(ScanTarget scanTarget, ScanJobDescription jobDescription) {
         // if we initialized ourself, we also clean up ourself
         shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
         activeJobs.incrementAndGet();
         return timeoutExecutor.submit(
                 () -> {
-                    Document result = scan(scanTarget);
-                    if (activeJobs.decrementAndGet() == 0 && shouldCleanupSelf.get()) {
-                        cleanup();
+                    try {
+                        currentJobDescription.set(jobDescription);
+                        Document result = scan(scanTarget);
+                        if (activeJobs.decrementAndGet() == 0 && shouldCleanupSelf.get()) {
+                            cleanup();
+                        }
+                        return result;
+                    } finally {
+                        currentJobDescription.remove();
                     }
-                    return result;
                 });
+    }
+
+    /**
+     * Get the ScanJobDescription for the current scan. Only valid when called from within scan().
+     *
+     * @return The current ScanJobDescription, or null if not in a scan context
+     */
+    protected ScanJobDescription getCurrentJobDescription() {
+        return currentJobDescription.get();
     }
 
     /**
