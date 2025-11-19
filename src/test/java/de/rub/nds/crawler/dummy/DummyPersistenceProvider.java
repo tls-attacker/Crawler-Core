@@ -26,14 +26,6 @@ public class DummyPersistenceProvider implements IPersistenceProvider {
     }
 
     @Override
-    public void upsertPartialScanResult(ScanResult partialResult, ScanJobDescription job) {
-        // Remove existing result with same ID if present
-        results.removeIf(r -> r.getId() != null && r.getId().equals(partialResult.getId()));
-        // Add the partial result
-        results.add(partialResult);
-    }
-
-    @Override
     public void insertBulkScan(BulkScan bulkScan) {
         bulkScans.add(bulkScan);
     }

@@ -276,43 +276,6 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     }
 
     @Override
-    public void upsertPartialScanResult(
-            ScanResult partialResult, ScanJobDescription scanJobDescription) {
-        LOGGER.debug(
-                "Upserting partial scan result for job ID: {} with status: {}",
-                scanJobDescription.getId(),
-                partialResult.getResultStatus());
-
-        // Set the ID to match the job's UUID (same document as final result will use)
-        partialResult.setId(scanJobDescription.getId().toString());
-
-        try {
-            var collection =
-                    resultCollectionCache.getUnchecked(
-                            Pair.of(
-                                    scanJobDescription.getDbName(),
-                                    scanJobDescription.getCollectionName()));
-
-            // Use replaceOne with upsert option to update existing or insert new
-            com.mongodb.client.model.ReplaceOptions replaceOptions =
-                    new com.mongodb.client.model.ReplaceOptions().upsert(true);
-
-            org.bson.Document filter = new org.bson.Document("_id", partialResult.getId());
-
-            collection.replaceOne(filter, partialResult, replaceOptions);
-
-            LOGGER.debug(
-                    "Upserted partial result for job ID: {} to collection: {}.{}",
-                    scanJobDescription.getId(),
-                    scanJobDescription.getDbName(),
-                    scanJobDescription.getCollectionName());
-        } catch (Exception e) {
-            LOGGER.warn("Exception while upserting partial result to MongoDB (non-fatal): ", e);
-            // Don't throw - partial result persistence should not fail the scan
-        }
-    }
-
-    @Override
     public List<ScanResult> getScanResultsByTarget(
             String dbName, String collectionName, String target) {
         LOGGER.info(
