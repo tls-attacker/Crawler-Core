@@ -148,6 +148,6 @@ public class BulkScanWorkerManager {
                         bulkScanInfo.getScanConfig(),
                         parallelConnectionThreads,
                         parallelScanThreads);
-        return worker.handle(scanJobDescription.getScanTarget(), scanJobDescription);
+        return worker.handle(scanJobDescription);
     }
 }

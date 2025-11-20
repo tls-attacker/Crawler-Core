@@ -79,11 +79,10 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      * Handles a scan target by submitting it to the executor. If init was not called, it will
      * initialize itself. In this case it will also clean up itself if all jobs are done.
      *
-     * @param scanTarget The target to scan.
      * @param jobDescription The job description for this scan.
      * @return A future that resolves to the scan result once the scan is done.
      */
-    public Future<Document> handle(ScanTarget scanTarget, ScanJobDescription jobDescription) {
+    public Future<Document> handle(ScanJobDescription jobDescription) {
         // if we initialized ourself, we also clean up ourself
         shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
         activeJobs.incrementAndGet();
@@ -91,7 +90,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                 () -> {
                     try {
                         currentJobDescription.set(jobDescription);
-                        Document result = scan(scanTarget);
+                        Document result = scan(jobDescription.getScanTarget());
                         if (activeJobs.decrementAndGet() == 0 && shouldCleanupSelf.get()) {
                             cleanup();
                         }

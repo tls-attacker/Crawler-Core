@@ -119,7 +119,7 @@ class BulkScanWorkerTest {
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
         // Execute the scan
-        Future<Document> future = worker.handle(target, jobDescription);
+        Future<Document> future = worker.handle(jobDescription);
         Document result = future.get();
 
         // Verify the job description was available during scan
@@ -157,7 +157,7 @@ class BulkScanWorkerTest {
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
         // Execute the scan
-        Future<Document> future = worker.handle(target, jobDescription);
+        Future<Document> future = worker.handle(jobDescription);
         future.get(); // Wait for completion
 
         // After scan completes, the ThreadLocal should be cleaned up
@@ -169,7 +169,7 @@ class BulkScanWorkerTest {
         ScanJobDescription newJobDescription =
                 new ScanJobDescription(newTarget, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        Future<Document> future2 = worker.handle(newTarget, newJobDescription);
+        Future<Document> future2 = worker.handle(newJobDescription);
         Document result2 = future2.get();
 
         // The second scan should have the second job description, not the first
@@ -205,7 +205,7 @@ class BulkScanWorkerTest {
                     new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
             jobDescriptions.add(jobDescription);
 
-            futures.add(worker.handle(target, jobDescription));
+            futures.add(worker.handle(jobDescription));
         }
 
         // Wait for all scans to complete and verify each got the correct job description
@@ -243,7 +243,7 @@ class BulkScanWorkerTest {
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        Future<Document> future = worker.handle(target, jobDescription);
+        Future<Document> future = worker.handle(jobDescription);
         future.get();
 
         assertTrue(worker.isInitCalled(), "Init should be called on first handle");
@@ -271,7 +271,7 @@ class BulkScanWorkerTest {
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        Future<Document> future = worker.handle(target, jobDescription);
+        Future<Document> future = worker.handle(jobDescription);
         future.get();
 
         // Give cleanup a moment to execute (it runs after job completion)
@@ -306,7 +306,7 @@ class BulkScanWorkerTest {
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        Future<Document> future = worker.handle(target, jobDescription);
+        Future<Document> future = worker.handle(jobDescription);
         future.get();
 
         // Give cleanup a moment (if it were to execute)
