@@ -16,6 +16,9 @@ import java.net.UnknownHostException;
  */
 public class DefaultDnsResolver implements DnsResolver {
 
+    /** Creates a new default DNS resolver instance. */
+    public DefaultDnsResolver() {}
+
     @Override
     public String resolveHostname(String hostname) throws UnknownHostException {
         return InetAddress.getByName(hostname).getHostAddress();
