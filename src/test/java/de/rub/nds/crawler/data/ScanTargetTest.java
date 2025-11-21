@@ -79,7 +79,7 @@ class ScanTargetTest {
     void testHostnameWithPort() {
         MockDnsResolver mockDnsResolver = new MockDnsResolver();
         mockDnsResolver.addMapping("example.com", "93.184.216.34");
-        
+
         Pair<ScanTarget, JobStatus> result =
                 ScanTarget.fromTargetString("example.com:8080", 443, null, mockDnsResolver);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
@@ -92,8 +92,9 @@ class ScanTargetTest {
     void testHostnameWithoutPort() {
         MockDnsResolver mockDnsResolver = new MockDnsResolver();
         mockDnsResolver.addMapping("example.com", "93.184.216.34");
-        
-        Pair<ScanTarget, JobStatus> result = ScanTarget.fromTargetString("example.com", 443, null, mockDnsResolver);
+
+        Pair<ScanTarget, JobStatus> result =
+                ScanTarget.fromTargetString("example.com", 443, null, mockDnsResolver);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         assertEquals("example.com", result.getLeft().getHostname());
         assertEquals(443, result.getLeft().getPort());
@@ -151,9 +152,10 @@ class ScanTargetTest {
     void testUnknownHost() {
         MockDnsResolver mockDnsResolver = new MockDnsResolver();
         mockDnsResolver.addUnresolvableHost("this-host-should-not-exist.invalid");
-        
+
         Pair<ScanTarget, JobStatus> result =
-                ScanTarget.fromTargetString("this-host-should-not-exist.invalid", 443, null, mockDnsResolver);
+                ScanTarget.fromTargetString(
+                        "this-host-should-not-exist.invalid", 443, null, mockDnsResolver);
         assertEquals(JobStatus.UNRESOLVABLE, result.getRight());
         assertEquals("this-host-should-not-exist.invalid", result.getLeft().getHostname());
         assertNull(result.getLeft().getIp());

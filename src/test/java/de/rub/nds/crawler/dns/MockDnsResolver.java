@@ -17,10 +17,10 @@ import java.util.Map;
  * controlling whether a hostname should throw an UnknownHostException.
  */
 public class MockDnsResolver implements DnsResolver {
-    
+
     private final Map<String, String> hostnameToIpMap = new HashMap<>();
     private final Map<String, Boolean> hostnameToUnresolvableMap = new HashMap<>();
-    
+
     /**
      * Adds a mapping from hostname to IP address.
      *
@@ -31,7 +31,7 @@ public class MockDnsResolver implements DnsResolver {
         hostnameToIpMap.put(hostname, ipAddress);
         hostnameToUnresolvableMap.put(hostname, false);
     }
-    
+
     /**
      * Configures a hostname to throw UnknownHostException when resolved.
      *
@@ -40,18 +40,18 @@ public class MockDnsResolver implements DnsResolver {
     public void addUnresolvableHost(String hostname) {
         hostnameToUnresolvableMap.put(hostname, true);
     }
-    
+
     @Override
     public String resolveHostname(String hostname) throws UnknownHostException {
         if (hostnameToUnresolvableMap.getOrDefault(hostname, false)) {
             throw new UnknownHostException("Mock: hostname is unresolvable: " + hostname);
         }
-        
+
         String ipAddress = hostnameToIpMap.get(hostname);
         if (ipAddress != null) {
             return ipAddress;
         }
-        
+
         // If no mapping is found, throw UnknownHostException
         throw new UnknownHostException("Mock: no mapping configured for hostname: " + hostname);
     }

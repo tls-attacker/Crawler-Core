@@ -10,9 +10,7 @@ package de.rub.nds.crawler.dns;
 
 import java.net.UnknownHostException;
 
-/**
- * Interface for DNS resolution. Allows for mocking and testing of DNS lookups.
- */
+/** Interface for DNS resolution. Allows for mocking and testing of DNS lookups. */
 public interface DnsResolver {
     /**
      * Resolves a hostname to its IP address.

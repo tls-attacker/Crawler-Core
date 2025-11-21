@@ -37,7 +37,8 @@ public class ScanTarget implements Serializable {
      */
     public static Pair<ScanTarget, JobStatus> fromTargetString(
             String targetString, int defaultPort, IDenylistProvider denylistProvider) {
-        return fromTargetString(targetString, defaultPort, denylistProvider, new DefaultDnsResolver());
+        return fromTargetString(
+                targetString, defaultPort, denylistProvider, new DefaultDnsResolver());
     }
 
     /**
@@ -51,7 +52,10 @@ public class ScanTarget implements Serializable {
      * @return ScanTarget object
      */
     public static Pair<ScanTarget, JobStatus> fromTargetString(
-            String targetString, int defaultPort, IDenylistProvider denylistProvider, DnsResolver dnsResolver) {
+            String targetString,
+            int defaultPort,
+            IDenylistProvider denylistProvider,
+            DnsResolver dnsResolver) {
         ScanTarget target = new ScanTarget();
 
         // check if targetString contains rank (e.g. "1,example.com")
