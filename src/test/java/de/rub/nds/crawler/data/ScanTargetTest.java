@@ -11,6 +11,7 @@ package de.rub.nds.crawler.data;
 import static org.junit.jupiter.api.Assertions.*;
 
 import de.rub.nds.crawler.constant.JobStatus;
+import de.rub.nds.crawler.dns.MockDnsResolver;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
@@ -76,22 +77,27 @@ class ScanTargetTest {
 
     @Test
     void testHostnameWithPort() {
+        MockDnsResolver mockDnsResolver = new MockDnsResolver();
+        mockDnsResolver.addMapping("example.com", "93.184.216.34");
+        
         Pair<ScanTarget, JobStatus> result =
-                ScanTarget.fromTargetString("example.com:8080", 443, null);
+                ScanTarget.fromTargetString("example.com:8080", 443, null, mockDnsResolver);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         assertEquals("example.com", result.getLeft().getHostname());
         assertEquals(8080, result.getLeft().getPort());
-        // IP will be resolved by DNS lookup, so we can't test the exact value
-        assertNotNull(result.getLeft().getIp());
+        assertEquals("93.184.216.34", result.getLeft().getIp());
     }
 
     @Test
     void testHostnameWithoutPort() {
-        Pair<ScanTarget, JobStatus> result = ScanTarget.fromTargetString("example.com", 443, null);
+        MockDnsResolver mockDnsResolver = new MockDnsResolver();
+        mockDnsResolver.addMapping("example.com", "93.184.216.34");
+        
+        Pair<ScanTarget, JobStatus> result = ScanTarget.fromTargetString("example.com", 443, null, mockDnsResolver);
         assertEquals(JobStatus.TO_BE_EXECUTED, result.getRight());
         assertEquals("example.com", result.getLeft().getHostname());
         assertEquals(443, result.getLeft().getPort());
-        assertNotNull(result.getLeft().getIp());
+        assertEquals("93.184.216.34", result.getLeft().getIp());
     }
 
     @Test
@@ -143,8 +149,11 @@ class ScanTargetTest {
 
     @Test
     void testUnknownHost() {
+        MockDnsResolver mockDnsResolver = new MockDnsResolver();
+        mockDnsResolver.addUnresolvableHost("this-host-should-not-exist.invalid");
+        
         Pair<ScanTarget, JobStatus> result =
-                ScanTarget.fromTargetString("this-host-should-not-exist.invalid", 443, null);
+                ScanTarget.fromTargetString("this-host-should-not-exist.invalid", 443, null, mockDnsResolver);
         assertEquals(JobStatus.UNRESOLVABLE, result.getRight());
         assertEquals("this-host-should-not-exist.invalid", result.getLeft().getHostname());
         assertNull(result.getLeft().getIp());
