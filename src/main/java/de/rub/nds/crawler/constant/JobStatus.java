@@ -15,6 +15,8 @@ package de.rub.nds.crawler.constant;
 public enum JobStatus {
     /** Job is waiting to be executed. */
     TO_BE_EXECUTED(false),
+    /** Job is currently being executed. Partial results may be available in DB. */
+    RUNNING(false),
     /** The domain was not resolvable. An empty result was written to DB. */
     UNRESOLVABLE(true),
     /** An uncaught exception occurred while resolving the host. */
