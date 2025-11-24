@@ -14,7 +14,9 @@ import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
+import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.data.ScanTarget;
+import de.rub.nds.crawler.dummy.DummyPersistenceProvider;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -132,6 +134,49 @@ class BulkScanWorkerTest {
         assertNotNull(worker.getCapturedJobDescription());
         assertEquals(jobDescription.getId(), worker.getCapturedJobDescription().getId());
         assertEquals(target, worker.getCapturedJobDescription().getScanTarget());
+
+        // Simulate the partial results persistence flow
+        DummyPersistenceProvider persistenceProvider = new DummyPersistenceProvider();
+
+        // Update job status to SUCCESS (required by ScanResult constructor)
+        jobDescription.setStatus(JobStatus.SUCCESS);
+
+        // Create ScanResult from the scan result Document and job description
+        ScanResult scanResult = new ScanResult(jobDescription, result);
+
+        // Verify ScanResult has the correct scanJobDescriptionId
+        assertEquals(
+                jobDescription.getId().toString(),
+                scanResult.getScanJobDescriptionId(),
+                "ScanResult should use job description UUID as scanJobDescriptionId");
+
+        // Simulate persisting to MongoDB
+        persistenceProvider.insertScanResult(scanResult, jobDescription);
+
+        // Simulate retrieving from MongoDB by scanJobDescriptionId
+        ScanResult retrievedResult =
+                persistenceProvider.getScanResultByScanJobDescriptionId(
+                        "test-db", "test-collection", jobDescription.getId().toString());
+
+        // Verify the retrieved result matches
+        assertNotNull(
+                retrievedResult, "Should be able to retrieve ScanResult by job description ID");
+        assertEquals(
+                jobDescription.getId().toString(),
+                retrievedResult.getScanJobDescriptionId(),
+                "Retrieved result should have matching scanJobDescriptionId");
+        assertEquals(
+                scanResult.getBulkScan(),
+                retrievedResult.getBulkScan(),
+                "Retrieved result should have matching bulk scan ID");
+        assertEquals(
+                scanResult.getScanTarget(),
+                retrievedResult.getScanTarget(),
+                "Retrieved result should have matching scan target");
+        assertEquals(
+                scanResult.getResult(),
+                retrievedResult.getResult(),
+                "Retrieved result should have matching result document");
     }
 
     @Test
