@@ -104,7 +104,7 @@ class BulkScanWorkerTest {
         TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.com");
+        target.setHostname("example.invalid");
         target.setPort(443);
 
         BulkScan bulkScan =
@@ -185,7 +185,7 @@ class BulkScanWorkerTest {
         TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.com");
+        target.setHostname("example.invalid");
         target.setPort(443);
 
         BulkScan bulkScan =
@@ -208,7 +208,7 @@ class BulkScanWorkerTest {
         // After scan completes, the ThreadLocal should be cleaned up
         // We can verify this by running another scan and checking it gets the new job description
         ScanTarget newTarget = new ScanTarget();
-        newTarget.setHostname("example2.com");
+        newTarget.setHostname("example2.invalid");
         newTarget.setPort(443);
 
         ScanJobDescription newJobDescription =
@@ -243,7 +243,7 @@ class BulkScanWorkerTest {
 
         for (int i = 0; i < 5; i++) {
             ScanTarget target = new ScanTarget();
-            target.setHostname("example" + i + ".com");
+            target.setHostname("example" + i + ".invalid");
             target.setPort(443);
 
             ScanJobDescription jobDescription =
@@ -272,7 +272,7 @@ class BulkScanWorkerTest {
         assertFalse(worker.isInitCalled(), "Init should not be called before first handle");
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.com");
+        target.setHostname("example.invalid");
         target.setPort(443);
 
         BulkScan bulkScan =
@@ -300,7 +300,7 @@ class BulkScanWorkerTest {
         TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.com");
+        target.setHostname("example.invalid");
         target.setPort(443);
 
         BulkScan bulkScan =
@@ -335,7 +335,7 @@ class BulkScanWorkerTest {
         assertTrue(worker.isInitCalled(), "Init should be called");
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.com");
+        target.setHostname("example.invalid");
         target.setPort(443);
 
         BulkScan bulkScan =
