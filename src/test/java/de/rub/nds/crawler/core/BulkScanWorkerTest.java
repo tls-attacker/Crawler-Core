@@ -56,7 +56,7 @@ class BulkScanWorkerTest {
             capturedJobDescription = localJobDescription;
 
             Document result = new Document();
-            result.put("target", scanTarget.getHostname());
+            result.put("target", scanTarget.getIp());
             result.put("hasJobDescription", localJobDescription != null);
             if (localJobDescription != null) {
                 result.put("jobId", localJobDescription.getId().toString());
@@ -105,7 +105,7 @@ class BulkScanWorkerTest {
         TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.invalid");
+        target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
         target.setPort(443);
 
         BulkScan bulkScan =
@@ -186,7 +186,7 @@ class BulkScanWorkerTest {
         TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.invalid");
+        target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
         target.setPort(443);
 
         BulkScan bulkScan =
@@ -209,7 +209,7 @@ class BulkScanWorkerTest {
         // After scan completes, the ThreadLocal should be cleaned up
         // We can verify this by running another scan and checking it gets the new job description
         ScanTarget newTarget = new ScanTarget();
-        newTarget.setHostname("example2.invalid");
+        newTarget.setIp("192.0.2.2"); // TEST-NET-1 (RFC 5737)
         newTarget.setPort(443);
 
         ScanJobDescription newJobDescription =
@@ -244,7 +244,7 @@ class BulkScanWorkerTest {
 
         for (int i = 0; i < 5; i++) {
             ScanTarget target = new ScanTarget();
-            target.setHostname("example" + i + ".invalid");
+            target.setIp("192.0.2." + (i + 1)); // TEST-NET-1 (RFC 5737)
             target.setPort(443);
 
             ScanJobDescription jobDescription =
@@ -273,7 +273,7 @@ class BulkScanWorkerTest {
         assertFalse(worker.isInitCalled(), "Init should not be called before first handle");
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.invalid");
+        target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
         target.setPort(443);
 
         BulkScan bulkScan =
@@ -301,7 +301,7 @@ class BulkScanWorkerTest {
         TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.invalid");
+        target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
         target.setPort(443);
 
         BulkScan bulkScan =
@@ -336,7 +336,7 @@ class BulkScanWorkerTest {
         assertTrue(worker.isInitCalled(), "Init should be called");
 
         ScanTarget target = new ScanTarget();
-        target.setHostname("example.invalid");
+        target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
         target.setPort(443);
 
         BulkScan bulkScan =
