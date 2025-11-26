@@ -52,13 +52,14 @@ class BulkScanWorkerTest {
         @Override
         public Document scan(ScanTarget scanTarget) {
             // Capture the job description during scan
-            capturedJobDescription = getCurrentJobDescription();
+            ScanJobDescription localJobDescription = getCurrentJobDescription();
+            capturedJobDescription = localJobDescription;
 
             Document result = new Document();
             result.put("target", scanTarget.getHostname());
-            result.put("hasJobDescription", capturedJobDescription != null);
-            if (capturedJobDescription != null) {
-                result.put("jobId", capturedJobDescription.getId().toString());
+            result.put("hasJobDescription", localJobDescription != null);
+            if (localJobDescription != null) {
+                result.put("jobId", localJobDescription.getId().toString());
             }
             return result;
         }
