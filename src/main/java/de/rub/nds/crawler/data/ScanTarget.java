@@ -10,8 +10,9 @@ package de.rub.nds.crawler.data;
 
 import de.rub.nds.crawler.constant.JobStatus;
 import de.rub.nds.crawler.denylist.IDenylistProvider;
+import de.rub.nds.crawler.dns.DefaultDnsResolver;
+import de.rub.nds.crawler.dns.DnsResolver;
 import java.io.Serializable;
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.validator.routines.InetAddressValidator;
@@ -36,6 +37,25 @@ public class ScanTarget implements Serializable {
      */
     public static Pair<ScanTarget, JobStatus> fromTargetString(
             String targetString, int defaultPort, IDenylistProvider denylistProvider) {
+        return fromTargetString(
+                targetString, defaultPort, denylistProvider, new DefaultDnsResolver());
+    }
+
+    /**
+     * Initializes a ScanTarget object from a string that potentially contains a hostname, an ip, a
+     * port, the tranco rank.
+     *
+     * @param targetString from which to create the ScanTarget object
+     * @param defaultPort that used if no port is present in targetString
+     * @param denylistProvider which provides info if a host is denylisted
+     * @param dnsResolver the DNS resolver to use for hostname resolution
+     * @return ScanTarget object
+     */
+    public static Pair<ScanTarget, JobStatus> fromTargetString(
+            String targetString,
+            int defaultPort,
+            IDenylistProvider denylistProvider,
+            DnsResolver dnsResolver) {
         ScanTarget target = new ScanTarget();
 
         // check if targetString contains rank (e.g. "1,example.com")
@@ -55,8 +75,7 @@ public class ScanTarget implements Serializable {
                     targetString = parts[1];
                     if (targetString.trim().isEmpty()) {
                         try {
-                            target.setIp(
-                                    InetAddress.getByName(target.getHostname()).getHostAddress());
+                            target.setIp(dnsResolver.resolveHostname(target.getHostname()));
                         } catch (UnknownHostException e) {
                             return Pair.of(target, JobStatus.UNRESOLVABLE);
                         }
@@ -124,7 +143,7 @@ public class ScanTarget implements Serializable {
             try {
                 // TODO this only allows one IP per hostname; it may be interesting to scan all IPs
                 // for a domain, or at least one v4 and one v6
-                target.setIp(InetAddress.getByName(targetString).getHostAddress());
+                target.setIp(dnsResolver.resolveHostname(targetString));
             } catch (UnknownHostException e) {
                 LOGGER.error(
                         "Host {} is unknown or can not be reached with error {}.", targetString, e);
