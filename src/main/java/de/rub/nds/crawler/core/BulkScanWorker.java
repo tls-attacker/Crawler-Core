@@ -11,9 +11,9 @@ package de.rub.nds.crawler.core;
 import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanTarget;
+import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.crawler.util.CanceallableThreadPoolExecutor;
 import de.rub.nds.scanner.core.execution.NamedThreadFactory;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -42,9 +42,8 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     /** The scan configuration for this worker */
     protected final T scanConfig;
 
-    // ThreadLocal to pass ScanJobDescription to scan() implementations
-    private static final ThreadLocal<ScanJobDescription> currentJobDescription =
-            new ThreadLocal<>();
+    /** The persistence provider for writing partial results */
+    private IPersistenceProvider persistenceProvider;
 
     /**
      * Calls the inner scan function and may handle cleanup. This is needed to wrap the scanner into
@@ -79,45 +78,53 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      * Handles a scan target by submitting it to the executor. If init was not called, it will
      * initialize itself. In this case it will also clean up itself if all jobs are done.
      *
+     * <p>Returns a {@link ScheduledScan} that represents the entire scan lifecycle, allowing
+     * callers to:
+     *
+     * <ul>
+     *   <li>Get partial results as the scan progresses
+     *   <li>Register listeners for progress updates
+     *   <li>Wait for the final result
+     * </ul>
+     *
      * @param jobDescription The job description for this scan.
-     * @return A future that resolves to the scan result once the scan is done.
+     * @return A ScheduledScan representing the scan lifecycle
      */
-    public Future<Document> handle(ScanJobDescription jobDescription) {
+    public ScheduledScan handle(ScanJobDescription jobDescription) {
         // if we initialized ourself, we also clean up ourself
         shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
         activeJobs.incrementAndGet();
-        return timeoutExecutor.submit(
+
+        ScheduledScan scheduledScan = new ScheduledScan();
+
+        timeoutExecutor.submit(
                 () -> {
                     try {
-                        currentJobDescription.set(jobDescription);
-                        Document result = scan(jobDescription.getScanTarget());
+                        Document result = scan(jobDescription, scheduledScan);
+                        scheduledScan.complete(result);
                         if (activeJobs.decrementAndGet() == 0 && shouldCleanupSelf.get()) {
                             cleanup();
                         }
-                        return result;
-                    } finally {
-                        currentJobDescription.remove();
+                    } catch (Exception e) {
+                        scheduledScan.completeExceptionally(e);
+                        activeJobs.decrementAndGet();
+                        throw e;
                     }
                 });
-    }
 
-    /**
-     * Get the ScanJobDescription for the current scan. Only valid when called from within scan().
-     *
-     * @return The current ScanJobDescription, or null if not in a scan context
-     */
-    protected ScanJobDescription getCurrentJobDescription() {
-        return currentJobDescription.get();
+        return scheduledScan;
     }
 
     /**
      * Scans a target and returns the result as a Document. This is the core scanning functionality
      * that must be implemented by subclasses.
      *
-     * @param scanTarget The target to scan
+     * @param jobDescription The job description containing target and metadata
+     * @param scheduledScan The scheduled scan for reporting progress via {@link
+     *     ScheduledScan#updateResult}
      * @return The scan result as a Document
      */
-    public abstract Document scan(ScanTarget scanTarget);
+    public abstract Document scan(ScanJobDescription jobDescription, ScheduledScan scheduledScan);
 
     /**
      * Initializes this worker if it hasn't been initialized yet. This method is thread-safe and
@@ -180,4 +187,26 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      * specific resources.
      */
     protected abstract void cleanupInternal();
+
+    /**
+     * Sets the persistence provider for writing partial results.
+     *
+     * @param persistenceProvider The persistence provider to use
+     */
+    public void setPersistenceProvider(IPersistenceProvider persistenceProvider) {
+        this.persistenceProvider = persistenceProvider;
+    }
+
+    /**
+     * Persists a partial scan result. This method can be called by subclasses during scanning to
+     * save intermediate results.
+     *
+     * @param jobDescription The job description for the scan
+     * @param partialResult The partial result document to persist
+     */
+    protected void persistPartialResult(ScanJobDescription jobDescription, Document partialResult) {
+        if (persistenceProvider != null) {
+            persistenceProvider.upsertPartialResult(jobDescription, partialResult);
+        }
+    }
 }
