@@ -25,6 +25,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.lang.NonNull;
 import de.rub.nds.crawler.config.delegate.MongoDbDelegate;
 import de.rub.nds.crawler.constant.JobStatus;
@@ -390,6 +391,34 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                     "Failed to retrieve scan result for scanJobDescriptionId: "
                             + scanJobDescriptionId,
                     e);
+        }
+    }
+
+    @Override
+    public void upsertPartialResult(ScanJobDescription job, org.bson.Document partialResult) {
+        String dbName = job.getDbName();
+        String collectionName = job.getCollectionName();
+        String jobId = job.getId().toString();
+
+        LOGGER.debug(
+                "Upserting partial result for job {} into collection: {}.{}",
+                jobId,
+                dbName,
+                collectionName);
+
+        try {
+            // Get raw MongoDB collection (not JacksonMongoCollection) for Document operations
+            var collection = databaseCache.getUnchecked(dbName).getCollection(collectionName);
+
+            // Upsert: replace if exists, insert if not
+            collection.replaceOne(
+                    new org.bson.Document("_id", jobId),
+                    partialResult,
+                    new ReplaceOptions().upsert(true));
+
+            LOGGER.debug("Upserted partial result for job {}", jobId);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to upsert partial result for job {}: {}", jobId, e.getMessage());
         }
     }
 }

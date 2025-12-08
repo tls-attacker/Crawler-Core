@@ -15,10 +15,12 @@ import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import org.bson.Document;
 
 public class DummyPersistenceProvider implements IPersistenceProvider {
     public final List<ScanResult> results = new ArrayList<>();
     public final List<BulkScan> bulkScans = new ArrayList<>();
+    public final List<Document> partialResults = new ArrayList<>();
 
     @Override
     public void insertScanResult(ScanResult scanResult, ScanJobDescription job) {
@@ -54,5 +56,10 @@ public class DummyPersistenceProvider implements IPersistenceProvider {
                 .filter(result -> result.getScanJobDescriptionId().equals(id))
                 .max((r1, r2) -> r1.getTimestamp().compareTo(r2.getTimestamp()))
                 .orElse(null);
+    }
+
+    @Override
+    public void upsertPartialResult(ScanJobDescription job, Document partialResult) {
+        partialResults.add(partialResult);
     }
 }
