@@ -20,7 +20,6 @@ import de.rub.nds.crawler.dummy.DummyPersistenceProvider;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Future;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 
@@ -50,16 +49,16 @@ class BulkScanWorkerTest {
         }
 
         @Override
-        public Document scan(ScanTarget scanTarget) {
+        public Document scan(ScanJobDescription jobDescription, ScheduledScan scheduledScan) {
             // Capture the job description during scan
-            ScanJobDescription localJobDescription = getCurrentJobDescription();
-            capturedJobDescription = localJobDescription;
+            capturedJobDescription = jobDescription;
+            ScanTarget scanTarget = jobDescription.getScanTarget();
 
             Document result = new Document();
             result.put("target", scanTarget.getIp());
-            result.put("hasJobDescription", localJobDescription != null);
-            if (localJobDescription != null) {
-                result.put("jobId", localJobDescription.getId().toString());
+            result.put("hasJobDescription", jobDescription != null);
+            if (jobDescription != null) {
+                result.put("jobId", jobDescription.getId().toString());
             }
             return result;
         }
@@ -122,8 +121,8 @@ class BulkScanWorkerTest {
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
         // Execute the scan
-        Future<Document> future = worker.handle(jobDescription);
-        Document result = future.get();
+        ScheduledScan scheduledScan = worker.handle(jobDescription);
+        Document result = scheduledScan.getFinalResult().get();
 
         // Verify the job description was available during scan
         assertTrue(
@@ -203,11 +202,10 @@ class BulkScanWorkerTest {
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
         // Execute the scan
-        Future<Document> future = worker.handle(jobDescription);
-        future.get(); // Wait for completion
+        ScheduledScan scheduledScan = worker.handle(jobDescription);
+        scheduledScan.getFinalResult().get(); // Wait for completion
 
-        // After scan completes, the ThreadLocal should be cleaned up
-        // We can verify this by running another scan and checking it gets the new job description
+        // After scan completes, verify we can run another scan
         ScanTarget newTarget = new ScanTarget();
         newTarget.setIp("192.0.2.2"); // TEST-NET-1 (RFC 5737)
         newTarget.setPort(443);
@@ -215,8 +213,8 @@ class BulkScanWorkerTest {
         ScanJobDescription newJobDescription =
                 new ScanJobDescription(newTarget, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        Future<Document> future2 = worker.handle(newJobDescription);
-        Document result2 = future2.get();
+        ScheduledScan scheduledScan2 = worker.handle(newJobDescription);
+        Document result2 = scheduledScan2.getFinalResult().get();
 
         // The second scan should have the second job description, not the first
         assertEquals(newJobDescription.getId().toString(), result2.getString("jobId"));
@@ -240,7 +238,7 @@ class BulkScanWorkerTest {
 
         // Create multiple job descriptions
         List<ScanJobDescription> jobDescriptions = new ArrayList<>();
-        List<Future<Document>> futures = new ArrayList<>();
+        List<ScheduledScan> scheduledScans = new ArrayList<>();
 
         for (int i = 0; i < 5; i++) {
             ScanTarget target = new ScanTarget();
@@ -251,12 +249,12 @@ class BulkScanWorkerTest {
                     new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
             jobDescriptions.add(jobDescription);
 
-            futures.add(worker.handle(jobDescription));
+            scheduledScans.add(worker.handle(jobDescription));
         }
 
         // Wait for all scans to complete and verify each got the correct job description
         for (int i = 0; i < 5; i++) {
-            Document result = futures.get(i).get();
+            Document result = scheduledScans.get(i).getFinalResult().get();
             assertTrue(result.getBoolean("hasJobDescription"));
             assertEquals(
                     jobDescriptions.get(i).getId().toString(),
@@ -289,8 +287,8 @@ class BulkScanWorkerTest {
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        Future<Document> future = worker.handle(jobDescription);
-        future.get();
+        ScheduledScan scheduledScan = worker.handle(jobDescription);
+        scheduledScan.getFinalResult().get();
 
         assertTrue(worker.isInitCalled(), "Init should be called on first handle");
     }
@@ -317,8 +315,8 @@ class BulkScanWorkerTest {
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        Future<Document> future = worker.handle(jobDescription);
-        future.get();
+        ScheduledScan scheduledScan = worker.handle(jobDescription);
+        scheduledScan.getFinalResult().get();
 
         // Give cleanup a moment to execute (it runs after job completion)
         Thread.sleep(100);
@@ -352,8 +350,8 @@ class BulkScanWorkerTest {
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        Future<Document> future = worker.handle(jobDescription);
-        future.get();
+        ScheduledScan scheduledScan = worker.handle(jobDescription);
+        scheduledScan.getFinalResult().get();
 
         // Give cleanup a moment (if it were to execute)
         Thread.sleep(100);
