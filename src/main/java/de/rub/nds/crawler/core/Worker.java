@@ -70,21 +70,20 @@ public class Worker {
     }
 
     private ScanResult waitForScanResult(
-            ScheduledScan scheduledScan, ScanJobDescription scanJobDescription)
+            ProgressableFuture<Document> progressableFuture, ScanJobDescription scanJobDescription)
             throws ExecutionException, InterruptedException, TimeoutException {
         Document resultDocument;
         JobStatus jobStatus;
-        Future<Document> resultFuture = scheduledScan.getFinalResult();
         try {
-            resultDocument = resultFuture.get(scanTimeout, TimeUnit.MILLISECONDS);
+            resultDocument = progressableFuture.get(scanTimeout, TimeUnit.MILLISECONDS);
             jobStatus = resultDocument != null ? JobStatus.SUCCESS : JobStatus.EMPTY;
         } catch (TimeoutException e) {
             LOGGER.info(
                     "Trying to shutdown scan of '{}' because timeout reached",
                     scanJobDescription.getScanTarget());
-            resultFuture.cancel(true);
+            progressableFuture.cancel(true);
             // after interrupting, the scan should return as soon as possible
-            resultDocument = resultFuture.get(10, TimeUnit.SECONDS);
+            resultDocument = progressableFuture.get(10, TimeUnit.SECONDS);
             jobStatus = JobStatus.CANCELLED;
         }
         scanJobDescription.setStatus(jobStatus);
@@ -93,7 +92,7 @@ public class Worker {
 
     private void handleScanJob(ScanJobDescription scanJobDescription) {
         LOGGER.info("Received scan job for {}", scanJobDescription.getScanTarget());
-        ScheduledScan scheduledScan =
+        ProgressableFuture<Document> progressableFuture =
                 BulkScanWorkerManager.handleStatic(
                         scanJobDescription,
                         parallelConnectionThreads,
@@ -105,7 +104,7 @@ public class Worker {
                     ScanResult scanResult = null;
                     boolean persist = true;
                     try {
-                        scanResult = waitForScanResult(scheduledScan, scanJobDescription);
+                        scanResult = waitForScanResult(progressableFuture, scanJobDescription);
                     } catch (InterruptedException e) {
                         LOGGER.error("Worker was interrupted - not persisting anything", e);
                         scanJobDescription.setStatus(JobStatus.INTERNAL_ERROR);
@@ -123,7 +122,7 @@ public class Worker {
                                 "Scan of '{}' did not finish in time and did not cancel gracefully",
                                 scanJobDescription.getScanTarget());
                         scanJobDescription.setStatus(JobStatus.CANCELLED);
-                        scheduledScan.getFinalResult().cancel(true);
+                        progressableFuture.cancel(true);
                         scanResult = ScanResult.fromException(scanJobDescription, e);
                     } catch (Exception e) {
                         LOGGER.error(
