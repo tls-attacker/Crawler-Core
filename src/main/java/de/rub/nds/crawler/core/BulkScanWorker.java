@@ -116,13 +116,12 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                     try {
                         Document result = scan(jobDescription, progressConsumer);
                         progressableFuture.complete(result);
+                    } catch (Exception e) {
+                        progressableFuture.completeExceptionally(e);
+                    } finally {
                         if (activeJobs.decrementAndGet() == 0 && shouldCleanupSelf.get()) {
                             cleanup();
                         }
-                    } catch (Exception e) {
-                        progressableFuture.completeExceptionally(e);
-                        activeJobs.decrementAndGet();
-                        throw e;
                     }
                 });
 

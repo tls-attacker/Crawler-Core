@@ -71,7 +71,6 @@ public class ScanTarget implements Serializable {
         }
         if (targetString.startsWith("\"") && targetString.endsWith("\"")) {
             targetString = targetString.replace("\"", "");
-            System.out.println(targetString);
         }
 
         // check if targetString contains port (e.g. "www.example.com:8080" or "[2001:db8::1]:8080")
@@ -82,7 +81,7 @@ public class ScanTarget implements Serializable {
             String portString = targetString.substring(bracketEnd + 2);
             try {
                 int port = Integer.parseInt(portString);
-                if (port > 1 && port < 65535) {
+                if (port >= 1 && port <= 65535) {
                     target.setPort(port);
                 } else {
                     target.setPort(defaultPort);
@@ -99,7 +98,7 @@ public class ScanTarget implements Serializable {
                 // Likely IPv4 or hostname with port
                 try {
                     int port = Integer.parseInt(parts[1]);
-                    if (port > 1 && port < 65535) {
+                    if (port >= 1 && port <= 65535) {
                         target.setPort(port);
                     } else {
                         target.setPort(defaultPort);

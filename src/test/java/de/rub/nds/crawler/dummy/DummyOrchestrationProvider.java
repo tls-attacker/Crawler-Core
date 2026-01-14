@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 
 public class DummyOrchestrationProvider implements IOrchestrationProvider {
@@ -85,5 +86,26 @@ public class DummyOrchestrationProvider implements IOrchestrationProvider {
     @Override
     public void closeConnection() {
         consumerThread.interrupt();
+    }
+
+    /**
+     * Waits until the job queue reaches the expected size or timeout occurs.
+     *
+     * @param expectedSize The expected number of jobs in the queue
+     * @param timeout The maximum time to wait
+     * @param unit The time unit for the timeout
+     * @return true if the expected size was reached, false if timeout occurred
+     */
+    public boolean waitForJobs(int expectedSize, long timeout, TimeUnit unit)
+            throws InterruptedException {
+        long deadlineNanos = System.nanoTime() + unit.toNanos(timeout);
+        while (jobQueue.size() < expectedSize) {
+            long remainingNanos = deadlineNanos - System.nanoTime();
+            if (remainingNanos <= 0) {
+                return false;
+            }
+            Thread.sleep(Math.min(50, TimeUnit.NANOSECONDS.toMillis(remainingNanos)));
+        }
+        return true;
     }
 }
