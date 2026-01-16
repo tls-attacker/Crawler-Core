@@ -9,6 +9,7 @@
 package de.rub.nds.crawler.data;
 
 import de.rub.nds.crawler.core.BulkScanWorker;
+import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import de.rub.nds.scanner.core.probe.ProbeType;
 import java.io.Serializable;
@@ -122,8 +123,12 @@ public abstract class ScanConfig implements Serializable {
      * @param bulkScanID The ID of the bulk scan this worker is for
      * @param parallelConnectionThreads The number of parallel connection threads to use
      * @param parallelScanThreads The number of parallel scan threads to use
+     * @param persistenceProvider The persistence provider for writing partial results
      * @return A worker for this scan configuration
      */
     public abstract BulkScanWorker<? extends ScanConfig> createWorker(
-            String bulkScanID, int parallelConnectionThreads, int parallelScanThreads);
+            String bulkScanID,
+            int parallelConnectionThreads,
+            int parallelScanThreads,
+            IPersistenceProvider persistenceProvider);
 }

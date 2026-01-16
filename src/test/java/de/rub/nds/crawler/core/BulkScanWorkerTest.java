@@ -17,9 +17,11 @@ import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.dummy.DummyPersistenceProvider;
+import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 
@@ -33,8 +35,12 @@ class BulkScanWorkerTest {
 
         @Override
         public BulkScanWorker<? extends ScanConfig> createWorker(
-                String bulkScanID, int parallelConnectionThreads, int parallelScanThreads) {
-            return new TestBulkScanWorker(bulkScanID, this, parallelScanThreads);
+                String bulkScanID,
+                int parallelConnectionThreads,
+                int parallelScanThreads,
+                IPersistenceProvider persistenceProvider) {
+            return new TestBulkScanWorker(
+                    bulkScanID, this, parallelScanThreads, persistenceProvider);
         }
     }
 
@@ -44,12 +50,17 @@ class BulkScanWorkerTest {
         private boolean cleanupCalled = false;
         private ScanJobDescription capturedJobDescription = null;
 
-        TestBulkScanWorker(String bulkScanId, TestScanConfig scanConfig, int parallelScanThreads) {
-            super(bulkScanId, scanConfig, parallelScanThreads);
+        TestBulkScanWorker(
+                String bulkScanId,
+                TestScanConfig scanConfig,
+                int parallelScanThreads,
+                IPersistenceProvider persistenceProvider) {
+            super(bulkScanId, scanConfig, parallelScanThreads, persistenceProvider);
         }
 
         @Override
-        public Document scan(ScanJobDescription jobDescription, ScheduledScan scheduledScan) {
+        public Document scan(
+                ScanJobDescription jobDescription, Consumer<Document> progressConsumer) {
             // Capture the job description during scan
             capturedJobDescription = jobDescription;
             ScanTarget scanTarget = jobDescription.getScanTarget();
@@ -89,7 +100,8 @@ class BulkScanWorkerTest {
     @Test
     void testGetCurrentJobDescriptionReturnsNullOutsideScanContext() {
         TestScanConfig config = new TestScanConfig();
-        TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker("test-bulk-id", config, 1, new DummyPersistenceProvider());
 
         // getCurrentJobDescription() is protected, so we can't call it directly from test
         // But we can verify through the scan() method that it returns null when not in context
@@ -101,7 +113,8 @@ class BulkScanWorkerTest {
     @Test
     void testGetCurrentJobDescriptionReturnsCorrectJobInScanContext() throws Exception {
         TestScanConfig config = new TestScanConfig();
-        TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker("test-bulk-id", config, 1, new DummyPersistenceProvider());
 
         ScanTarget target = new ScanTarget();
         target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
@@ -121,8 +134,8 @@ class BulkScanWorkerTest {
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
         // Execute the scan
-        ScheduledScan scheduledScan = worker.handle(jobDescription);
-        Document result = scheduledScan.getFinalResult().get();
+        ProgressableFuture<Document> future = worker.handle(jobDescription);
+        Document result = future.get();
 
         // Verify the job description was available during scan
         assertTrue(
@@ -182,7 +195,8 @@ class BulkScanWorkerTest {
     @Test
     void testThreadLocalIsCleanedUpAfterScan() throws Exception {
         TestScanConfig config = new TestScanConfig();
-        TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker("test-bulk-id", config, 1, new DummyPersistenceProvider());
 
         ScanTarget target = new ScanTarget();
         target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
@@ -202,8 +216,8 @@ class BulkScanWorkerTest {
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
         // Execute the scan
-        ScheduledScan scheduledScan = worker.handle(jobDescription);
-        scheduledScan.getFinalResult().get(); // Wait for completion
+        ProgressableFuture<Document> future = worker.handle(jobDescription);
+        future.get(); // Wait for completion
 
         // After scan completes, verify we can run another scan
         ScanTarget newTarget = new ScanTarget();
@@ -213,8 +227,8 @@ class BulkScanWorkerTest {
         ScanJobDescription newJobDescription =
                 new ScanJobDescription(newTarget, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        ScheduledScan scheduledScan2 = worker.handle(newJobDescription);
-        Document result2 = scheduledScan2.getFinalResult().get();
+        ProgressableFuture<Document> future2 = worker.handle(newJobDescription);
+        Document result2 = future2.get();
 
         // The second scan should have the second job description, not the first
         assertEquals(newJobDescription.getId().toString(), result2.getString("jobId"));
@@ -224,7 +238,8 @@ class BulkScanWorkerTest {
     @Test
     void testMultipleConcurrentScansHaveSeparateContexts() throws Exception {
         TestScanConfig config = new TestScanConfig();
-        TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 2);
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker("test-bulk-id", config, 2, new DummyPersistenceProvider());
 
         BulkScan bulkScan =
                 new BulkScan(
@@ -238,7 +253,7 @@ class BulkScanWorkerTest {
 
         // Create multiple job descriptions
         List<ScanJobDescription> jobDescriptions = new ArrayList<>();
-        List<ScheduledScan> scheduledScans = new ArrayList<>();
+        List<ProgressableFuture<Document>> futures = new ArrayList<>();
 
         for (int i = 0; i < 5; i++) {
             ScanTarget target = new ScanTarget();
@@ -249,12 +264,12 @@ class BulkScanWorkerTest {
                     new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
             jobDescriptions.add(jobDescription);
 
-            scheduledScans.add(worker.handle(jobDescription));
+            futures.add(worker.handle(jobDescription));
         }
 
         // Wait for all scans to complete and verify each got the correct job description
         for (int i = 0; i < 5; i++) {
-            Document result = scheduledScans.get(i).getFinalResult().get();
+            Document result = futures.get(i).get();
             assertTrue(result.getBoolean("hasJobDescription"));
             assertEquals(
                     jobDescriptions.get(i).getId().toString(),
@@ -266,7 +281,8 @@ class BulkScanWorkerTest {
     @Test
     void testInitializationIsCalledOnFirstHandle() throws Exception {
         TestScanConfig config = new TestScanConfig();
-        TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker("test-bulk-id", config, 1, new DummyPersistenceProvider());
 
         assertFalse(worker.isInitCalled(), "Init should not be called before first handle");
 
@@ -287,8 +303,8 @@ class BulkScanWorkerTest {
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        ScheduledScan scheduledScan = worker.handle(jobDescription);
-        scheduledScan.getFinalResult().get();
+        ProgressableFuture<Document> future = worker.handle(jobDescription);
+        future.get();
 
         assertTrue(worker.isInitCalled(), "Init should be called on first handle");
     }
@@ -296,7 +312,8 @@ class BulkScanWorkerTest {
     @Test
     void testCleanupIsCalledWhenAllJobsComplete() throws Exception {
         TestScanConfig config = new TestScanConfig();
-        TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker("test-bulk-id", config, 1, new DummyPersistenceProvider());
 
         ScanTarget target = new ScanTarget();
         target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
@@ -315,8 +332,8 @@ class BulkScanWorkerTest {
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        ScheduledScan scheduledScan = worker.handle(jobDescription);
-        scheduledScan.getFinalResult().get();
+        ProgressableFuture<Document> future = worker.handle(jobDescription);
+        future.get();
 
         // Give cleanup a moment to execute (it runs after job completion)
         Thread.sleep(100);
@@ -327,7 +344,8 @@ class BulkScanWorkerTest {
     @Test
     void testManualInitPreventsSelfCleanup() throws Exception {
         TestScanConfig config = new TestScanConfig();
-        TestBulkScanWorker worker = new TestBulkScanWorker("test-bulk-id", config, 1);
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker("test-bulk-id", config, 1, new DummyPersistenceProvider());
 
         // Call init manually
         worker.init();
@@ -350,8 +368,8 @@ class BulkScanWorkerTest {
         ScanJobDescription jobDescription =
                 new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
 
-        ScheduledScan scheduledScan = worker.handle(jobDescription);
-        scheduledScan.getFinalResult().get();
+        ProgressableFuture<Document> future = worker.handle(jobDescription);
+        future.get();
 
         // Give cleanup a moment (if it were to execute)
         Thread.sleep(100);
