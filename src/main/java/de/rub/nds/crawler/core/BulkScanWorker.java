@@ -108,7 +108,11 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         Consumer<Document> progressConsumer =
                 partialResult -> {
                     progressableFuture.updateResult(partialResult);
-                    persistPartialResult(jobDescription, partialResult);
+                    try {
+                        persistPartialResult(jobDescription, partialResult);
+                    } catch (Exception e) {
+                        LOGGER.warn("Failed to persist partial result, continuing scan", e);
+                    }
                 };
 
         timeoutExecutor.submit(
