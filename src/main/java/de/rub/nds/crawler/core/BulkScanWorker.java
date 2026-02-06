@@ -109,7 +109,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                 partialResult -> {
                     progressableFuture.updateResult(partialResult);
                     try {
-                        persistPartialResult(jobDescription, partialResult);
+                        persistenceProvider.upsertPartialResult(jobDescription, partialResult);
                     } catch (Exception e) {
                         LOGGER.warn("Failed to persist partial result, continuing scan", e);
                     }
@@ -204,15 +204,4 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      * specific resources.
      */
     protected abstract void cleanupInternal();
-
-    /**
-     * Persists a partial scan result. This method can be called by subclasses during scanning to
-     * save intermediate results.
-     *
-     * @param jobDescription The job description for the scan
-     * @param partialResult The partial result document to persist
-     */
-    protected void persistPartialResult(ScanJobDescription jobDescription, Document partialResult) {
-        persistenceProvider.upsertPartialResult(jobDescription, partialResult);
-    }
 }
