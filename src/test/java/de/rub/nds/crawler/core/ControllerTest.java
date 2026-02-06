@@ -19,6 +19,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -42,8 +43,9 @@ class ControllerTest {
         Controller controller = new Controller(config, orchestrationProvider, persistenceProvider);
         controller.start();
 
-        Thread.sleep(1000);
-
+        Assertions.assertTrue(
+                orchestrationProvider.waitForJobs(2, 5, TimeUnit.SECONDS),
+                "Timed out waiting for jobs to be submitted");
         Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
         Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
     }
@@ -70,8 +72,9 @@ class ControllerTest {
         Controller controller = new Controller(config, orchestrationProvider, persistenceProvider);
         controller.start();
 
-        Thread.sleep(1000);
-
+        Assertions.assertTrue(
+                orchestrationProvider.waitForJobs(2, 5, TimeUnit.SECONDS),
+                "Timed out waiting for jobs to be submitted");
         Assertions.assertEquals(2, orchestrationProvider.jobQueue.size());
         Assertions.assertEquals(0, orchestrationProvider.unackedJobs.size());
 
@@ -103,18 +106,16 @@ class ControllerTest {
         Controller controller = new Controller(config, orchestrationProvider, persistenceProvider);
         controller.start();
 
-        Thread.sleep(1000);
-
+        Assertions.assertTrue(
+                orchestrationProvider.waitForJobs(1, 5, TimeUnit.SECONDS),
+                "Timed out waiting for jobs to be submitted");
         Assertions.assertEquals(1, orchestrationProvider.jobQueue.size());
 
         ScanJobDescription job = orchestrationProvider.jobQueue.peek();
         List<ProbeType> jobExcludedProbes =
                 job.getBulkScanInfo().getScanConfig().getExcludedProbes();
-        if (jobExcludedProbes == null) {
-            Assertions.assertNull(jobExcludedProbes, "Expected excluded probes to be null");
-        } else {
-            Assertions.assertTrue(
-                    jobExcludedProbes.isEmpty(), "Expected excluded probes to be empty");
-        }
+        Assertions.assertTrue(
+                jobExcludedProbes == null || jobExcludedProbes.isEmpty(),
+                "Expected excluded probes to be null or empty");
     }
 }

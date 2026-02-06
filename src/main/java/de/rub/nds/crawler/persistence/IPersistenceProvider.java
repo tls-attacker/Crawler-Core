@@ -73,4 +73,13 @@ public interface IPersistenceProvider {
      */
     ScanResult getScanResultByScanJobDescriptionId(
             String dbName, String collectionName, String scanJobDescriptionId);
+
+    /**
+     * Upsert a partial scan result into the database. Uses the job ID as the document ID, so
+     * subsequent calls with the same job will overwrite the previous partial result.
+     *
+     * @param job The scan job description (provides ID, database name, collection name).
+     * @param partialResult The partial result document to upsert.
+     */
+    void upsertPartialResult(ScanJobDescription job, org.bson.Document partialResult);
 }
