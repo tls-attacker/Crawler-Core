@@ -76,6 +76,9 @@ public class ProgressableFuture<T> implements Future<T> {
      * @param partialResult The updated partial result
      */
     public void updateResult(T partialResult) {
+        if (delegate.isDone()) {
+            return;
+        }
         this.currentResult = partialResult;
     }
 
@@ -86,6 +89,9 @@ public class ProgressableFuture<T> implements Future<T> {
      * @param result The final result
      */
     void complete(T result) {
+        if (delegate.isDone()) {
+            return;
+        }
         this.currentResult = result;
         this.delegate.complete(result);
     }
@@ -96,6 +102,9 @@ public class ProgressableFuture<T> implements Future<T> {
      * @param exception The exception that caused the failure
      */
     void completeExceptionally(Throwable exception) {
+        if (delegate.isDone()) {
+            return;
+        }
         this.delegate.completeExceptionally(exception);
     }
 }
