@@ -10,11 +10,8 @@ package de.rub.nds.crawler.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import de.rub.nds.crawler.constant.JobStatus;
-import de.rub.nds.crawler.data.BulkScan;
 import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
-import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.dummy.DummyPersistenceProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.config.ScannerDetail;
@@ -86,45 +83,31 @@ class BulkScanWorkerManagerTest {
     }
 
     @Test
-    void handleStaticPropagatesParallelProbes() throws Exception {
+    void getBulkScanWorkerPropagatesParallelProbes() {
         CapturingScanConfig scanConfig = new CapturingScanConfig();
-        ScanJobDescription scanJobDescription = getScanJobDescription(scanConfig);
-
-        BulkScanWorkerManager.handleStatic(
-                        scanJobDescription, 5, 2, 9, new DummyPersistenceProvider())
-                .get();
+        BulkScanWorkerManager.getInstance()
+                .getBulkScanWorker(
+                        "bulk-scan-" + System.nanoTime(),
+                        scanConfig,
+                        5,
+                        2,
+                        9,
+                        new DummyPersistenceProvider());
 
         assertEquals(9, scanConfig.getCapturedParallelProbes());
     }
 
     @Test
-    void handleOldSignatureDefaultsParallelProbesToOne() throws Exception {
+    void oldGetBulkScanWorkerSignatureDefaultsParallelProbesToOne() {
         CapturingScanConfig scanConfig = new CapturingScanConfig();
-        ScanJobDescription scanJobDescription = getScanJobDescription(scanConfig);
-
-        BulkScanWorkerManager.handleStatic(scanJobDescription, 5, 2, new DummyPersistenceProvider())
-                .get();
+        BulkScanWorkerManager.getInstance()
+                .getBulkScanWorker(
+                        "bulk-scan-" + System.nanoTime(),
+                        scanConfig,
+                        5,
+                        2,
+                        new DummyPersistenceProvider());
 
         assertEquals(1, scanConfig.getCapturedParallelProbes());
-    }
-
-    private static ScanJobDescription getScanJobDescription(ScanConfig scanConfig) {
-        ScanTarget target = new ScanTarget();
-        target.setIp("192.0.2.1");
-        target.setPort(443);
-
-        String bulkScanId = "bulk-scan-" + System.nanoTime();
-        BulkScan bulkScan =
-                new BulkScan(
-                        BulkScanWorkerManagerTest.class,
-                        BulkScanWorkerManagerTest.class,
-                        "test-scan",
-                        scanConfig,
-                        System.currentTimeMillis(),
-                        false,
-                        null);
-        bulkScan.set_id(bulkScanId);
-
-        return new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
     }
 }
