@@ -27,6 +27,8 @@ public abstract class ScanConfig implements Serializable {
 
     private int timeout;
 
+    private int parallelProbes = 1;
+
     private List<ProbeType> excludedProbes;
 
     @SuppressWarnings("unused")
@@ -40,7 +42,7 @@ public abstract class ScanConfig implements Serializable {
      * @param timeout The timeout for each scan in seconds
      */
     protected ScanConfig(ScannerDetail scannerDetail, int reexecutions, int timeout) {
-        this(scannerDetail, reexecutions, timeout, null);
+        this(scannerDetail, reexecutions, timeout, 1, null);
     }
 
     protected ScanConfig(
@@ -48,9 +50,24 @@ public abstract class ScanConfig implements Serializable {
             int reexecutions,
             int timeout,
             List<ProbeType> excludedProbes) {
+        this(scannerDetail, reexecutions, timeout, 1, excludedProbes);
+    }
+
+    protected ScanConfig(
+            ScannerDetail scannerDetail, int reexecutions, int timeout, int parallelProbes) {
+        this(scannerDetail, reexecutions, timeout, parallelProbes, null);
+    }
+
+    protected ScanConfig(
+            ScannerDetail scannerDetail,
+            int reexecutions,
+            int timeout,
+            int parallelProbes,
+            List<ProbeType> excludedProbes) {
         this.scannerDetail = scannerDetail;
         this.reexecutions = reexecutions;
         this.timeout = timeout;
+        this.parallelProbes = parallelProbes;
         this.excludedProbes = excludedProbes;
     }
 
@@ -86,6 +103,14 @@ public abstract class ScanConfig implements Serializable {
     }
 
     /**
+     * Returns the number of threads responsible for different probes. For large scale scans, this
+     * should be kept at 1 to avoid excessive resource consumption and potential instability.
+     */
+    public int getParallelProbes() {
+        return this.parallelProbes;
+    }
+
+    /**
      * Sets the scanner detail level.
      *
      * @param scannerDetail The scanner detail level
@@ -117,6 +142,14 @@ public abstract class ScanConfig implements Serializable {
     }
 
     /**
+     * Sets the number of threads responsible for different probes. WARNING: For large scale scans,
+     * this should be kept at 1 to avoid excessive resource consumption and potential instability.
+     */
+    public void setParallelProbes(int parallelProbes) {
+        this.parallelProbes = parallelProbes;
+    }
+
+    /**
      * Creates a worker for this scan configuration. Each implementation must provide a factory
      * method to create the appropriate worker type.
      *
@@ -131,27 +164,4 @@ public abstract class ScanConfig implements Serializable {
             int parallelConnectionThreads,
             int parallelScanThreads,
             IPersistenceProvider persistenceProvider);
-
-    /**
-     * Creates a worker for this scan configuration and configures probe-level parallelism.
-     * Implementations can override this method to support probe-level parallelism directly. Default
-     * behavior delegates to {@link #createWorker(String, int, int, IPersistenceProvider)} for
-     * backward compatibility.
-     *
-     * @param bulkScanID The ID of the bulk scan this worker is for
-     * @param parallelConnectionThreads The number of parallel connection threads to use
-     * @param parallelScanThreads The number of parallel scan threads to use
-     * @param parallelProbes The number of probes to run in parallel per scan target
-     * @param persistenceProvider The persistence provider for writing partial results
-     * @return A worker for this scan configuration
-     */
-    public BulkScanWorker<? extends ScanConfig> createWorker(
-            String bulkScanID,
-            int parallelConnectionThreads,
-            int parallelScanThreads,
-            int parallelProbes,
-            IPersistenceProvider persistenceProvider) {
-        return createWorker(
-                bulkScanID, parallelConnectionThreads, parallelScanThreads, persistenceProvider);
-    }
 }

@@ -39,23 +39,9 @@ class BulkScanWorkerManagerTest {
                 int parallelConnectionThreads,
                 int parallelScanThreads,
                 IPersistenceProvider persistenceProvider) {
+            capturedParallelProbes = getParallelProbes();
             return new CapturingBulkScanWorker(
                     bulkScanID, this, parallelScanThreads, persistenceProvider);
-        }
-
-        @Override
-        public BulkScanWorker<? extends ScanConfig> createWorker(
-                String bulkScanID,
-                int parallelConnectionThreads,
-                int parallelScanThreads,
-                int parallelProbes,
-                IPersistenceProvider persistenceProvider) {
-            capturedParallelProbes = parallelProbes;
-            return createWorker(
-                    bulkScanID,
-                    parallelConnectionThreads,
-                    parallelScanThreads,
-                    persistenceProvider);
         }
     }
 
@@ -85,21 +71,22 @@ class BulkScanWorkerManagerTest {
     @Test
     void getBulkScanWorkerPropagatesParallelProbes() {
         CapturingScanConfig scanConfig = new CapturingScanConfig();
+        scanConfig.setParallelProbes(9);
         BulkScanWorkerManager.getInstance()
                 .getBulkScanWorker(
                         "bulk-scan-" + System.nanoTime(),
                         scanConfig,
                         5,
                         2,
-                        9,
                         new DummyPersistenceProvider());
 
         assertEquals(9, scanConfig.getCapturedParallelProbes());
     }
 
     @Test
-    void oldGetBulkScanWorkerSignatureDefaultsParallelProbesToOne() {
+    void oldGetBulkScanWorkerSignatureUsesScanConfigParallelProbes() {
         CapturingScanConfig scanConfig = new CapturingScanConfig();
+        scanConfig.setParallelProbes(6);
         BulkScanWorkerManager.getInstance()
                 .getBulkScanWorker(
                         "bulk-scan-" + System.nanoTime(),
@@ -108,6 +95,6 @@ class BulkScanWorkerManagerTest {
                         2,
                         new DummyPersistenceProvider());
 
-        assertEquals(1, scanConfig.getCapturedParallelProbes());
+        assertEquals(6, scanConfig.getCapturedParallelProbes());
     }
 }

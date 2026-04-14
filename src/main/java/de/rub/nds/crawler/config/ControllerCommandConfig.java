@@ -64,6 +64,13 @@ public abstract class ControllerCommandConfig {
     private List<ProbeType> excludedProbes = new LinkedList<>();
 
     @Parameter(
+            names = "-parallelProbes",
+            validateWith = PositiveInteger.class,
+            description =
+                    "Number of probes to run in parallel per scan target. If set to 1, only one specific probe can be run in time per scan target. WARNING: For large scale scans, this should be kept at 1 to avoid excessive resource consumption and potential instability.")
+    private int parallelProbes = 1;
+
+    @Parameter(
             names = "-scanCronInterval",
             validateWith = CronSyntax.class,
             description =
@@ -179,6 +186,10 @@ public abstract class ControllerCommandConfig {
         return excludedProbes;
     }
 
+    public int getParallelProbes() {
+        return parallelProbes;
+    }
+
     public String getScanCronInterval() {
         return scanCronInterval;
     }
@@ -235,11 +246,13 @@ public abstract class ControllerCommandConfig {
     public abstract ScanConfig getScanConfig();
 
     public BulkScan createBulkScan() {
+        ScanConfig scanConfig = getScanConfig();
+        scanConfig.setParallelProbes(getParallelProbes());
         return new BulkScan(
                 getScannerClassForVersion(),
                 getCrawlerClassForVersion(),
                 getScanName(),
-                getScanConfig(),
+                scanConfig,
                 System.currentTimeMillis(),
                 isMonitored(),
                 getNotifyUrl());
@@ -265,6 +278,10 @@ public abstract class ControllerCommandConfig {
 
     public void setExcludedProbes(List<ProbeType> excludedProbes) {
         this.excludedProbes = excludedProbes;
+    }
+
+    public void setParallelProbes(int parallelProbes) {
+        this.parallelProbes = parallelProbes;
     }
 
     public void setScanCronInterval(String scanCronInterval) {
