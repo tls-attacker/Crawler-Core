@@ -16,6 +16,7 @@ import de.rub.nds.crawler.dummy.DummyPersistenceProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import java.io.Serializable;
+import java.util.List;
 import java.util.function.Consumer;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class BulkScanWorkerManagerTest {
         private int capturedParallelProbes = -1;
 
         CapturingScanConfig() {
-            super(ScannerDetail.NORMAL, 0, 60);
+            super(ScannerDetail.NORMAL, 0, 60, 1, List.of());
         }
 
         int getCapturedParallelProbes() {

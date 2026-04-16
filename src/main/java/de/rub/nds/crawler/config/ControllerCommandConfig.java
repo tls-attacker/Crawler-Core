@@ -247,7 +247,6 @@ public abstract class ControllerCommandConfig {
 
     public BulkScan createBulkScan() {
         ScanConfig scanConfig = getScanConfig();
-        scanConfig.setParallelProbes(getParallelProbes());
         return new BulkScan(
                 getScannerClassForVersion(),
                 getCrawlerClassForVersion(),

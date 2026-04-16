@@ -27,7 +27,7 @@ public abstract class ScanConfig implements Serializable {
 
     private int timeout;
 
-    private int parallelProbes = 1;
+    private int parallelProbes;
 
     private List<ProbeType> excludedProbes;
 
@@ -40,24 +40,9 @@ public abstract class ScanConfig implements Serializable {
      * @param scannerDetail The level of detail for the scan
      * @param reexecutions The number of times to retry failed scans
      * @param timeout The timeout for each scan in seconds
+     * @param parallelProbes The number of probes to run in parallel per scan target
+     * @param excludedProbes The list of probes that should be excluded from the scan
      */
-    protected ScanConfig(ScannerDetail scannerDetail, int reexecutions, int timeout) {
-        this(scannerDetail, reexecutions, timeout, 1, null);
-    }
-
-    protected ScanConfig(
-            ScannerDetail scannerDetail,
-            int reexecutions,
-            int timeout,
-            List<ProbeType> excludedProbes) {
-        this(scannerDetail, reexecutions, timeout, 1, excludedProbes);
-    }
-
-    protected ScanConfig(
-            ScannerDetail scannerDetail, int reexecutions, int timeout, int parallelProbes) {
-        this(scannerDetail, reexecutions, timeout, parallelProbes, null);
-    }
-
     protected ScanConfig(
             ScannerDetail scannerDetail,
             int reexecutions,
