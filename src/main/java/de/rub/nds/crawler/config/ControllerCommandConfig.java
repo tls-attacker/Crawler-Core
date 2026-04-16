@@ -246,12 +246,11 @@ public abstract class ControllerCommandConfig {
     public abstract ScanConfig getScanConfig();
 
     public BulkScan createBulkScan() {
-        ScanConfig scanConfig = getScanConfig();
         return new BulkScan(
                 getScannerClassForVersion(),
                 getCrawlerClassForVersion(),
                 getScanName(),
-                scanConfig,
+                getScanConfig(),
                 System.currentTimeMillis(),
                 isMonitored(),
                 getNotifyUrl());

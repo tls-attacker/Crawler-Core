@@ -154,9 +154,6 @@ public class BulkScanWorkerManager {
             int parallelConnectionThreads,
             int parallelScanThreads,
             IPersistenceProvider persistenceProvider) {
-        if (scanJobDescription.getBulkScanInfo().getScanConfig().getParallelProbes() <= 0) {
-            scanJobDescription.getBulkScanInfo().getScanConfig().setParallelProbes(1);
-        }
         BulkScanInfo bulkScanInfo = scanJobDescription.getBulkScanInfo();
         BulkScanWorker<?> worker =
                 getBulkScanWorker(
