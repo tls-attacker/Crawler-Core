@@ -16,6 +16,7 @@ import de.rub.nds.crawler.dummy.DummyPersistenceProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import java.io.Serializable;
+import java.util.List;
 import java.util.function.Consumer;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class BulkScanWorkerManagerTest {
         private int capturedParallelProbes = -1;
 
         CapturingScanConfig() {
-            super(ScannerDetail.NORMAL, 0, 60);
+            super(ScannerDetail.NORMAL, 0, 60, 1, List.of());
         }
 
         int getCapturedParallelProbes() {
@@ -39,23 +40,9 @@ class BulkScanWorkerManagerTest {
                 int parallelConnectionThreads,
                 int parallelScanThreads,
                 IPersistenceProvider persistenceProvider) {
+            capturedParallelProbes = getParallelProbes();
             return new CapturingBulkScanWorker(
                     bulkScanID, this, parallelScanThreads, persistenceProvider);
-        }
-
-        @Override
-        public BulkScanWorker<? extends ScanConfig> createWorker(
-                String bulkScanID,
-                int parallelConnectionThreads,
-                int parallelScanThreads,
-                int parallelProbes,
-                IPersistenceProvider persistenceProvider) {
-            capturedParallelProbes = parallelProbes;
-            return createWorker(
-                    bulkScanID,
-                    parallelConnectionThreads,
-                    parallelScanThreads,
-                    persistenceProvider);
         }
     }
 
@@ -85,21 +72,22 @@ class BulkScanWorkerManagerTest {
     @Test
     void getBulkScanWorkerPropagatesParallelProbes() {
         CapturingScanConfig scanConfig = new CapturingScanConfig();
+        scanConfig.setParallelProbes(9);
         BulkScanWorkerManager.getInstance()
                 .getBulkScanWorker(
                         "bulk-scan-" + System.nanoTime(),
                         scanConfig,
                         5,
                         2,
-                        9,
                         new DummyPersistenceProvider());
 
         assertEquals(9, scanConfig.getCapturedParallelProbes());
     }
 
     @Test
-    void oldGetBulkScanWorkerSignatureDefaultsParallelProbesToOne() {
+    void oldGetBulkScanWorkerSignatureUsesScanConfigParallelProbes() {
         CapturingScanConfig scanConfig = new CapturingScanConfig();
+        scanConfig.setParallelProbes(6);
         BulkScanWorkerManager.getInstance()
                 .getBulkScanWorker(
                         "bulk-scan-" + System.nanoTime(),
@@ -108,6 +96,6 @@ class BulkScanWorkerManagerTest {
                         2,
                         new DummyPersistenceProvider());
 
-        assertEquals(1, scanConfig.getCapturedParallelProbes());
+        assertEquals(6, scanConfig.getCapturedParallelProbes());
     }
 }

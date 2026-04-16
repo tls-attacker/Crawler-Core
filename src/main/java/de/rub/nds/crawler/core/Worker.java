@@ -32,7 +32,6 @@ public class Worker {
 
     private final int parallelScanThreads;
     private final int parallelConnectionThreads;
-    private final int parallelProbes;
     private final int scanTimeout;
 
     /** Runs a lambda which waits for the scanning result and persists it. */
@@ -53,7 +52,6 @@ public class Worker {
         this.persistenceProvider = persistenceProvider;
         this.parallelScanThreads = commandConfig.getParallelScanThreads();
         this.parallelConnectionThreads = commandConfig.getParallelConnectionThreads();
-        this.parallelProbes = commandConfig.getParallelProbes();
         this.scanTimeout = commandConfig.getScanTimeout();
 
         workerExecutor =
@@ -99,7 +97,6 @@ public class Worker {
                         scanJobDescription,
                         parallelConnectionThreads,
                         parallelScanThreads,
-                        parallelProbes,
                         persistenceProvider);
 
         workerExecutor.submit(

@@ -36,12 +36,6 @@ public class WorkerCommandConfig {
     private int parallelConnectionThreads = 20;
 
     @Parameter(
-            names = "-parallelProbes",
-            description =
-                    "Number of threads responsible for different probes. If set to 1, only one specific probe can be run in time per scan target. WARNING: For large scale scans, this should be kept at 1 to avoid excessive resource consumption and potential instability.")
-    private int parallelProbes = 1;
-
-    @Parameter(
             names = "-scanTimeout",
             description =
                     "Overall timeout for one scan in ms. (Default 14 minutes)"
@@ -74,14 +68,6 @@ public class WorkerCommandConfig {
         return scanTimeout;
     }
 
-    /**
-     * Returns the number of threads responsible for different probes. For large scale scans, this
-     * should be kept at 1 to avoid excessive resource consumption and potential instability.
-     */
-    public int getParallelProbes() {
-        return parallelProbes;
-    }
-
     public void setParallelScanThreads(int parallelScanThreads) {
         this.parallelScanThreads = parallelScanThreads;
     }
@@ -92,13 +78,5 @@ public class WorkerCommandConfig {
 
     public void setScanTimeout(int scanTimeout) {
         this.scanTimeout = scanTimeout;
-    }
-
-    /**
-     * Sets the number of threads responsible for different probes. WARNING: For large scale scans,
-     * this should be kept at 1 to avoid excessive resource consumption and potential instability.
-     */
-    public void setParallelProbes(int parallelProbes) {
-        this.parallelProbes = parallelProbes;
     }
 }

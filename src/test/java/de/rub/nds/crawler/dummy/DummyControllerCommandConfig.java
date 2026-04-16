@@ -18,7 +18,8 @@ public class DummyControllerCommandConfig extends ControllerCommandConfig {
 
     @Override
     public ScanConfig getScanConfig() {
-        return new ScanConfig(ScannerDetail.NORMAL, 1, 1, getExcludedProbes()) {
+        return new ScanConfig(
+                ScannerDetail.NORMAL, 1, 1, getParallelProbes(), getExcludedProbes()) {
             @Override
             public BulkScanWorker<? extends ScanConfig> createWorker(
                     String bulkScanID,

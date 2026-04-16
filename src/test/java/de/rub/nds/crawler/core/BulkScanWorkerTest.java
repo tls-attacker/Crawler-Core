@@ -30,7 +30,7 @@ class BulkScanWorkerTest {
     // Test implementation of ScanConfig
     static class TestScanConfig extends ScanConfig implements Serializable {
         public TestScanConfig() {
-            super(de.rub.nds.scanner.core.config.ScannerDetail.NORMAL, 0, 60);
+            super(de.rub.nds.scanner.core.config.ScannerDetail.NORMAL, 0, 60, 1, List.of());
         }
 
         @Override

@@ -16,23 +16,15 @@ import org.junit.jupiter.api.Test;
 class WorkerCommandConfigTest {
 
     @Test
-    void parallelProbesDefaultsToOneAndParsesWithThreadOptions() {
+    void parsesWorkerThreadOptions() {
         WorkerCommandConfig config = new WorkerCommandConfig();
-        assertEquals(1, config.getParallelProbes());
 
         JCommander.newBuilder()
                 .addObject(config)
                 .build()
-                .parse(
-                        "-numberOfThreads",
-                        "4",
-                        "-parallelProbeThreads",
-                        "12",
-                        "-parallelProbes",
-                        "3");
+                .parse("-numberOfThreads", "4", "-parallelProbeThreads", "12");
 
         assertEquals(4, config.getParallelScanThreads());
         assertEquals(12, config.getParallelConnectionThreads());
-        assertEquals(3, config.getParallelProbes());
     }
 }
