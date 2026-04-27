@@ -14,9 +14,9 @@ import com.google.common.cache.RemovalListener;
 import de.rub.nds.crawler.data.BulkScanInfo;
 import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
-import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import org.apache.commons.lang3.exception.UncheckedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,32 +58,33 @@ public class BulkScanWorkerManager {
 
     /**
      * Static convenience method to handle a scan job. See also {@link #handle(ScanJobDescription,
-     * int, int, IPersistenceProvider)}.
+     * int, int, Consumer)}.
      *
      * @param scanJobDescription The scan job to handle
      * @param parallelConnectionThreads The number of parallel connection threads to use (used to
      *     create worker if it does not exist)
      * @param parallelScanThreads The number of parallel scan threads to use (used to create worker
      *     if it does not exist)
-     * @param persistenceProvider The persistence provider for writing partial results
+     * @param partialResultCallback Optional consumer for partial results, or {@code null} to ignore
+     *     partials.
      * @return A ProgressableFuture representing the scan lifecycle
      */
     public static ProgressableFuture<Document> handleStatic(
             ScanJobDescription scanJobDescription,
             int parallelConnectionThreads,
             int parallelScanThreads,
-            IPersistenceProvider persistenceProvider) {
+            Consumer<Document> partialResultCallback) {
         return handleStatic(
                 scanJobDescription,
                 parallelConnectionThreads,
                 parallelScanThreads,
                 1,
-                persistenceProvider);
+                partialResultCallback);
     }
 
     /**
      * Static convenience method to handle a scan job. See also {@link #handle(ScanJobDescription,
-     * int, int, int, IPersistenceProvider)}.
+     * int, int, int, Consumer)}.
      *
      * @param scanJobDescription The scan job to handle
      * @param parallelConnectionThreads The number of parallel connection threads to use (used to
@@ -91,7 +92,8 @@ public class BulkScanWorkerManager {
      * @param parallelScanThreads The number of parallel scan threads to use (used to create worker
      *     if it does not exist)
      * @param parallelProbes The number of probes to run in parallel per scan target
-     * @param persistenceProvider The persistence provider for writing partial results
+     * @param partialResultCallback Optional consumer for partial results, or {@code null} to ignore
+     *     partials.
      * @return A ProgressableFuture representing the scan lifecycle
      */
     public static ProgressableFuture<Document> handleStatic(
@@ -99,14 +101,14 @@ public class BulkScanWorkerManager {
             int parallelConnectionThreads,
             int parallelScanThreads,
             int parallelProbes,
-            IPersistenceProvider persistenceProvider) {
+            Consumer<Document> partialResultCallback) {
         BulkScanWorkerManager manager = getInstance();
         return manager.handle(
                 scanJobDescription,
                 parallelConnectionThreads,
                 parallelScanThreads,
                 parallelProbes,
-                persistenceProvider);
+                partialResultCallback);
     }
 
     private final Cache<String, BulkScanWorker<?>> bulkScanWorkers;
@@ -136,7 +138,6 @@ public class BulkScanWorkerManager {
      *     create worker if it does not exist)
      * @param parallelScanThreads The number of parallel scan threads to use (used to create worker
      *     if it does not exist)
-     * @param persistenceProvider The persistence provider for writing partial results
      * @return A bulk scan worker for the specified bulk scan
      * @throws UncheckedException If a worker cannot be created
      */
@@ -144,15 +145,9 @@ public class BulkScanWorkerManager {
             String bulkScanId,
             ScanConfig scanConfig,
             int parallelConnectionThreads,
-            int parallelScanThreads,
-            IPersistenceProvider persistenceProvider) {
+            int parallelScanThreads) {
         return getBulkScanWorker(
-                bulkScanId,
-                scanConfig,
-                parallelConnectionThreads,
-                parallelScanThreads,
-                1,
-                persistenceProvider);
+                bulkScanId, scanConfig, parallelConnectionThreads, parallelScanThreads, 1);
     }
 
     /**
@@ -166,7 +161,6 @@ public class BulkScanWorkerManager {
      * @param parallelScanThreads The number of parallel scan threads to use (used to create worker
      *     if it does not exist)
      * @param parallelProbes The number of probes to run in parallel per scan target
-     * @param persistenceProvider The persistence provider for writing partial results
      * @return A bulk scan worker for the specified bulk scan
      * @throws UncheckedException If a worker cannot be created
      */
@@ -175,8 +169,7 @@ public class BulkScanWorkerManager {
             ScanConfig scanConfig,
             int parallelConnectionThreads,
             int parallelScanThreads,
-            int parallelProbes,
-            IPersistenceProvider persistenceProvider) {
+            int parallelProbes) {
         try {
             return bulkScanWorkers.get(
                     bulkScanId,
@@ -186,8 +179,7 @@ public class BulkScanWorkerManager {
                                         bulkScanId,
                                         parallelConnectionThreads,
                                         parallelScanThreads,
-                                        parallelProbes,
-                                        persistenceProvider);
+                                        parallelProbes);
                         ret.init();
                         return ret;
                     });
@@ -206,20 +198,21 @@ public class BulkScanWorkerManager {
      *     create worker if it does not exist)
      * @param parallelScanThreads The number of parallel scan threads to use (used to create worker
      *     if it does not exist)
-     * @param persistenceProvider The persistence provider for writing partial results
+     * @param partialResultCallback Optional consumer for partial results, or {@code null} to ignore
+     *     partials.
      * @return A ProgressableFuture representing the scan lifecycle
      */
     public ProgressableFuture<Document> handle(
             ScanJobDescription scanJobDescription,
             int parallelConnectionThreads,
             int parallelScanThreads,
-            IPersistenceProvider persistenceProvider) {
+            Consumer<Document> partialResultCallback) {
         return handle(
                 scanJobDescription,
                 parallelConnectionThreads,
                 parallelScanThreads,
                 1,
-                persistenceProvider);
+                partialResultCallback);
     }
 
     /**
@@ -232,7 +225,8 @@ public class BulkScanWorkerManager {
      * @param parallelScanThreads The number of parallel scan threads to use (used to create worker
      *     if it does not exist)
      * @param parallelProbes The number of probes to run in parallel per scan target
-     * @param persistenceProvider The persistence provider for writing partial results
+     * @param partialResultCallback Optional consumer for partial results, or {@code null} to ignore
+     *     partials.
      * @return A ProgressableFuture representing the scan lifecycle
      */
     public ProgressableFuture<Document> handle(
@@ -240,7 +234,7 @@ public class BulkScanWorkerManager {
             int parallelConnectionThreads,
             int parallelScanThreads,
             int parallelProbes,
-            IPersistenceProvider persistenceProvider) {
+            Consumer<Document> partialResultCallback) {
         BulkScanInfo bulkScanInfo = scanJobDescription.getBulkScanInfo();
         BulkScanWorker<?> worker =
                 getBulkScanWorker(
@@ -248,8 +242,7 @@ public class BulkScanWorkerManager {
                         bulkScanInfo.getScanConfig(),
                         parallelConnectionThreads,
                         parallelScanThreads,
-                        parallelProbes,
-                        persistenceProvider);
-        return worker.handle(scanJobDescription);
+                        parallelProbes);
+        return worker.handle(scanJobDescription, partialResultCallback);
     }
 }

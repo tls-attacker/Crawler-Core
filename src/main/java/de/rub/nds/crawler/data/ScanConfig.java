@@ -9,7 +9,6 @@
 package de.rub.nds.crawler.data;
 
 import de.rub.nds.crawler.core.BulkScanWorker;
-import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import de.rub.nds.scanner.core.probe.ProbeType;
 import java.io.Serializable;
@@ -123,35 +122,27 @@ public abstract class ScanConfig implements Serializable {
      * @param bulkScanID The ID of the bulk scan this worker is for
      * @param parallelConnectionThreads The number of parallel connection threads to use
      * @param parallelScanThreads The number of parallel scan threads to use
-     * @param persistenceProvider The persistence provider for writing partial results
      * @return A worker for this scan configuration
      */
     public abstract BulkScanWorker<? extends ScanConfig> createWorker(
-            String bulkScanID,
-            int parallelConnectionThreads,
-            int parallelScanThreads,
-            IPersistenceProvider persistenceProvider);
+            String bulkScanID, int parallelConnectionThreads, int parallelScanThreads);
 
     /**
      * Creates a worker for this scan configuration and configures probe-level parallelism.
      * Implementations can override this method to support probe-level parallelism directly. Default
-     * behavior delegates to {@link #createWorker(String, int, int, IPersistenceProvider)} for
-     * backward compatibility.
+     * behavior delegates to {@link #createWorker(String, int, int)}.
      *
      * @param bulkScanID The ID of the bulk scan this worker is for
      * @param parallelConnectionThreads The number of parallel connection threads to use
      * @param parallelScanThreads The number of parallel scan threads to use
      * @param parallelProbes The number of probes to run in parallel per scan target
-     * @param persistenceProvider The persistence provider for writing partial results
      * @return A worker for this scan configuration
      */
     public BulkScanWorker<? extends ScanConfig> createWorker(
             String bulkScanID,
             int parallelConnectionThreads,
             int parallelScanThreads,
-            int parallelProbes,
-            IPersistenceProvider persistenceProvider) {
-        return createWorker(
-                bulkScanID, parallelConnectionThreads, parallelScanThreads, persistenceProvider);
+            int parallelProbes) {
+        return createWorker(bulkScanID, parallelConnectionThreads, parallelScanThreads);
     }
 }

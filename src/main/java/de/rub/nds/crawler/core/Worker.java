@@ -16,6 +16,7 @@ import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.execution.NamedThreadFactory;
 import java.util.concurrent.*;
+import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bson.Document;
@@ -94,13 +95,15 @@ public class Worker {
 
     private void handleScanJob(ScanJobDescription scanJobDescription) {
         LOGGER.info("Received scan job for {}", scanJobDescription.getScanTarget());
+        Consumer<Document> partialResultCallback =
+                partial -> persistenceProvider.upsertPartialResult(scanJobDescription, partial);
         ProgressableFuture<Document> progressableFuture =
                 BulkScanWorkerManager.handleStatic(
                         scanJobDescription,
                         parallelConnectionThreads,
                         parallelScanThreads,
                         parallelProbes,
-                        persistenceProvider);
+                        partialResultCallback);
 
         workerExecutor.submit(
                 () -> {

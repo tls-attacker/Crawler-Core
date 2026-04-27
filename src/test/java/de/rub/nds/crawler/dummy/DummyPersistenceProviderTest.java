@@ -17,7 +17,6 @@ import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.data.ScanTarget;
-import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,8 +38,7 @@ class DummyPersistenceProviderTest {
                     public BulkScanWorker<? extends ScanConfig> createWorker(
                             String bulkScanID,
                             int parallelConnectionThreads,
-                            int parallelScanThreads,
-                            IPersistenceProvider persistenceProvider) {
+                            int parallelScanThreads) {
                         return null;
                     }
                 };
