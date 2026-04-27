@@ -19,6 +19,7 @@ import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.config.ScannerDetail;
+import java.util.List;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class DummyPersistenceProviderTest {
 
         // Create a test BulkScan
         ScanConfig scanConfig =
-                new ScanConfig(ScannerDetail.NORMAL, 1, 5000) {
+                new ScanConfig(ScannerDetail.NORMAL, 1, 5000, 1, List.of()) {
                     @Override
                     public BulkScanWorker<? extends ScanConfig> createWorker(
                             String bulkScanID,

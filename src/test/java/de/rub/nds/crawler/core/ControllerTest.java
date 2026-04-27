@@ -85,6 +85,7 @@ class ControllerTest {
             Assertions.assertEquals(2, jobExcludedProbes.size());
             Assertions.assertEquals("probe1", jobExcludedProbes.get(0).getName());
             Assertions.assertEquals("probe2", jobExcludedProbes.get(1).getName());
+            Assertions.assertEquals(1, job.getBulkScanInfo().getScanConfig().getParallelProbes());
         }
     }
 
