@@ -11,7 +11,6 @@ package de.rub.nds.crawler.core;
 import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanTarget;
-import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.crawler.util.CanceallableThreadPoolExecutor;
 import de.rub.nds.scanner.core.execution.NamedThreadFactory;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -43,9 +42,6 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     /** The scan configuration for this worker */
     protected final T scanConfig;
 
-    /** The persistence provider for writing partial results */
-    protected final IPersistenceProvider persistenceProvider;
-
     /**
      * Calls the inner scan function and may handle cleanup. This is needed to wrap the scanner into
      * a future object such that we can handle timeouts properly.
@@ -60,16 +56,10 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      * @param scanConfig The scan configuration for this worker
      * @param parallelScanThreads The number of parallel scan threads to use, i.e., how many {@link
      *     ScanTarget}s to handle in parallel.
-     * @param persistenceProvider The persistence provider for writing partial results
      */
-    protected BulkScanWorker(
-            String bulkScanId,
-            T scanConfig,
-            int parallelScanThreads,
-            IPersistenceProvider persistenceProvider) {
+    protected BulkScanWorker(String bulkScanId, T scanConfig, int parallelScanThreads) {
         this.bulkScanId = bulkScanId;
         this.scanConfig = scanConfig;
-        this.persistenceProvider = persistenceProvider;
 
         timeoutExecutor =
                 new CanceallableThreadPoolExecutor(
@@ -94,24 +84,33 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      *   <li>Wait for the final result via {@link ProgressableFuture#get()}
      * </ul>
      *
+     * <p>The optional {@code partialResultCallback} is invoked once for every partial result the
+     * scan emits. The framework does not throttle, persist, or otherwise post-process partial
+     * results; the caller owns that policy. Throw-safe: exceptions from the callback are logged and
+     * swallowed so the scan continues.
+     *
      * @param jobDescription The job description for this scan.
+     * @param partialResultCallback Optional consumer for partial results, or {@code null} to ignore
+     *     partials.
      * @return A ProgressableFuture representing the scan lifecycle
      */
-    public ProgressableFuture<Document> handle(ScanJobDescription jobDescription) {
+    public ProgressableFuture<Document> handle(
+            ScanJobDescription jobDescription, Consumer<Document> partialResultCallback) {
         // if we initialized ourself, we also clean up ourself
         shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
         activeJobs.incrementAndGet();
 
         ProgressableFuture<Document> progressableFuture = new ProgressableFuture<>();
 
-        // Compose a consumer that both updates the future and persists partial results
         Consumer<Document> progressConsumer =
                 partialResult -> {
                     progressableFuture.updateResult(partialResult);
-                    try {
-                        persistenceProvider.upsertPartialResult(jobDescription, partialResult);
-                    } catch (Exception e) {
-                        LOGGER.warn("Failed to persist partial result, continuing scan", e);
+                    if (partialResultCallback != null) {
+                        try {
+                            partialResultCallback.accept(partialResult);
+                        } catch (Exception e) {
+                            LOGGER.warn("Partial result callback threw, continuing scan", e);
+                        }
                     }
                 };
 
@@ -130,6 +129,16 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                 });
 
         return progressableFuture;
+    }
+
+    /**
+     * Convenience overload for callers that do not need partial results.
+     *
+     * @param jobDescription The job description for this scan.
+     * @return A ProgressableFuture representing the scan lifecycle
+     */
+    public ProgressableFuture<Document> handle(ScanJobDescription jobDescription) {
+        return handle(jobDescription, null);
     }
 
     /**
