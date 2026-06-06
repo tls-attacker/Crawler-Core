@@ -9,6 +9,7 @@
 package de.rub.nds.crawler.data;
 
 import de.rub.nds.crawler.core.BulkScanWorker;
+import de.rub.nds.crawler.core.ProgressThrottler;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.scanner.core.config.ScannerDetail;
 import de.rub.nds.scanner.core.probe.ProbeType;
@@ -30,6 +31,10 @@ public abstract class ScanConfig implements Serializable {
     private int parallelProbes;
 
     private List<ProbeType> excludedProbes;
+
+    private boolean partialResultsEnabled = true;
+
+    private long partialResultThrottleMs = ProgressThrottler.DEFAULT_THROTTLE_MS;
 
     @SuppressWarnings("unused")
     private ScanConfig() {}
@@ -124,6 +129,22 @@ public abstract class ScanConfig implements Serializable {
 
     public void setExcludedProbes(List<ProbeType> excludedProbes) {
         this.excludedProbes = excludedProbes;
+    }
+
+    public boolean isPartialResultsEnabled() {
+        return partialResultsEnabled;
+    }
+
+    public void setPartialResultsEnabled(boolean partialResultsEnabled) {
+        this.partialResultsEnabled = partialResultsEnabled;
+    }
+
+    public long getPartialResultThrottleMs() {
+        return partialResultThrottleMs;
+    }
+
+    public void setPartialResultThrottleMs(long partialResultThrottleMs) {
+        this.partialResultThrottleMs = partialResultThrottleMs;
     }
 
     /**

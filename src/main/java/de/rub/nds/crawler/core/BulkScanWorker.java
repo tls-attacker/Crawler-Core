@@ -46,6 +46,9 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     /** The persistence provider for writing partial results */
     protected final IPersistenceProvider persistenceProvider;
 
+    /** Throttler for progress updates. Owned and managed by this class. */
+    private final ProgressThrottler<Document> progressThrottler;
+
     /**
      * Calls the inner scan function and may handle cleanup. This is needed to wrap the scanner into
      * a future object such that we can handle timeouts properly.
@@ -70,6 +73,10 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         this.bulkScanId = bulkScanId;
         this.scanConfig = scanConfig;
         this.persistenceProvider = persistenceProvider;
+        this.progressThrottler =
+                new ProgressThrottler<>(
+                        scanConfig.getPartialResultThrottleMs(),
+                        "partial-result-throttle (bulk scan " + bulkScanId + ")");
 
         timeoutExecutor =
                 new CanceallableThreadPoolExecutor(
@@ -105,7 +112,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         ProgressableFuture<Document> progressableFuture = new ProgressableFuture<>();
 
         // Compose a consumer that both updates the future and persists partial results
-        Consumer<Document> progressConsumer =
+        Consumer<Document> rawConsumer =
                 partialResult -> {
                     progressableFuture.updateResult(partialResult);
                     try {
@@ -115,10 +122,24 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                     }
                 };
 
+        // Wrap with throttling if partial results are enabled; otherwise pass a no-op
+        // consumer so subclasses can call accept() unconditionally
+        Consumer<Document> progressConsumer;
+        if (scanConfig.isPartialResultsEnabled()) {
+            progressConsumer =
+                    partialResult ->
+                            progressThrottler.submit(
+                                    partialResult, rawConsumer, System.currentTimeMillis());
+        } else {
+            progressConsumer = partialResult -> {};
+        }
+
         timeoutExecutor.submit(
                 () -> {
                     try {
+                        progressThrottler.reset();
                         Document result = scan(jobDescription, progressConsumer);
+                        progressThrottler.flush();
                         progressableFuture.complete(result);
                     } catch (Exception e) {
                         progressableFuture.completeExceptionally(e);
@@ -155,6 +176,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         if (!initialized.get()) {
             synchronized (initializationLock) {
                 if (!initialized.getAndSet(true)) {
+                    progressThrottler.init();
                     initInternal();
                     return true;
                 }
@@ -183,6 +205,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                 }
                 if (initialized.getAndSet(false)) {
                     cleanupInternal();
+                    progressThrottler.shutdown();
                     shouldCleanupSelf.set(false);
                     return true;
                 }
