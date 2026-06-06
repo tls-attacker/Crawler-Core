@@ -30,6 +30,20 @@ public class PublishBulkScanJob implements Job {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
+    /**
+     * Executes the bulk scan job which creates scan jobs for a list of targets. This method
+     * performs the following operations:
+     *
+     * <ul>
+     *   <li>Creates and persists a BulkScan entity
+     *   <li>Filters targets based on denylist and DNS resolution
+     *   <li>Submits valid scan jobs to the orchestration provider
+     *   <li>Updates bulk scan statistics with job counts
+     * </ul>
+     *
+     * @param context the job execution context containing configuration and provider instances
+     * @throws JobExecutionException if an error occurs during job execution
+     */
     public void execute(JobExecutionContext context) throws JobExecutionException {
         try {
             JobDataMap data = context.getMergedJobDataMap();
@@ -109,6 +123,15 @@ public class PublishBulkScanJob implements Job {
         private final BulkScan bulkScan;
         private final int defaultPort;
 
+        /**
+         * Constructs a JobSubmitter for processing and submitting scan jobs.
+         *
+         * @param orchestrationProvider provider for submitting scan jobs to the message queue
+         * @param persistenceProvider provider for persisting scan results
+         * @param denylistProvider provider for checking if targets are denylisted
+         * @param bulkScan the bulk scan context for which jobs are being created
+         * @param defaultPort the default port to use if not specified in target string
+         */
         public JobSubmitter(
                 IOrchestrationProvider orchestrationProvider,
                 IPersistenceProvider persistenceProvider,
@@ -122,6 +145,22 @@ public class PublishBulkScanJob implements Job {
             this.defaultPort = defaultPort;
         }
 
+        /**
+         * Processes a target string to create and submit a scan job. This method performs the
+         * following operations:
+         *
+         * <ul>
+         *   <li>Parses the target string and resolves the hostname
+         *   <li>Checks if the target is denylisted
+         *   <li>Creates a scan job description
+         *   <li>Submits valid jobs to the orchestration provider
+         *   <li>Persists error results for invalid targets
+         * </ul>
+         *
+         * @param targetString the target to scan (hostname, IP address, or hostname:port)
+         * @return the status of the job (TO_BE_EXECUTED, DENYLISTED, UNRESOLVABLE, or
+         *     RESOLUTION_ERROR)
+         */
         @Override
         public JobStatus apply(String targetString) {
             ScanJobDescription jobDescription;
