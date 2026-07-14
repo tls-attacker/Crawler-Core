@@ -75,11 +75,13 @@ public interface IPersistenceProvider {
             String dbName, String collectionName, String scanJobDescriptionId);
 
     /**
-     * Upsert a partial scan result into the database. Uses the job ID as the document ID, so
-     * subsequent calls with the same job will overwrite the previous partial result.
+     * Upsert a partial scan result into the database. The partial result is written through the
+     * same persistence path as the final {@link ScanResult}, keyed by the job ID, so that
+     * subsequent partial writes — and the final result — overwrite the previous document.
      *
      * @param job The scan job description (provides ID, database name, collection name).
-     * @param partialResult The partial result document to upsert.
+     * @param partialResult The partial scan result to upsert (typically built via {@link
+     *     ScanResult#partialResult}).
      */
-    void upsertPartialResult(ScanJobDescription job, org.bson.Document partialResult);
+    void upsertPartialResult(ScanJobDescription job, ScanResult partialResult);
 }

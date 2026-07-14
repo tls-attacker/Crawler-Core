@@ -10,6 +10,7 @@ package de.rub.nds.crawler.core;
 
 import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
+import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.crawler.util.CanceallableThreadPoolExecutor;
@@ -109,7 +110,12 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                 partialResult -> {
                     progressableFuture.updateResult(partialResult);
                     try {
-                        persistenceProvider.upsertPartialResult(jobDescription, partialResult);
+                        // Wrap the partial result content in a ScanResult so it is persisted
+                        // through
+                        // the same path (and with the same _id) as the final result.
+                        persistenceProvider.upsertPartialResult(
+                                jobDescription,
+                                ScanResult.partialResult(jobDescription, partialResult));
                     } catch (Exception e) {
                         LOGGER.warn("Failed to persist partial result, continuing scan", e);
                     }
