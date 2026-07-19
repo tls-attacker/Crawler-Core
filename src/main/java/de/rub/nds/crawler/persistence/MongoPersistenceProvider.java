@@ -414,10 +414,18 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                 collectionName);
 
         try {
-            // Reuse the same write path (JacksonMongoCollection<ScanResult> upsert) as final
-            // results so partial and final results share serialization logic and the same _id.
-            // A failed partial write must not abort the scan, hence the swallowed exception.
-            writeResultToDatabase(dbName, collectionName, partialResult);
+            // Same collection/serialization as final results, but only replace documents that are
+            // still RUNNING: an in-flight partial write racing the final write must not revert a
+            // terminal state (it would stay RUNNING forever). Once a terminal result exists, the
+            // filter matches nothing and the upsert fails on the _id uniqueness check, which is
+            // swallowed below — a failed partial write must not abort the scan.
+            resultCollectionCache
+                    .getUnchecked(Pair.of(dbName, collectionName))
+                    .replaceOne(
+                            new org.bson.Document("_id", partialResult.getId())
+                                    .append("resultStatus", JobStatus.RUNNING.toString()),
+                            partialResult,
+                            new ReplaceOptions().upsert(true));
             LOGGER.debug("Upserted partial result for job {}", jobId);
         } catch (Exception e) {
             LOGGER.warn("Failed to upsert partial result for job {}: {}", jobId, e.getMessage());
