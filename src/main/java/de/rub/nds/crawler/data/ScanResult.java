@@ -61,6 +61,32 @@ public class ScanResult implements Serializable {
             throw new IllegalArgumentException(
                     "ScanJobDescription must not be in TO_BE_EXECUTED state");
         }
+        // Key the document by the job ID so that partial results and the final result share the
+        // same _id, letting the final result overwrite any partial result written during the scan.
+        this.id = scanJobDescription.getId().toString();
+    }
+
+    /**
+     * Builds an in-progress (partial) scan result for the given job. The result is keyed by the job
+     * ID and marked {@link JobStatus#RUNNING} so that successive partial writes — and the final
+     * result — overwrite the same document. Unlike the public constructor, this does not require
+     * the job to have left the {@link JobStatus#TO_BE_EXECUTED} state.
+     *
+     * @param scanJobDescription The job the partial result belongs to.
+     * @param result The partial result content (same shape as the final result content).
+     * @return A ScanResult in {@link JobStatus#RUNNING} state, keyed by the job ID.
+     */
+    public static ScanResult partialResult(ScanJobDescription scanJobDescription, Document result) {
+        ScanResult scanResult =
+                new ScanResult(
+                        scanJobDescription.getId().toString(),
+                        scanJobDescription.getBulkScanInfo().getBulkScanId(),
+                        scanJobDescription.getScanTarget(),
+                        JobStatus.RUNNING,
+                        result,
+                        Instant.now());
+        scanResult.setId(scanJobDescription.getId().toString());
+        return scanResult;
     }
 
     public static ScanResult fromException(ScanJobDescription scanJobDescription, Exception e) {

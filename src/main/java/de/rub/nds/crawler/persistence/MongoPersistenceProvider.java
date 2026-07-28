@@ -243,7 +243,14 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                 scanResult.getResultStatus(),
                 scanResult.getScanTarget().getHostname(),
                 collectionName);
-        resultCollectionCache.getUnchecked(Pair.of(dbName, collectionName)).insertOne(scanResult);
+        // Upsert keyed by _id (the job ID) so a final result overwrites any partial result that was
+        // written while the scan was still running, instead of leaving a duplicate document behind.
+        resultCollectionCache
+                .getUnchecked(Pair.of(dbName, collectionName))
+                .replaceOne(
+                        new org.bson.Document("_id", scanResult.getId()),
+                        scanResult,
+                        new ReplaceOptions().upsert(true));
     }
 
     @Override
@@ -395,7 +402,7 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
     }
 
     @Override
-    public void upsertPartialResult(ScanJobDescription job, org.bson.Document partialResult) {
+    public void upsertPartialResult(ScanJobDescription job, ScanResult partialResult) {
         String dbName = job.getDbName();
         String collectionName = job.getCollectionName();
         String jobId = job.getId().toString();
@@ -407,15 +414,18 @@ public class MongoPersistenceProvider implements IPersistenceProvider {
                 collectionName);
 
         try {
-            // Get raw MongoDB collection (not JacksonMongoCollection) for Document operations
-            var collection = databaseCache.getUnchecked(dbName).getCollection(collectionName);
-
-            // Upsert: replace if exists, insert if not
-            collection.replaceOne(
-                    new org.bson.Document("_id", jobId),
-                    partialResult,
-                    new ReplaceOptions().upsert(true));
-
+            // Same collection/serialization as final results, but only replace documents that are
+            // still RUNNING: an in-flight partial write racing the final write must not revert a
+            // terminal state (it would stay RUNNING forever). Once a terminal result exists, the
+            // filter matches nothing and the upsert fails on the _id uniqueness check, which is
+            // swallowed below — a failed partial write must not abort the scan.
+            resultCollectionCache
+                    .getUnchecked(Pair.of(dbName, collectionName))
+                    .replaceOne(
+                            new org.bson.Document("_id", partialResult.getId())
+                                    .append("resultStatus", JobStatus.RUNNING.toString()),
+                            partialResult,
+                            new ReplaceOptions().upsert(true));
             LOGGER.debug("Upserted partial result for job {}", jobId);
         } catch (Exception e) {
             LOGGER.warn("Failed to upsert partial result for job {}: {}", jobId, e.getMessage());

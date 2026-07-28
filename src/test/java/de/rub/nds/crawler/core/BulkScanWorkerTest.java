@@ -382,4 +382,61 @@ class BulkScanWorkerTest {
         worker.cleanup();
         assertTrue(worker.isCleanupCalled(), "Cleanup should be called when explicitly called");
     }
+
+    @Test
+    void testPartialResultIsPersistedAsRunningScanResultKeyedByJobId() throws Exception {
+        TestScanConfig config = new TestScanConfig();
+        DummyPersistenceProvider persistenceProvider = new DummyPersistenceProvider();
+
+        // Worker that emits one partial result before returning the final result.
+        BulkScanWorker<TestScanConfig> worker =
+                new BulkScanWorker<>("test-bulk-id", config, 1, persistenceProvider) {
+                    @Override
+                    public Document scan(
+                            ScanJobDescription jobDescription,
+                            Consumer<Document> progressConsumer) {
+                        progressConsumer.accept(new Document("isPartial", true));
+                        return new Document("isPartial", false);
+                    }
+
+                    @Override
+                    protected void initInternal() {}
+
+                    @Override
+                    protected void cleanupInternal() {}
+                };
+
+        ScanTarget target = new ScanTarget();
+        target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
+        target.setPort(443);
+
+        BulkScan bulkScan =
+                new BulkScan(
+                        BulkScanWorkerTest.class,
+                        BulkScanWorkerTest.class,
+                        "test-db",
+                        config,
+                        System.currentTimeMillis(),
+                        false,
+                        null);
+
+        ScanJobDescription jobDescription =
+                new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
+
+        worker.handle(jobDescription).get();
+
+        assertEquals(
+                1,
+                persistenceProvider.partialResults.size(),
+                "The emitted partial result should be persisted exactly once");
+        ScanResult partial = persistenceProvider.partialResults.get(0);
+        assertEquals(
+                JobStatus.RUNNING,
+                partial.getResultStatus(),
+                "Persisted partial result should be marked RUNNING");
+        assertEquals(
+                jobDescription.getId().toString(),
+                partial.getId(),
+                "Persisted partial result should be keyed by the job ID");
+    }
 }
