@@ -53,6 +53,7 @@ public class Worker {
         this.parallelScanThreads = commandConfig.getParallelScanThreads();
         this.parallelConnectionThreads = commandConfig.getParallelConnectionThreads();
         this.scanTimeout = commandConfig.getScanTimeout();
+        BulkScanWorkerManager.setWorkerIdleTimeout(commandConfig.getBulkScanWorkerIdleTimeout());
 
         workerExecutor =
                 new ThreadPoolExecutor(

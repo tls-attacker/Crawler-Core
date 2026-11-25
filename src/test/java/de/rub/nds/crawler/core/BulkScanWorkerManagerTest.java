@@ -9,6 +9,10 @@
 package de.rub.nds.crawler.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import de.rub.nds.crawler.data.ScanConfig;
 import de.rub.nds.crawler.data.ScanJobDescription;
@@ -97,5 +101,76 @@ class BulkScanWorkerManagerTest {
                         new DummyPersistenceProvider());
 
         assertEquals(6, scanConfig.getCapturedParallelProbes());
+    }
+
+    @Test
+    void idleWorkerIsCleanedUpWithoutFurtherJobs() throws Exception {
+        BulkScanWorkerManager manager = new BulkScanWorkerManager(200);
+        try {
+            BulkScanWorkerTest.TestBulkScanWorker worker =
+                    (BulkScanWorkerTest.TestBulkScanWorker)
+                            manager.getBulkScanWorker(
+                                    "bulk-scan-" + System.nanoTime(),
+                                    new BulkScanWorkerTest.TestScanConfig(),
+                                    5,
+                                    2,
+                                    new DummyPersistenceProvider());
+            assertFalse(worker.isCleanupCalled(), "Fresh worker must not be cleaned up");
+
+            // No further cache access: the periodic cleanup alone has to evict the worker
+            long deadline = System.currentTimeMillis() + 5000;
+            while (!worker.isCleanupCalled() && System.currentTimeMillis() < deadline) {
+                Thread.sleep(50);
+            }
+
+            assertTrue(worker.isCleanupCalled(), "Idle worker should be cleaned up");
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @Test
+    void workerIsReusedWithinIdleTimeout() {
+        BulkScanWorkerManager manager = new BulkScanWorkerManager(60_000);
+        try {
+            String bulkScanId = "bulk-scan-" + System.nanoTime();
+            BulkScanWorker<?> first =
+                    manager.getBulkScanWorker(
+                            bulkScanId,
+                            new BulkScanWorkerTest.TestScanConfig(),
+                            5,
+                            2,
+                            new DummyPersistenceProvider());
+            BulkScanWorker<?> second =
+                    manager.getBulkScanWorker(
+                            bulkScanId,
+                            new BulkScanWorkerTest.TestScanConfig(),
+                            5,
+                            2,
+                            new DummyPersistenceProvider());
+
+            assertTrue(first == second, "Worker of an active bulk scan should be reused");
+            assertNotSame(
+                    first,
+                    manager.getBulkScanWorker(
+                            bulkScanId + "-other",
+                            new BulkScanWorkerTest.TestScanConfig(),
+                            5,
+                            2,
+                            new DummyPersistenceProvider()),
+                    "Different bulk scans should get different workers");
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @Test
+    void nonPositiveIdleTimeoutIsRejected() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> BulkScanWorkerManager.setWorkerIdleTimeout(0));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> BulkScanWorkerManager.setWorkerIdleTimeout(-1));
     }
 }
