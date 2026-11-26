@@ -12,6 +12,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import de.rub.nds.crawler.config.delegate.MongoDbDelegate;
 import de.rub.nds.crawler.config.delegate.RabbitMqDelegate;
+import de.rub.nds.crawler.core.BulkScanWorkerManager;
 
 /**
  * Configuration class for worker instances used to parse command line parameters. Contains settings
@@ -42,6 +43,13 @@ public class WorkerCommandConfig {
                             + "Has to be lower than rabbitMq consumerAck timeout (default 15min) or else rabbitMq connection will be closed if scan takes longer."
                             + "After the timeout the worker tries to shutdown the scan but a shutdown can not be guaranteed due to the TLS-Scanner implementation.")
     private int scanTimeout = 840000;
+
+    @Parameter(
+            names = "-bulkScanWorkerIdleTimeout",
+            description =
+                    "Time in ms after which the per bulk scan thread pools are released if the bulk scan received no new scan jobs. (Default 30 minutes) "
+                            + "Running scans are not affected; their pools are released once they finished. ")
+    private long bulkScanWorkerIdleTimeout = BulkScanWorkerManager.DEFAULT_WORKER_IDLE_TIMEOUT_MS;
 
     public WorkerCommandConfig() {
         rabbitMqDelegate = new RabbitMqDelegate();
@@ -78,5 +86,13 @@ public class WorkerCommandConfig {
 
     public void setScanTimeout(int scanTimeout) {
         this.scanTimeout = scanTimeout;
+    }
+
+    public long getBulkScanWorkerIdleTimeout() {
+        return bulkScanWorkerIdleTimeout;
+    }
+
+    public void setBulkScanWorkerIdleTimeout(long bulkScanWorkerIdleTimeout) {
+        this.bulkScanWorkerIdleTimeout = bulkScanWorkerIdleTimeout;
     }
 }

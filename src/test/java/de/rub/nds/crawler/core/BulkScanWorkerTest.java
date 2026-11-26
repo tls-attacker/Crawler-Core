@@ -21,6 +21,10 @@ import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
@@ -46,8 +50,8 @@ class BulkScanWorkerTest {
 
     // Test implementation of BulkScanWorker
     static class TestBulkScanWorker extends BulkScanWorker<TestScanConfig> {
-        private boolean initCalled = false;
-        private boolean cleanupCalled = false;
+        private volatile boolean initCalled = false;
+        private volatile boolean cleanupCalled = false;
         private ScanJobDescription capturedJobDescription = null;
 
         TestBulkScanWorker(
@@ -438,5 +442,116 @@ class BulkScanWorkerTest {
                 jobDescription.getId().toString(),
                 partial.getId(),
                 "Persisted partial result should be keyed by the job ID");
+    }
+
+    private static ScanJobDescription createJobDescription(ScanConfig config) {
+        ScanTarget target = new ScanTarget();
+        target.setIp("192.0.2.1"); // TEST-NET-1 (RFC 5737)
+        target.setPort(443);
+        BulkScan bulkScan =
+                new BulkScan(
+                        BulkScanWorkerTest.class,
+                        BulkScanWorkerTest.class,
+                        "test-db",
+                        config,
+                        System.currentTimeMillis(),
+                        false,
+                        null);
+        return new ScanJobDescription(target, bulkScan, JobStatus.TO_BE_EXECUTED);
+    }
+
+    @Test
+    void testScanExecutorThreadsTimeOutWhenIdle() {
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker(
+                        "test-bulk-id", new TestScanConfig(), 2, new DummyPersistenceProvider());
+        assertNull(worker.getTimeoutExecutor(), "No executor should exist before init");
+
+        worker.init();
+
+        ThreadPoolExecutor executor = worker.getTimeoutExecutor();
+        assertNotNull(executor, "Init should create the scan executor");
+        assertTrue(
+                executor.allowsCoreThreadTimeOut(),
+                "Idle scan threads must terminate instead of living until shutdown");
+        worker.cleanup();
+    }
+
+    @Test
+    void testCleanupShutsDownScanExecutor() throws Exception {
+        TestScanConfig config = new TestScanConfig();
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker("test-bulk-id", config, 2, new DummyPersistenceProvider());
+        worker.init();
+        worker.handle(createJobDescription(config)).get();
+        ThreadPoolExecutor executor = worker.getTimeoutExecutor();
+
+        assertTrue(worker.cleanup(), "Cleanup should run when no jobs are active");
+
+        assertTrue(executor.isShutdown(), "Cleanup should shut down the scan executor");
+        assertTrue(
+                executor.awaitTermination(5, TimeUnit.SECONDS),
+                "Scan executor threads should terminate after cleanup");
+        assertNull(worker.getTimeoutExecutor(), "Cleaned up worker should not keep its executor");
+    }
+
+    @Test
+    void testCleanupWhileScanRunsIsDeferredUntilScanFinished() throws Exception {
+        TestScanConfig config = new TestScanConfig();
+        CountDownLatch scanStarted = new CountDownLatch(1);
+        CountDownLatch releaseScan = new CountDownLatch(1);
+        AtomicBoolean cleanupInternalCalled = new AtomicBoolean(false);
+        BulkScanWorker<TestScanConfig> worker =
+                new BulkScanWorker<>("test-bulk-id", config, 1, new DummyPersistenceProvider()) {
+                    @Override
+                    public Document scan(
+                            ScanJobDescription jobDescription,
+                            Consumer<Document> progressConsumer) {
+                        scanStarted.countDown();
+                        try {
+                            releaseScan.await(10, TimeUnit.SECONDS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        return new Document("done", true);
+                    }
+
+                    @Override
+                    protected void initInternal() {}
+
+                    @Override
+                    protected void cleanupInternal() {
+                        cleanupInternalCalled.set(true);
+                    }
+                };
+        worker.init();
+        ProgressableFuture<Document> future = worker.handle(createJobDescription(config));
+        assertTrue(scanStarted.await(5, TimeUnit.SECONDS), "Scan should start");
+        ThreadPoolExecutor executor = worker.getTimeoutExecutor();
+
+        assertFalse(worker.cleanup(), "Cleanup must be deferred while a scan is running");
+        assertFalse(executor.isShutdown(), "Running scan must keep its executor");
+        assertFalse(cleanupInternalCalled.get(), "Running scan must keep its resources");
+
+        releaseScan.countDown();
+        assertEquals(new Document("done", true), future.get(5, TimeUnit.SECONDS));
+
+        assertTrue(
+                executor.awaitTermination(5, TimeUnit.SECONDS),
+                "Deferred cleanup should shut down the executor once the scan finished");
+        assertTrue(cleanupInternalCalled.get(), "Deferred cleanup should release resources");
+    }
+
+    @Test
+    void testHandleAfterCleanupReinitializes() throws Exception {
+        TestScanConfig config = new TestScanConfig();
+        TestBulkScanWorker worker =
+                new TestBulkScanWorker("test-bulk-id", config, 1, new DummyPersistenceProvider());
+        worker.init();
+        worker.cleanup();
+
+        Document result = worker.handle(createJobDescription(config)).get(5, TimeUnit.SECONDS);
+
+        assertEquals("192.0.2.1", result.get("target"), "Scan should run on a new executor");
     }
 }

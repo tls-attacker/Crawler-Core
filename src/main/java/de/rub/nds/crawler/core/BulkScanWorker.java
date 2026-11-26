@@ -14,7 +14,6 @@ import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.crawler.util.CanceallableThreadPoolExecutor;
-import de.rub.nds.scanner.core.execution.NamedThreadFactory;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -47,11 +46,15 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
     /** The persistence provider for writing partial results */
     protected final IPersistenceProvider persistenceProvider;
 
+    private static final long SCAN_THREAD_KEEP_ALIVE_MINUTES = 5;
+
+    private final int parallelScanThreads;
+
     /**
      * Calls the inner scan function and may handle cleanup. This is needed to wrap the scanner into
-     * a future object such that we can handle timeouts properly.
+     * a future object such that we can handle timeouts properly. Guarded by initializationLock.
      */
-    private final ThreadPoolExecutor timeoutExecutor;
+    private ThreadPoolExecutor timeoutExecutor;
 
     /**
      * Creates a new bulk scan worker. This should only be called by the {@link
@@ -71,15 +74,21 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         this.bulkScanId = bulkScanId;
         this.scanConfig = scanConfig;
         this.persistenceProvider = persistenceProvider;
+        this.parallelScanThreads = parallelScanThreads;
+    }
 
-        timeoutExecutor =
+    private ThreadPoolExecutor createTimeoutExecutor() {
+        ThreadPoolExecutor executor =
                 new CanceallableThreadPoolExecutor(
                         parallelScanThreads,
                         parallelScanThreads,
-                        5,
+                        SCAN_THREAD_KEEP_ALIVE_MINUTES,
                         TimeUnit.MINUTES,
                         new LinkedBlockingDeque<>(),
-                        new NamedThreadFactory("crawler-worker: scan executor"));
+                        Thread.ofVirtual().name("crawler-worker: scan executor-", 1).factory());
+        // core == max, so without this idle threads would never terminate
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
     }
 
     /**
@@ -99,10 +108,6 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      * @return A ProgressableFuture representing the scan lifecycle
      */
     public ProgressableFuture<Document> handle(ScanJobDescription jobDescription) {
-        // if we initialized ourself, we also clean up ourself
-        shouldCleanupSelf.weakCompareAndSetAcquire(false, init());
-        activeJobs.incrementAndGet();
-
         ProgressableFuture<Document> progressableFuture = new ProgressableFuture<>();
 
         // Compose a consumer that both updates the future and persists partial results
@@ -121,19 +126,31 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                     }
                 };
 
-        timeoutExecutor.submit(
-                () -> {
-                    try {
-                        Document result = scan(jobDescription, progressConsumer);
-                        progressableFuture.complete(result);
-                    } catch (Exception e) {
-                        progressableFuture.completeExceptionally(e);
-                    } finally {
-                        if (activeJobs.decrementAndGet() == 0 && shouldCleanupSelf.get()) {
-                            cleanup();
-                        }
-                    }
-                });
+        synchronized (initializationLock) {
+            // if we initialized ourself, we also clean up ourself
+            if (init()) {
+                shouldCleanupSelf.set(true);
+            }
+            activeJobs.incrementAndGet();
+            try {
+                timeoutExecutor.submit(
+                        () -> {
+                            try {
+                                Document result = scan(jobDescription, progressConsumer);
+                                progressableFuture.complete(result);
+                            } catch (Exception e) {
+                                progressableFuture.completeExceptionally(e);
+                            } finally {
+                                if (activeJobs.decrementAndGet() == 0 && shouldCleanupSelf.get()) {
+                                    cleanup();
+                                }
+                            }
+                        });
+            } catch (RuntimeException e) {
+                activeJobs.decrementAndGet();
+                throw e;
+            }
+        }
 
         return progressableFuture;
     }
@@ -161,6 +178,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
         if (!initialized.get()) {
             synchronized (initializationLock) {
                 if (!initialized.getAndSet(true)) {
+                    timeoutExecutor = createTimeoutExecutor();
                     initInternal();
                     return true;
                 }
@@ -188,8 +206,13 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                     return false;
                 }
                 if (initialized.getAndSet(false)) {
-                    cleanupInternal();
-                    shouldCleanupSelf.set(false);
+                    try {
+                        cleanupInternal();
+                    } finally {
+                        timeoutExecutor.shutdown();
+                        timeoutExecutor = null;
+                        shouldCleanupSelf.set(false);
+                    }
                     return true;
                 }
             }
@@ -210,4 +233,11 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
      * specific resources.
      */
     protected abstract void cleanupInternal();
+
+    // visible for testing
+    ThreadPoolExecutor getTimeoutExecutor() {
+        synchronized (initializationLock) {
+            return timeoutExecutor;
+        }
+    }
 }
