@@ -9,8 +9,6 @@
 
     <artifactId>crawler-core</artifactId>
     <version>1.6.1-SNAPSHOT</version>
-
-
     <name>Crawler-Core</name>
     <url>https://github.com/tls-attacker/TLS-Crawler</url>
     <inceptionYear>2023</inceptionYear>
