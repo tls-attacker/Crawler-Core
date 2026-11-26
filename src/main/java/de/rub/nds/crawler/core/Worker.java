@@ -14,7 +14,6 @@ import de.rub.nds.crawler.data.ScanJobDescription;
 import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.orchestration.IOrchestrationProvider;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
-import de.rub.nds.scanner.core.execution.NamedThreadFactory;
 import java.util.concurrent.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,7 +61,7 @@ public class Worker {
                         5,
                         TimeUnit.MINUTES,
                         new LinkedBlockingDeque<>(),
-                        new NamedThreadFactory("crawler-worker: result handler"));
+                        Thread.ofVirtual().name("crawler-worker: result handler-", 1).factory());
     }
 
     public void start() {

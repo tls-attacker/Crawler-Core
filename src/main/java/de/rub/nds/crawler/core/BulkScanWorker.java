@@ -14,7 +14,6 @@ import de.rub.nds.crawler.data.ScanResult;
 import de.rub.nds.crawler.data.ScanTarget;
 import de.rub.nds.crawler.persistence.IPersistenceProvider;
 import de.rub.nds.crawler.util.CanceallableThreadPoolExecutor;
-import de.rub.nds.scanner.core.execution.NamedThreadFactory;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -86,7 +85,7 @@ public abstract class BulkScanWorker<T extends ScanConfig> {
                         SCAN_THREAD_KEEP_ALIVE_MINUTES,
                         TimeUnit.MINUTES,
                         new LinkedBlockingDeque<>(),
-                        new NamedThreadFactory("crawler-worker: scan executor"));
+                        Thread.ofVirtual().name("crawler-worker: scan executor-", 1).factory());
         // core == max, so without this idle threads would never terminate
         executor.allowCoreThreadTimeOut(true);
         return executor;
